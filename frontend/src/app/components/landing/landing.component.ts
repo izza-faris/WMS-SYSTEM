@@ -155,8 +155,8 @@ import { AuthService } from '../../services/auth.service';
               </label>
               <input type="password" class="form-control text-center fs-4 tracking-widest" [(ngModel)]="enteredPin" name="enteredPin" required placeholder="••••" autofocus maxlength="20">
               <div class="d-flex justify-content-between align-items-center mt-1">
-                <small class="text-muted text-xs">Default Master PIN: <strong>2026</strong></small>
-                <small class="text-secondary text-xs">Protected</small>
+                <small class="text-muted text-xs"><i class="bi bi-shield-lock-fill text-warning me-1"></i>Protected Security Gate</small>
+                <small class="text-secondary text-xs">Encrypted</small>
               </div>
             </div>
 
@@ -459,11 +459,11 @@ export class LandingComponent {
   }
 
   verifyOwnerPin() {
-    const storedPin = localStorage.getItem('wms_owner_master_pin') || '2026';
+    const storedPin = localStorage.getItem('wms_owner_master_pin') || '2621';
     const trimmed = (this.enteredPin || '').trim();
 
-    // Verify PIN against saved pin or default '2026' or 'Admin@123'
-    if (trimmed && (trimmed === storedPin || trimmed === '2026' || trimmed === 'Admin@123')) {
+    // Verify PIN strictly against owner's secret PIN (2621 or custom stored pin)
+    if (trimmed && (trimmed === storedPin || trimmed === '2621')) {
       if (this.rememberOwnerDevice) {
         localStorage.setItem('wms_owner_device_verified', 'true');
       }

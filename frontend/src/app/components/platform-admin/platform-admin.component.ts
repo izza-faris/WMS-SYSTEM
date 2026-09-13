@@ -110,7 +110,7 @@ import { Client, PlatformStats } from '../../models/wms.models';
                 <span><i class="bi bi-shield-lock-fill me-1 text-warning"></i> Owner Master PIN (Front-end Button Privacy Lock)</span>
                 <span class="badge bg-danger text-white text-xs">Privacy Gate</span>
               </label>
-              <input type="text" class="form-control text-warning fw-bold" [(ngModel)]="securityForm.ownerPin" name="ownerPin" placeholder="Default: 2026" maxlength="20">
+              <input type="text" class="form-control text-warning fw-bold" [(ngModel)]="securityForm.ownerPin" name="ownerPin" placeholder="Owner Secret PIN (e.g. 2621)" maxlength="20">
               <small class="text-muted text-xs d-block mt-1">This Master PIN blocks strangers from clicking or opening the "Platform Admin Owner" button.</small>
               <div class="mt-2">
                 <button type="button" (click)="revokeVerifiedDevices()" class="btn btn-glass btn-sm text-danger text-xs py-1">
@@ -298,7 +298,7 @@ export class PlatformAdminComponent implements OnInit {
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
-    ownerPin: '2026'
+    ownerPin: '2621'
   };
   securityLoading = false;
   securityError = '';
@@ -343,7 +343,7 @@ export class PlatformAdminComponent implements OnInit {
       currentPassword: '',
       newPassword: '',
       confirmPassword: '',
-      ownerPin: localStorage.getItem('wms_owner_master_pin') || '2026'
+      ownerPin: localStorage.getItem('wms_owner_master_pin') || '2621'
     };
     this.securityError = '';
     this.securitySuccess = '';
