@@ -22,7 +22,10 @@
             "tsConfig": "tsconfig.app.json",
             "assets": [
               "src/favicon.ico",
-              "src/assets"
+              "src/favicon.svg",
+              "src/assets",
+              "src/404.html",
+              "src/.nojekyll"
             ],
             "styles": [
               "node_modules/bootstrap/dist/css/bootstrap.min.css",
@@ -35,6 +38,7 @@
           },
           "configurations": {
             "production": {
+              "baseHref": "/WMS-SYSTEM/",
               "fileReplacements": [
                 {
                   "replace": "src/environments/environment.ts",

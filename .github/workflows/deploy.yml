@@ -1,20 +1,26 @@
-name: Deploy Frontend to GitHub Pages
+name: Build and Deploy Frontend to GitHub Pages
 
 on:
   push:
     branches:
       - main
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -30,15 +36,28 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Build Angular App
+      - name: Build Angular Frontend for GitHub Pages
         working-directory: frontend
-        run: |
-          npm run build -- --base-href /WMS-SYSTEM/
-          cp dist/wms-frontend/browser/index.html dist/wms-frontend/browser/404.html
-          touch dist/wms-frontend/browser/.nojekyll
+        run: npm run build:gh-pages
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy to gh-pages Branch
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: frontend/dist/wms-frontend/browser
           branch: gh-pages
+          clean: true
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        continue-on-error: true
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist/wms-frontend/browser
+        continue-on-error: true
+
+      - name: Deploy to GitHub Pages (Actions Mode)
+        id: deployment
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
