@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of, switchMap, map } from 'rxjs';
 import { ApiResponse } from '../models/auth.models';
 import { environment } from '../../environments/environment';
 import {
@@ -76,6 +76,48 @@ export class WmsApiService {
 
   createWarehouse(warehouse: Partial<Warehouse>): Observable<ApiResponse<Warehouse>> {
     return this.http.post<ApiResponse<Warehouse>>(`${this.baseUrl}/warehouses`, warehouse);
+  }
+
+  ensureDefaultWarehouse(name: string = 'Main Warehouse'): Observable<Warehouse> {
+    return this.getWarehouses().pipe(
+      switchMap(res => {
+        if (res.success && res.data && res.data.length > 0) {
+          const match = res.data.find(w => w.name.toLowerCase() === name.toLowerCase());
+          if (match) return of(match);
+          return of(res.data[0]);
+        }
+        return this.getBranches().pipe(
+          switchMap(bRes => {
+            if (bRes.success && bRes.data && bRes.data.length > 0) {
+              const branchId = bRes.data[0].id;
+              const code = 'WH-' + Math.floor(1000 + Math.random() * 9000);
+              return this.createWarehouse({
+                branchId,
+                name: name || 'Main Warehouse',
+                code,
+                address: 'Main Facility'
+              }).pipe(map(wRes => wRes.data));
+            }
+            return this.createBranch({
+              branchName: 'Main Branch',
+              branchCode: 'HQ-01',
+              address: 'Headquarters'
+            }).pipe(
+              switchMap(nbRes => {
+                const branchId = nbRes.data.id;
+                const code = 'WH-' + Math.floor(1000 + Math.random() * 9000);
+                return this.createWarehouse({
+                  branchId,
+                  name: name || 'Main Warehouse',
+                  code,
+                  address: 'Main Facility'
+                }).pipe(map(wRes => wRes.data));
+              })
+            );
+          })
+        );
+      })
+    );
   }
 
   getWarehouseTree(id: number): Observable<ApiResponse<WarehouseTree>> {

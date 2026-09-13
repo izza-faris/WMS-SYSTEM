@@ -92,10 +92,11 @@ import { Branch, UserProfile } from '../../models/wms.models';
                 </div>
                 <div class="col-6">
                   <label class="form-label text-secondary small fw-semibold">Branch Assignment</label>
-                  <select class="form-select" [(ngModel)]="newUser.branchId" name="branchId">
-                    <option [ngValue]="null">All / None</option>
-                    <option *ngFor="let b of branches()" [ngValue]="b.id">{{ b.branchName }}</option>
-                  </select>
+                  <input type="text" class="form-control" [(ngModel)]="newUser.branchSearch" list="userBranchList" name="branchSearch" placeholder="Type Branch (or All)">
+                  <datalist id="userBranchList">
+                    <option value="All Branches"></option>
+                    <option *ngFor="let b of branches()" [value]="b.branchName">{{ b.branchName }}</option>
+                  </datalist>
                 </div>
               </div>
 
@@ -130,6 +131,7 @@ export class UsersComponent implements OnInit {
     email: '',
     role: 'WAREHOUSE_STAFF',
     branchId: null,
+    branchSearch: '',
     password: '',
     phone: ''
   };
@@ -152,13 +154,32 @@ export class UsersComponent implements OnInit {
   }
 
   openCreateModal() {
+    this.newUser.branchSearch = '';
     this.showModal = true;
   }
 
   saveUser() {
-    this.wmsApi.createUser(this.newUser).subscribe({
+    const term = (this.newUser.branchSearch || '').trim().toLowerCase();
+    if (!term || term === 'all' || term === 'all branches' || term === 'all / none') {
+      this.newUser.branchId = null;
+    } else {
+      const b = this.branches().find(branch => branch.branchName.toLowerCase() === term);
+      this.newUser.branchId = b ? b.id : null;
+    }
+
+    const payload = {
+      fullName: this.newUser.fullName,
+      email: this.newUser.email,
+      role: this.newUser.role,
+      branchId: this.newUser.branchId,
+      password: this.newUser.password,
+      phone: this.newUser.phone
+    };
+
+    this.wmsApi.createUser(payload).subscribe({
       next: () => {
         this.showModal = false;
+        alert('User created successfully!');
         this.loadUsers();
       },
       error: (err) => alert(err.error?.message || 'Failed to create user')

@@ -38,17 +38,27 @@ import { Product, Warehouse, StockTransaction, FefoBatchRecommendation } from '.
             <!-- Stock IN Form -->
             <form *ngIf="activeTab === 'IN'" (ngSubmit)="submitStockIn()">
               <div class="mb-3">
-                <label class="form-label text-secondary small fw-semibold">Select Product *</label>
-                <select class="form-select" [(ngModel)]="stockInForm.productId" name="productId" required>
-                  <option *ngFor="let p of products()" [value]="p.id">{{ p.name }} (SKU: {{ p.sku }})</option>
-                </select>
+                <label class="form-label text-secondary small fw-semibold">Product Name, SKU, or Barcode *</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-box-seam"></i></span>
+                  <input type="text" class="form-control" [(ngModel)]="stockInForm.productSearch" name="productSearch" list="stockInProdList" placeholder="Type Product (e.g. Shoe kingdom, Rice)" required>
+                </div>
+                <datalist id="stockInProdList">
+                  <option *ngFor="let p of products()" [value]="p.name">{{ p.name }} (SKU: {{ p.sku }})</option>
+                </datalist>
+                <small class="text-muted text-xs mt-1 d-block">Type to search or enter directly</small>
               </div>
 
               <div class="mb-3">
                 <label class="form-label text-secondary small fw-semibold">Destination Warehouse *</label>
-                <select class="form-select" [(ngModel)]="stockInForm.warehouseId" name="warehouseId" required>
-                  <option *ngFor="let w of warehouses()" [value]="w.id">{{ w.name }}</option>
-                </select>
+                <div class="input-group">
+                  <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-building"></i></span>
+                  <input type="text" class="form-control" [(ngModel)]="stockInForm.warehouseSearch" name="warehouseSearch" list="stockInWhList" placeholder="Type Warehouse (e.g. Main Warehouse)" required>
+                </div>
+                <datalist id="stockInWhList">
+                  <option *ngFor="let w of warehouses()" [value]="w.name">{{ w.name }}</option>
+                </datalist>
+                <small class="text-muted text-xs mt-1 d-block">Type warehouse name (creates automatically if new)</small>
               </div>
 
               <div class="row g-2 mb-3">
@@ -91,17 +101,25 @@ import { Product, Warehouse, StockTransaction, FefoBatchRecommendation } from '.
             <!-- Stock OUT Form -->
             <form *ngIf="activeTab === 'OUT'" (ngSubmit)="submitStockOut()">
               <div class="mb-3">
-                <label class="form-label text-secondary small fw-semibold">Select Product *</label>
-                <select class="form-select" [(ngModel)]="stockOutForm.productId" name="productId" (change)="onProductChangeForOut()" required>
-                  <option *ngFor="let p of products()" [value]="p.id">{{ p.name }} (SKU: {{ p.sku }})</option>
-                </select>
+                <label class="form-label text-secondary small fw-semibold">Product Name, SKU, or Barcode *</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-box-seam"></i></span>
+                  <input type="text" class="form-control" [(ngModel)]="stockOutForm.productSearch" name="productSearchOut" list="stockOutProdList" placeholder="Type Product (e.g. Shoe kingdom)" (input)="onProductChangeForOut()" required>
+                </div>
+                <datalist id="stockOutProdList">
+                  <option *ngFor="let p of products()" [value]="p.name">{{ p.name }} (SKU: {{ p.sku }})</option>
+                </datalist>
               </div>
 
               <div class="mb-3">
                 <label class="form-label text-secondary small fw-semibold">Source Warehouse *</label>
-                <select class="form-select" [(ngModel)]="stockOutForm.warehouseId" name="warehouseId" (change)="onProductChangeForOut()" required>
-                  <option *ngFor="let w of warehouses()" [value]="w.id">{{ w.name }}</option>
-                </select>
+                <div class="input-group">
+                  <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-building"></i></span>
+                  <input type="text" class="form-control" [(ngModel)]="stockOutForm.warehouseSearch" name="warehouseSearchOut" list="stockOutWhList" placeholder="Type Warehouse (e.g. Main Warehouse)" (input)="onProductChangeForOut()" required>
+                </div>
+                <datalist id="stockOutWhList">
+                  <option *ngFor="let w of warehouses()" [value]="w.name">{{ w.name }}</option>
+                </datalist>
               </div>
 
               <!-- FEFO Batch Recommendation Preview -->
@@ -185,6 +203,8 @@ export class StockMovementComponent implements OnInit {
   stockInForm: any = {
     productId: null,
     warehouseId: null,
+    productSearch: '',
+    warehouseSearch: '',
     quantity: 10,
     batchNumber: '',
     mfgDate: '',
@@ -196,6 +216,8 @@ export class StockMovementComponent implements OnInit {
   stockOutForm: any = {
     productId: null,
     warehouseId: null,
+    productSearch: '',
+    warehouseSearch: '',
     quantity: 5,
     batchId: null,
     referenceNumber: '',
@@ -206,23 +228,30 @@ export class StockMovementComponent implements OnInit {
 
   ngOnInit(): void {
     this.wmsApi.getAllProductsList().subscribe(res => {
-      if (res.success) {
+      if (res.success && res.data) {
         this.products.set(res.data);
         if (res.data.length > 0) {
           this.stockInForm.productId = res.data[0].id;
+          this.stockInForm.productSearch = res.data[0].name;
           this.stockOutForm.productId = res.data[0].id;
+          this.stockOutForm.productSearch = res.data[0].name;
         }
       }
     });
 
-    this.wmsApi.getWarehouses().subscribe(res => {
-      if (res.success) {
-        this.warehouses.set(res.data);
-        if (res.data.length > 0) {
-          this.stockInForm.warehouseId = res.data[0].id;
-          this.stockOutForm.warehouseId = res.data[0].id;
-        }
+    this.wmsApi.ensureDefaultWarehouse().subscribe(wh => {
+      if (wh) {
+        this.warehouses.set([wh]);
+        this.stockInForm.warehouseId = wh.id;
+        this.stockInForm.warehouseSearch = wh.name;
+        this.stockOutForm.warehouseId = wh.id;
+        this.stockOutForm.warehouseSearch = wh.name;
       }
+      this.wmsApi.getWarehouses().subscribe(wRes => {
+        if (wRes.success && wRes.data && wRes.data.length > 0) {
+          this.warehouses.set(wRes.data);
+        }
+      });
     });
 
     this.loadTransactions();
@@ -236,9 +265,24 @@ export class StockMovementComponent implements OnInit {
     });
   }
 
+  resolveProduct(search: string): Product | null {
+    if (!search || !search.trim()) return null;
+    const term = search.trim().toLowerCase();
+    return this.products().find(p => 
+      p.name.toLowerCase() === term || 
+      p.sku.toLowerCase() === term || 
+      (p.barcode && p.barcode.toLowerCase() === term) ||
+      p.name.toLowerCase().includes(term)
+    ) || (this.products().length === 1 ? this.products()[0] : null);
+  }
+
   onProductChangeForOut() {
-    if (this.stockOutForm.productId) {
-      this.wmsApi.getFefoRecommendations(this.stockOutForm.productId, this.stockOutForm.warehouseId).subscribe({
+    const product = this.resolveProduct(this.stockOutForm.productSearch);
+    if (product) {
+      this.stockOutForm.productId = product.id;
+      const wh = this.warehouses().find(w => w.name.toLowerCase() === (this.stockOutForm.warehouseSearch || '').trim().toLowerCase());
+      const whId = wh ? wh.id : (this.warehouses()[0]?.id || null);
+      this.wmsApi.getFefoRecommendations(product.id, whId).subscribe({
         next: (res) => {
           if (res.success) this.fefoRecommendations.set(res.data);
         }
@@ -247,19 +291,59 @@ export class StockMovementComponent implements OnInit {
   }
 
   submitStockIn() {
-    this.wmsApi.stockIn(this.stockInForm).subscribe({
-      next: () => {
-        alert('Stock In recorded successfully!');
-        this.loadTransactions();
-      },
-      error: (err) => alert(err.error?.message || 'Failed to record Stock In')
-    });
+    const product = this.resolveProduct(this.stockInForm.productSearch);
+    if (!product) {
+      alert('Product not found. Please type an existing product name, SKU, or create it first under Products.');
+      return;
+    }
+    this.stockInForm.productId = product.id;
+
+    const whName = (this.stockInForm.warehouseSearch || 'Main Warehouse').trim();
+    const existingWh = this.warehouses().find(w => w.name.toLowerCase() === whName.toLowerCase());
+
+    const executeStockIn = (whId: number) => {
+      this.stockInForm.warehouseId = whId;
+      this.wmsApi.stockIn(this.stockInForm).subscribe({
+        next: () => {
+          alert('Stock In recorded successfully for ' + product.name + '!');
+          this.loadTransactions();
+        },
+        error: (err) => alert(err.error?.message || 'Failed to record Stock In')
+      });
+    };
+
+    if (existingWh) {
+      executeStockIn(existingWh.id);
+    } else {
+      this.wmsApi.ensureDefaultWarehouse(whName).subscribe({
+        next: (newWh) => {
+          if (newWh) {
+            this.warehouses.update(list => [...list, newWh]);
+            executeStockIn(newWh.id);
+          } else {
+            executeStockIn(this.warehouses()[0]?.id || 1);
+          }
+        },
+        error: () => executeStockIn(this.warehouses()[0]?.id || 1)
+      });
+    }
   }
 
   submitStockOut() {
+    const product = this.resolveProduct(this.stockOutForm.productSearch);
+    if (!product) {
+      alert('Product not found. Please type an existing product name or SKU.');
+      return;
+    }
+    this.stockOutForm.productId = product.id;
+
+    const whName = (this.stockOutForm.warehouseSearch || 'Main Warehouse').trim();
+    const existingWh = this.warehouses().find(w => w.name.toLowerCase() === whName.toLowerCase());
+    this.stockOutForm.warehouseId = existingWh ? existingWh.id : (this.warehouses()[0]?.id || 1);
+
     this.wmsApi.stockOut(this.stockOutForm).subscribe({
       next: () => {
-        alert('Stock Out completed successfully!');
+        alert('Stock Out completed successfully for ' + product.name + '!');
         this.loadTransactions();
       },
       error: (err) => alert(err.error?.message || 'Failed to dispatch Stock Out')

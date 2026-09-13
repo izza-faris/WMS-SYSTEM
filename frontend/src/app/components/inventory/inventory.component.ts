@@ -29,10 +29,20 @@ import { InventoryBalance, Warehouse } from '../../models/wms.models';
       <div class="glass-panel p-3 mb-4">
         <div class="row g-2">
           <div class="col-md-6">
-            <select class="form-select" [(ngModel)]="selectedWarehouse" (change)="loadInventory()">
-              <option [ngValue]="null">All Warehouses</option>
-              <option *ngFor="let wh of warehouses()" [ngValue]="wh.id">{{ wh.name }} ({{ wh.code }})</option>
-            </select>
+            <div class="input-group">
+              <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-building"></i></span>
+              <input type="text" class="form-control" [(ngModel)]="warehouseSearch" (input)="onWarehouseSearchChange()" list="invWhList" placeholder="Type Warehouse Name (or All)">
+            </div>
+            <datalist id="invWhList">
+              <option value="All Warehouses"></option>
+              <option *ngFor="let wh of warehouses()" [value]="wh.name">{{ wh.name }}</option>
+            </datalist>
+          </div>
+          <div class="col-md-6">
+            <div class="input-group">
+              <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control" [(ngModel)]="textFilter" (input)="applyFilter()" placeholder="Search item, SKU, or batch...">
+            </div>
           </div>
         </div>
       </div>
@@ -92,23 +102,66 @@ import { InventoryBalance, Warehouse } from '../../models/wms.models';
   `
 })
 export class InventoryComponent implements OnInit {
+  rawInventoryList = signal<InventoryBalance[]>([]);
   inventoryList = signal<InventoryBalance[]>([]);
   warehouses = signal<Warehouse[]>([]);
-  selectedWarehouse: number | null = null;
+  warehouseSearch: string = '';
+  textFilter: string = '';
 
   constructor(private wmsApi: WmsApiService) {}
 
   ngOnInit(): void {
-    this.wmsApi.getWarehouses().subscribe(res => { if (res.success) this.warehouses.set(res.data); });
+    this.wmsApi.ensureDefaultWarehouse().subscribe(wh => {
+      if (wh) {
+        this.warehouses.set([wh]);
+      }
+      this.wmsApi.getWarehouses().subscribe(res => {
+        if (res.success && res.data && res.data.length > 0) {
+          this.warehouses.set(res.data);
+        }
+      });
+    });
     this.loadInventory();
   }
 
-  loadInventory() {
-    this.wmsApi.getInventory(this.selectedWarehouse || undefined).subscribe({
+  loadInventory(warehouseId?: number) {
+    this.wmsApi.getInventory(warehouseId).subscribe({
       next: (res) => {
-        if (res.success) this.inventoryList.set(res.data);
+        if (res.success) {
+          this.rawInventoryList.set(res.data);
+          this.applyFilter();
+        }
       }
     });
+  }
+
+  onWarehouseSearchChange() {
+    const term = (this.warehouseSearch || '').trim().toLowerCase();
+    if (!term || term === 'all' || term === 'all warehouses') {
+      this.loadInventory();
+    } else {
+      const match = this.warehouses().find(w => w.name.toLowerCase().includes(term));
+      if (match) {
+        this.loadInventory(match.id);
+      } else {
+        this.loadInventory();
+      }
+    }
+  }
+
+  applyFilter() {
+    const q = (this.textFilter || '').trim().toLowerCase();
+    if (!q) {
+      this.inventoryList.set(this.rawInventoryList());
+      return;
+    }
+    const filtered = this.rawInventoryList().filter(item => 
+      (item.productName && item.productName.toLowerCase().includes(q)) ||
+      (item.sku && item.sku.toLowerCase().includes(q)) ||
+      (item.batchNumber && item.batchNumber.toLowerCase().includes(q)) ||
+      (item.warehouseName && item.warehouseName.toLowerCase().includes(q))
+    );
+    this.inventoryList.set(filtered);
   }
 
   getExpiryBadge(expiryDateStr: string): string {

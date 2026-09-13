@@ -88,16 +88,26 @@ import { Product, Warehouse, StockAdjustment } from '../../models/wms.models';
             <form (ngSubmit)="submitAdjustment()">
               <div class="mb-3">
                 <label class="form-label text-secondary small fw-semibold">Warehouse *</label>
-                <select class="form-select" [(ngModel)]="newAdj.warehouseId" name="wh" required>
-                  <option *ngFor="let w of warehouses()" [value]="w.id">{{ w.name }}</option>
-                </select>
+                <div class="input-group">
+                  <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-building"></i></span>
+                  <input type="text" class="form-control" [(ngModel)]="newAdj.warehouseSearch" list="adjWhList" name="whSearch" placeholder="Type Warehouse (e.g. Main Warehouse)" required>
+                </div>
+                <datalist id="adjWhList">
+                  <option *ngFor="let w of warehouses()" [value]="w.name">{{ w.name }}</option>
+                </datalist>
+                <small class="text-muted text-xs mt-1 d-block">Type warehouse name (auto-creates if needed)</small>
               </div>
 
               <div class="mb-3">
                 <label class="form-label text-secondary small fw-semibold">Product *</label>
-                <select class="form-select" [(ngModel)]="newAdj.productId" name="prod" required>
-                  <option *ngFor="let p of products()" [value]="p.id">{{ p.name }} ({{ p.sku }})</option>
-                </select>
+                <div class="input-group">
+                  <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-box-seam"></i></span>
+                  <input type="text" class="form-control" [(ngModel)]="newAdj.productSearch" list="adjProdList" name="prodSearch" placeholder="Type Product Name or SKU (e.g. Shoe kingdom)" required>
+                </div>
+                <datalist id="adjProdList">
+                  <option *ngFor="let p of products()" [value]="p.name">{{ p.name }} ({{ p.sku }})</option>
+                </datalist>
+                <small class="text-muted text-xs mt-1 d-block">Type any product name or SKU</small>
               </div>
 
               <div class="mb-3">
@@ -127,23 +137,30 @@ export class StockAdjustmentComponent implements OnInit {
   products = signal<Product[]>([]);
   showModal = false;
 
-  newAdj: any = { warehouseId: null, productId: null, physicalQuantity: 0, reason: '' };
+  newAdj: any = { warehouseId: null, productId: null, warehouseSearch: '', productSearch: '', physicalQuantity: 0, reason: '' };
 
   constructor(private wmsApi: WmsApiService) {}
 
   ngOnInit(): void {
     this.loadAdjustments();
-    this.wmsApi.getWarehouses().subscribe(res => {
-      if (res.success && res.data.length > 0) {
-        this.warehouses.set(res.data);
-        this.newAdj.warehouseId = res.data[0].id;
+    this.wmsApi.ensureDefaultWarehouse().subscribe(wh => {
+      if (wh) {
+        this.warehouses.set([wh]);
+        this.newAdj.warehouseId = wh.id;
+        this.newAdj.warehouseSearch = wh.name;
       }
+      this.wmsApi.getWarehouses().subscribe(res => {
+        if (res.success && res.data && res.data.length > 0) {
+          this.warehouses.set(res.data);
+        }
+      });
     });
 
     this.wmsApi.getAllProductsList().subscribe(res => {
-      if (res.success && res.data.length > 0) {
+      if (res.success && res.data && res.data.length > 0) {
         this.products.set(res.data);
         this.newAdj.productId = res.data[0].id;
+        this.newAdj.productSearch = res.data[0].name;
       }
     });
   }
@@ -161,13 +178,44 @@ export class StockAdjustmentComponent implements OnInit {
   }
 
   submitAdjustment() {
-    this.wmsApi.requestAdjustment(this.newAdj).subscribe({
-      next: () => {
-        this.showModal = false;
-        this.loadAdjustments();
-      },
-      error: (err) => alert(err.error?.message || 'Failed to submit adjustment')
-    });
+    const term = (this.newAdj.productSearch || '').trim().toLowerCase();
+    const product = this.products().find(p => p.name.toLowerCase() === term || p.sku.toLowerCase() === term || p.name.toLowerCase().includes(term)) || (this.products().length === 1 ? this.products()[0] : null);
+    if (!product) {
+      alert('Product not found. Please type an existing product name or SKU.');
+      return;
+    }
+    this.newAdj.productId = product.id;
+
+    const whName = (this.newAdj.warehouseSearch || 'Main Warehouse').trim();
+    const wh = this.warehouses().find(w => w.name.toLowerCase() === whName.toLowerCase());
+
+    const executeAdj = (whId: number) => {
+      this.newAdj.warehouseId = whId;
+      this.wmsApi.requestAdjustment(this.newAdj).subscribe({
+        next: () => {
+          this.showModal = false;
+          alert('Discrepancy reported successfully for ' + product.name + '!');
+          this.loadAdjustments();
+        },
+        error: (err) => alert(err.error?.message || 'Failed to submit adjustment')
+      });
+    };
+
+    if (wh) {
+      executeAdj(wh.id);
+    } else {
+      this.wmsApi.ensureDefaultWarehouse(whName).subscribe({
+        next: (newWh) => {
+          if (newWh) {
+            this.warehouses.update(l => [...l, newWh]);
+            executeAdj(newWh.id);
+          } else {
+            executeAdj(this.warehouses()[0]?.id || 1);
+          }
+        },
+        error: () => executeAdj(this.warehouses()[0]?.id || 1)
+      });
+    }
   }
 
   review(id: number, approve: boolean) {

@@ -83,24 +83,36 @@ import { Product, Warehouse, StockTransfer } from '../../models/wms.models';
               <div class="row g-3 mb-3">
                 <div class="col-md-6">
                   <label class="form-label text-secondary small fw-semibold">Source Warehouse *</label>
-                  <select class="form-select" [(ngModel)]="newTransfer.sourceWarehouseId" name="srcWh" required>
-                    <option *ngFor="let w of warehouses()" [value]="w.id">{{ w.name }}</option>
-                  </select>
+                  <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-building"></i></span>
+                    <input type="text" class="form-control" [(ngModel)]="newTransfer.sourceWarehouseSearch" list="srcWhList" name="srcWhSearch" placeholder="Type Source Warehouse" required>
+                  </div>
+                  <datalist id="srcWhList">
+                    <option *ngFor="let w of warehouses()" [value]="w.name">{{ w.name }}</option>
+                  </datalist>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label text-secondary small fw-semibold">Destination Warehouse *</label>
-                  <select class="form-select" [(ngModel)]="newTransfer.destWarehouseId" name="destWh" required>
-                    <option *ngFor="let w of warehouses()" [value]="w.id">{{ w.name }}</option>
-                  </select>
+                  <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-building-check"></i></span>
+                    <input type="text" class="form-control" [(ngModel)]="newTransfer.destWarehouseSearch" list="destWhList" name="destWhSearch" placeholder="Type Destination Warehouse" required>
+                  </div>
+                  <datalist id="destWhList">
+                    <option *ngFor="let w of warehouses()" [value]="w.name">{{ w.name }}</option>
+                  </datalist>
                 </div>
               </div>
 
               <div class="row g-3 mb-3">
                 <div class="col-md-8">
                   <label class="form-label text-secondary small fw-semibold">Product *</label>
-                  <select class="form-select" [(ngModel)]="newTransfer.productId" name="productId" required>
-                    <option *ngFor="let p of products()" [value]="p.id">{{ p.name }} ({{ p.sku }})</option>
-                  </select>
+                  <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-box-seam"></i></span>
+                    <input type="text" class="form-control" [(ngModel)]="newTransfer.productSearch" list="transferProdList" name="prodSearch" placeholder="Type Product Name or SKU (e.g. Shoe kingdom)" required>
+                  </div>
+                  <datalist id="transferProdList">
+                    <option *ngFor="let p of products()" [value]="p.name">{{ p.name }} ({{ p.sku }})</option>
+                  </datalist>
                 </div>
                 <div class="col-md-4">
                   <label class="form-label text-secondary small fw-semibold">Transfer Quantity *</label>
@@ -133,6 +145,9 @@ export class StockTransferComponent implements OnInit {
   newTransfer: any = {
     sourceWarehouseId: null,
     destWarehouseId: null,
+    sourceWarehouseSearch: '',
+    destWarehouseSearch: '',
+    productSearch: '',
     productId: null,
     quantity: 10,
     notes: ''
@@ -142,20 +157,29 @@ export class StockTransferComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadTransfers();
-    this.wmsApi.getWarehouses().subscribe(res => {
-      if (res.success) {
-        this.warehouses.set(res.data);
-        if (res.data.length >= 2) {
-          this.newTransfer.sourceWarehouseId = res.data[0].id;
-          this.newTransfer.destWarehouseId = res.data[1].id;
-        }
+    this.wmsApi.ensureDefaultWarehouse().subscribe(wh => {
+      if (wh) {
+        this.warehouses.set([wh]);
+        this.newTransfer.sourceWarehouseId = wh.id;
+        this.newTransfer.sourceWarehouseSearch = wh.name;
+        this.newTransfer.destWarehouseSearch = wh.name;
       }
+      this.wmsApi.getWarehouses().subscribe(res => {
+        if (res.success && res.data.length > 0) {
+          this.warehouses.set(res.data);
+          if (res.data.length >= 2) {
+            this.newTransfer.destWarehouseId = res.data[1].id;
+            this.newTransfer.destWarehouseSearch = res.data[1].name;
+          }
+        }
+      });
     });
 
     this.wmsApi.getAllProductsList().subscribe(res => {
-      if (res.success) {
+      if (res.success && res.data.length > 0) {
         this.products.set(res.data);
-        if (res.data.length > 0) this.newTransfer.productId = res.data[0].id;
+        this.newTransfer.productId = res.data[0].id;
+        this.newTransfer.productSearch = res.data[0].name;
       }
     });
   }
@@ -172,7 +196,28 @@ export class StockTransferComponent implements OnInit {
     this.showModal = true;
   }
 
+  openTransferModal() {
+    this.showModal = true;
+  }
+
   saveTransfer() {
+    const term = (this.newTransfer.productSearch || '').trim().toLowerCase();
+    const product = this.products().find(p => p.name.toLowerCase() === term || p.sku.toLowerCase() === term || p.name.toLowerCase().includes(term)) || (this.products().length === 1 ? this.products()[0] : null);
+    if (!product) {
+      alert('Product not found. Please type an existing product name or SKU.');
+      return;
+    }
+    this.newTransfer.productId = product.id;
+
+    const srcName = (this.newTransfer.sourceWarehouseSearch || 'Main Warehouse').trim().toLowerCase();
+    const destName = (this.newTransfer.destWarehouseSearch || 'Main Warehouse').trim().toLowerCase();
+
+    const srcWh = this.warehouses().find(w => w.name.toLowerCase() === srcName) || this.warehouses()[0];
+    const destWh = this.warehouses().find(w => w.name.toLowerCase() === destName) || this.warehouses()[0];
+
+    this.newTransfer.sourceWarehouseId = srcWh ? srcWh.id : 1;
+    this.newTransfer.destWarehouseId = destWh ? destWh.id : 1;
+
     const payload = {
       sourceWarehouseId: this.newTransfer.sourceWarehouseId,
       destWarehouseId: this.newTransfer.destWarehouseId,
