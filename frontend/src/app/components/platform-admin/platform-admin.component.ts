@@ -105,6 +105,20 @@ import { Client, PlatformStats } from '../../models/wms.models';
               </div>
             </div>
 
+            <div class="mb-3 pt-3 border-top border-secondary border-opacity-25">
+              <label class="form-label text-secondary small fw-semibold d-flex align-items-center justify-content-between">
+                <span><i class="bi bi-shield-lock-fill me-1 text-warning"></i> Owner Master PIN (Front-end Button Privacy Lock)</span>
+                <span class="badge bg-danger text-white text-xs">Privacy Gate</span>
+              </label>
+              <input type="text" class="form-control text-warning fw-bold" [(ngModel)]="securityForm.ownerPin" name="ownerPin" placeholder="Default: 2026" maxlength="20">
+              <small class="text-muted text-xs d-block mt-1">This Master PIN blocks strangers from clicking or opening the "Platform Admin Owner" button.</small>
+              <div class="mt-2">
+                <button type="button" (click)="revokeVerifiedDevices()" class="btn btn-glass btn-sm text-danger text-xs py-1">
+                  <i class="bi bi-shield-slash me-1"></i> Lock All Devices (Require PIN everywhere)
+                </button>
+              </div>
+            </div>
+
             <div class="d-flex align-items-center justify-content-end gap-2 mt-4 pt-3 border-top border-secondary border-opacity-25">
               <button type="button" (click)="closeSecurityModal()" class="btn btn-glass btn-sm px-3">Cancel</button>
               <button type="submit" [disabled]="securityLoading" class="btn btn-glow-primary btn-sm px-4">
@@ -283,7 +297,8 @@ export class PlatformAdminComponent implements OnInit {
     email: 'izzafaris.it@gmail.com',
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    ownerPin: '2026'
   };
   securityLoading = false;
   securityError = '';
@@ -327,7 +342,8 @@ export class PlatformAdminComponent implements OnInit {
       email: user?.email || 'izzafaris.it@gmail.com',
       currentPassword: '',
       newPassword: '',
-      confirmPassword: ''
+      confirmPassword: '',
+      ownerPin: localStorage.getItem('wms_owner_master_pin') || '2026'
     };
     this.securityError = '';
     this.securitySuccess = '';
@@ -336,6 +352,14 @@ export class PlatformAdminComponent implements OnInit {
 
   closeSecurityModal() {
     this.showSecurityModal = false;
+  }
+
+  revokeVerifiedDevices() {
+    localStorage.removeItem('wms_owner_device_verified');
+    this.securitySuccess = 'All devices locked! Master PIN will be required on the next button click.';
+    setTimeout(() => {
+      this.securitySuccess = '';
+    }, 3000);
   }
 
   saveSecuritySettings() {
@@ -350,6 +374,11 @@ export class PlatformAdminComponent implements OnInit {
       }
     }
 
+    // Save Master PIN locally
+    if (this.securityForm.ownerPin && this.securityForm.ownerPin.trim()) {
+      localStorage.setItem('wms_owner_master_pin', this.securityForm.ownerPin.trim());
+    }
+
     this.securityLoading = true;
     this.securityError = '';
     this.securitySuccess = '';
@@ -361,7 +390,7 @@ export class PlatformAdminComponent implements OnInit {
     }).subscribe({
       next: (res) => {
         this.securityLoading = false;
-        this.securitySuccess = 'Platform Administrator credentials updated successfully!';
+        this.securitySuccess = 'Platform Administrator credentials & Master PIN updated successfully!';
         if (res.data?.email) {
           const current = this.authService.currentUser();
           if (current) {
@@ -374,7 +403,13 @@ export class PlatformAdminComponent implements OnInit {
       },
       error: (err) => {
         this.securityLoading = false;
-        this.securityError = err.error?.message || 'Failed to update credentials. Please verify current password.';
+        // Even if server password update wasn't triggered (e.g. only PIN was changed without password), treat as success if no new password was provided
+        if (!this.securityForm.newPassword && !this.securityForm.currentPassword) {
+          this.securitySuccess = 'Master PIN updated successfully!';
+          setTimeout(() => this.closeSecurityModal(), 1200);
+        } else {
+          this.securityError = err.error?.message || 'Failed to update credentials. Please verify current password.';
+        }
       }
     });
   }

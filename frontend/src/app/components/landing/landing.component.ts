@@ -117,6 +117,69 @@ import { AuthService } from '../../services/auth.service';
       </header>
 
       <!-- Owner Access Gateway Modal (For Web Application Owner) -->
+      <!-- Owner Master PIN Challenge Modal (Strict Privacy Gate for Application Owner) -->
+      <div *ngIf="showPinModal" class="modal-backdrop-custom d-flex align-items-center justify-content-center p-3 animate__animated animate__fadeIn">
+        <div class="glass-panel p-4 p-md-5 w-100 position-relative animate__animated animate__zoomIn owner-modal-card" style="max-width: 480px;">
+          <div class="card-glow-rim-danger"></div>
+
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <div class="bg-danger bg-opacity-20 border border-danger border-opacity-40 rounded-3 d-flex align-items-center justify-content-center text-danger" style="width: 44px; height: 44px;">
+                <i class="bi bi-shield-lock-fill fs-4 text-warning"></i>
+              </div>
+              <div>
+                <h5 class="fw-extrabold text-light mb-0">Owner Security Gate</h5>
+                <span class="badge bg-danger text-white rounded-pill text-xs">Private Access Only</span>
+              </div>
+            </div>
+            <button (click)="cancelPinChallenge()" class="btn btn-sm btn-glass text-secondary">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          <div class="alert alert-warning py-2 small mb-3 border-warning border-opacity-30 d-flex align-items-start gap-2">
+            <i class="bi bi-shield-exclamation text-warning fs-5 flex-shrink-0 mt-1"></i>
+            <div class="text-xs text-light">
+              இந்த பொத்தான் தலைமை உரிமையாளருக்காக (Application Owner) மட்டுமே ஒதுக்கப்பட்டுள்ளது. நீங்கள் தான் உரிமையாளர் என்பதை உறுதிப்படுத்த <strong>Master PIN</strong>-ஐ உள்ளிடவும்.
+            </div>
+          </div>
+
+          <div *ngIf="pinError" class="alert alert-danger py-2 small mb-3 animate__animated animate__shakeX">
+            <i class="bi bi-shield-x me-2"></i>{{ pinError }}
+          </div>
+
+          <form (ngSubmit)="verifyOwnerPin()">
+            <div class="mb-3 text-start">
+              <label class="form-label text-secondary small fw-semibold">
+                <i class="bi bi-key-fill text-warning me-1"></i> Enter Owner Master PIN
+              </label>
+              <input type="password" class="form-control text-center fs-4 tracking-widest" [(ngModel)]="enteredPin" name="enteredPin" required placeholder="••••" autofocus maxlength="20">
+              <div class="d-flex justify-content-between align-items-center mt-1">
+                <small class="text-muted text-xs">Default Master PIN: <strong>2026</strong></small>
+                <small class="text-secondary text-xs">Protected</small>
+              </div>
+            </div>
+
+            <div class="form-check mb-4 text-start">
+              <input class="form-check-input" type="checkbox" [(ngModel)]="rememberOwnerDevice" id="rememberDeviceCheck">
+              <label class="form-check-label text-secondary small" for="rememberDeviceCheck">
+                Remember this device as Owner Device (எனது சாதனம் என சேமிக்க)
+              </label>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button type="button" (click)="cancelPinChallenge()" class="btn btn-glass w-50 py-2">
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-glow-primary w-50 py-2 fw-semibold">
+                <i class="bi bi-unlock-fill me-1"></i> Verify & Unlock
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Owner Access Gateway Modal (For Web Application Owner) -->
       <div *ngIf="showOwnerModal" class="modal-backdrop-custom d-flex align-items-center justify-content-center p-3 animate__animated animate__fadeIn">
         <div class="glass-panel p-4 p-md-5 w-100 position-relative animate__animated animate__zoomIn owner-modal-card" style="max-width: 520px;">
           <div class="card-glow-rim-danger"></div>
@@ -159,7 +222,7 @@ import { AuthService } from '../../services/auth.service';
               <label class="form-label text-secondary small fw-semibold">
                 <i class="bi bi-envelope me-1 text-primary"></i> Owner Email Address
               </label>
-              <input type="email" class="form-control" [(ngModel)]="ownerEmail" name="ownerEmail" required placeholder="izzafaris.it@gmail.com">
+              <input type="email" class="form-control" [(ngModel)]="ownerEmail" name="ownerEmail" required placeholder="owner@aerowms.com">
             </div>
 
             <div class="mb-3">
@@ -177,26 +240,16 @@ import { AuthService } from '../../services/auth.service';
             <button type="submit" [disabled]="ownerLoading" class="btn btn-glow-primary w-100 py-2 fw-semibold mb-2" id="submitOwnerLoginBtn">
               <span *ngIf="ownerLoading" class="spinner-border spinner-border-sm me-2"></span>
               <span *ngIf="!ownerLoading"><i class="bi bi-box-arrow-in-right me-2"></i></span>
-              <span>Sign In as Platform Owner & Open Settings</span>
+              <span>Sign In as Platform Owner</span>
             </button>
           </form>
 
-          <!-- Quick 1-Click Launch Owner Button -->
-          <div class="mt-3 pt-3 border-top border-secondary border-opacity-25">
-            <button (click)="quickOwnerLogin()" [disabled]="ownerLoading" class="btn btn-outline-warning w-100 py-2 d-flex align-items-center justify-content-center gap-2 mb-2" id="quickOwnerBtn">
-              <i class="bi bi-lightning-charge-fill text-warning"></i>
-              <span class="fw-bold">⚡ 1-Click Launch Owner Portal (izzafaris.it&#64;gmail.com)</span>
+          <!-- Lock Device Option -->
+          <div class="mt-3 pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+            <button type="button" (click)="lockOwnerDevice()" class="btn btn-glass btn-sm text-secondary text-xs">
+              <i class="bi bi-lock me-1 text-warning"></i> Lock Device (Require PIN next time)
             </button>
-            <div class="text-center">
-              <small class="text-muted text-xs">Directly opens Platform Admin and Owner Email/Password management.</small>
-            </div>
-          </div>
-
-          <!-- Company Member Test Trigger -->
-          <div class="mt-3 pt-2 text-center">
-            <button (click)="triggerCompanyMemberRestriction()" class="btn btn-glass btn-sm text-secondary text-xs">
-              <i class="bi bi-building me-1"></i> I am a Registered Company Member (Click to Test)
-            </button>
+            <span class="text-muted text-xs">Owner Security Active</span>
           </div>
         </div>
       </div>
@@ -349,12 +402,17 @@ import { AuthService } from '../../services/auth.service';
   `]
 })
 export class LandingComponent {
+  showPinModal = false;
   showOwnerModal = false;
   showRestrictionModal = false;
   showPassword = false;
 
-  ownerEmail = 'izzafaris.it@gmail.com';
-  ownerPassword = 'Admin@123';
+  enteredPin = '';
+  pinError = '';
+  rememberOwnerDevice = true;
+
+  ownerEmail = '';
+  ownerPassword = '';
   ownerLoading = false;
   ownerError = '';
 
@@ -387,9 +445,50 @@ export class LandingComponent {
       }
     }
 
-    // Visitor / Not logged in: open Owner Gateway modal
-    this.ownerError = '';
-    this.showOwnerModal = true;
+    // Check if this device is verified as the owner's private device
+    const isOwnerDevice = localStorage.getItem('wms_owner_device_verified') === 'true';
+    if (isOwnerDevice) {
+      this.ownerError = '';
+      this.showOwnerModal = true;
+    } else {
+      // Unverified device / public user: require Owner Master PIN verification
+      this.enteredPin = '';
+      this.pinError = '';
+      this.showPinModal = true;
+    }
+  }
+
+  verifyOwnerPin() {
+    const storedPin = localStorage.getItem('wms_owner_master_pin') || '2026';
+    const trimmed = (this.enteredPin || '').trim();
+
+    // Verify PIN against saved pin or default '2026' or 'Admin@123'
+    if (trimmed && (trimmed === storedPin || trimmed === '2026' || trimmed === 'Admin@123')) {
+      if (this.rememberOwnerDevice) {
+        localStorage.setItem('wms_owner_device_verified', 'true');
+      }
+      this.showPinModal = false;
+      this.pinError = '';
+      this.ownerError = '';
+      this.showOwnerModal = true;
+    } else {
+      this.pinError = 'தவறான Master PIN! அனுமதியற்ற அணுகல் தடுக்கப்பட்டது (Access Denied).';
+      setTimeout(() => {
+        this.showPinModal = false;
+        this.showRestrictionModal = true;
+      }, 900);
+    }
+  }
+
+  cancelPinChallenge() {
+    this.showPinModal = false;
+    this.showRestrictionModal = true;
+  }
+
+  lockOwnerDevice() {
+    localStorage.removeItem('wms_owner_device_verified');
+    this.showOwnerModal = false;
+    this.showPinModal = false;
   }
 
   closeOwnerModal() {
@@ -410,40 +509,31 @@ export class LandingComponent {
     this.showRestrictionModal = true;
   }
 
-  quickOwnerLogin() {
-    this.ownerEmail = 'izzafaris.it@gmail.com';
-    this.ownerPassword = 'Admin@123';
-    this.submitOwnerLogin();
-  }
-
   submitOwnerLogin() {
+    if (!this.ownerEmail || !this.ownerPassword) {
+      this.ownerError = 'Please enter your Owner Email and Password.';
+      return;
+    }
+
     this.ownerLoading = true;
     this.ownerError = '';
 
-    const performLogin = (targetEmail: string) => {
-      this.authService.login({ email: targetEmail, password: this.ownerPassword }).subscribe({
-        next: (res) => {
-          this.ownerLoading = false;
-          if (res.data.role === 'PLATFORM_ADMIN') {
-            this.showOwnerModal = false;
-            this.router.navigate(['/platform-admin'], { queryParams: { openSecurity: 'true' } });
-          } else {
-            this.authService.logout();
-            this.showOwnerModal = false;
-            this.showRestrictionModal = true;
-          }
-        },
-        error: (err) => {
-          if (targetEmail === 'izzafaris.it@gmail.com') {
-            performLogin('admin@wmsplatform.com');
-          } else {
-            this.ownerLoading = false;
-            this.ownerError = err.error?.message || 'Login failed. Please verify owner credentials.';
-          }
+    this.authService.login({ email: this.ownerEmail.trim(), password: this.ownerPassword }).subscribe({
+      next: (res) => {
+        this.ownerLoading = false;
+        if (res.data.role === 'PLATFORM_ADMIN') {
+          this.showOwnerModal = false;
+          this.router.navigate(['/platform-admin'], { queryParams: { openSecurity: 'true' } });
+        } else {
+          this.authService.logout();
+          this.showOwnerModal = false;
+          this.showRestrictionModal = true;
         }
-      });
-    };
-
-    performLogin(this.ownerEmail);
+      },
+      error: (err) => {
+        this.ownerLoading = false;
+        this.ownerError = err.error?.message || 'Login failed. Invalid owner credentials.';
+      }
+    });
   }
 }

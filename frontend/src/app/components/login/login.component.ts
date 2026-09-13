@@ -29,10 +29,6 @@ import { AuthService } from '../../services/auth.service';
               <i class="bi bi-building-add"></i>
               <span>Register Business</span>
             </a>
-            <button (click)="openOwnerGateway()" class="btn btn-outline-warning btn-sm d-inline-flex align-items-center gap-1 border-warning border-opacity-50 text-warning" id="loginPageOwnerNavBtn">
-              <i class="bi bi-shield-lock-fill"></i>
-              <span>Platform Admin</span>
-            </button>
           </div>
         </div>
       </header>
@@ -92,10 +88,6 @@ import { AuthService } from '../../services/auth.service';
               <button (click)="fillCreds('staff.colombo@apexretailers.com', 'Staff@123')" class="btn btn-glass btn-sm text-xs py-1">Staff</button>
               <button (click)="fillCreds('admin@zenithlogistics.com', 'Zenith@123')" class="btn btn-glass btn-sm text-xs py-1">Client B</button>
             </div>
-            <!-- Owner Portal button -->
-            <button (click)="openOwnerGateway()" class="btn btn-glass btn-sm text-xs py-1 border-danger border-opacity-40 text-warning">
-              <i class="bi bi-shield-lock-fill text-danger me-1"></i>Owner / Platform Admin
-            </button>
           </div>
 
           <div class="text-center mt-4 pt-3 border-top border-secondary border-opacity-25">
@@ -273,18 +265,6 @@ export class LoginComponent {
     this.email = email;
     this.password = pass;
     this.errorMessage = '';
-  }
-
-  openOwnerGateway() {
-    const user = this.authService.currentUser();
-    if (user && user.role !== 'PLATFORM_ADMIN') {
-      this.showRestrictionModal = true;
-      return;
-    }
-    // Set credentials for owner
-    this.email = 'admin@wmsplatform.com';
-    this.password = 'Admin@123';
-    this.onLogin();
   }
 
   closeRestrictionModal() {
