@@ -142,6 +142,7 @@ public class ProductService {
                 dto.getMaxStockLevel(), dto.getExpiryTrackingEnabled()
         );
         product.setPrice(dto.getPrice() != null ? dto.getPrice() : 0.0);
+        product.setCurrency(dto.getCurrency() != null && !dto.getCurrency().trim().isEmpty() ? dto.getCurrency().trim() : "$");
 
         product = productRepository.save(product);
         auditLogService.logClientAction(clientId, "PRODUCT_CREATED", "Product", product.getId(),
@@ -162,6 +163,9 @@ public class ProductService {
         product.setUnit(dto.getUnit());
         if (dto.getPrice() != null) {
             product.setPrice(dto.getPrice());
+        }
+        if (dto.getCurrency() != null && !dto.getCurrency().trim().isEmpty()) {
+            product.setCurrency(dto.getCurrency().trim());
         }
         product.setDescription(dto.getDescription());
         product.setReorderLevel(dto.getReorderLevel());
@@ -257,7 +261,8 @@ public class ProductService {
                 row.createCell(0).setCellValue(p.getId());
                 row.createCell(1).setCellValue(p.getName());
                 row.createCell(2).setCellValue(p.getSku());
-                row.createCell(3).setCellValue(p.getPrice() != null ? p.getPrice() : 0.0);
+                String curr = p.getCurrency() != null && !p.getCurrency().isEmpty() ? p.getCurrency() : "$";
+                row.createCell(3).setCellValue(curr + " " + (p.getPrice() != null ? p.getPrice() : 0.0));
                 row.createCell(4).setCellValue(p.getBarcode() != null ? p.getBarcode() : "");
                 row.createCell(5).setCellValue(p.getBrand() != null ? p.getBrand() : "");
                 row.createCell(6).setCellValue(p.getUnit());
@@ -289,6 +294,7 @@ public class ProductService {
         dto.setName(p.getName());
         dto.setSku(p.getSku());
         dto.setPrice(p.getPrice() != null ? p.getPrice() : 0.0);
+        dto.setCurrency(p.getCurrency() != null && !p.getCurrency().isEmpty() ? p.getCurrency() : "$");
         dto.setBarcode(p.getBarcode());
         dto.setQrCode(p.getQrCode());
         dto.setBrand(p.getBrand());

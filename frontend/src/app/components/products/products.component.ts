@@ -37,17 +37,22 @@ import { Category, Product } from '../../models/wms.models';
 
       <!-- Search & Filters -->
       <div class="glass-panel p-3 mb-4">
-        <div class="row g-2">
-          <div class="col-md-6">
+        <div class="row g-2 align-items-center">
+          <div class="col-md-5">
             <div class="input-group">
               <span class="input-group-text bg-dark border-secondary border-opacity-25 text-secondary"><i class="bi bi-search"></i></span>
               <input type="text" class="form-control" [(ngModel)]="searchQuery" (input)="onSearch()" placeholder="Search by SKU, Product Name, Barcode, Brand...">
             </div>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <select class="form-select" [(ngModel)]="selectedCategory" (change)="onFilterCategory()">
               <option value="">All Categories</option>
               <option *ngFor="let cat of categories()" [value]="cat.id">{{ cat.name }}</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <select class="form-select bg-dark text-light border-secondary" [(ngModel)]="defaultCurrency" (change)="onDefaultCurrencyChange()" title="Choose Currency Symbol">
+              <option *ngFor="let c of availableCurrencies" [value]="c.symbol">{{ c.symbol }} ({{ c.code }})</option>
             </select>
           </div>
           <div class="col-md-2">
@@ -94,7 +99,7 @@ import { Category, Product } from '../../models/wms.models';
                   <small class="text-muted">{{ p.brand || '-' }}</small>
                 </td>
                 <td>
-                  <span class="text-success fw-bold font-monospace">₹{{ (p.price || 0) | number:'1.2-2' }}</span>
+                  <span class="text-success fw-bold font-monospace">{{ p.currency || defaultCurrency }} {{ (p.price || 0) | number:'1.2-2' }}</span>
                 </td>
                 <td>
                   <div class="d-flex align-items-center gap-2">
@@ -169,10 +174,12 @@ import { Category, Product } from '../../models/wms.models';
               </div>
 
               <div class="row g-3 mb-3">
-                <div class="col-md-3">
-                  <label class="form-label text-secondary small fw-semibold">Price (₹)</label>
+                <div class="col-md-4">
+                  <label class="form-label text-secondary small fw-semibold">Currency & Price</label>
                   <div class="input-group">
-                    <span class="input-group-text bg-dark border-secondary text-secondary">₹</span>
+                    <select class="form-select bg-dark text-light border-secondary" style="max-width: 95px;" [(ngModel)]="newProduct.currency" name="currency">
+                      <option *ngFor="let c of availableCurrencies" [value]="c.symbol">{{ c.symbol }}</option>
+                    </select>
                     <input type="number" step="0.01" min="0" class="form-control" [(ngModel)]="newProduct.price" name="price" placeholder="0.00">
                   </div>
                 </div>
@@ -180,12 +187,12 @@ import { Category, Product } from '../../models/wms.models';
                   <label class="form-label text-secondary small fw-semibold">Brand</label>
                   <input type="text" class="form-control" [(ngModel)]="newProduct.brand" name="brand" placeholder="Brand name">
                 </div>
-                <div class="col-md-3">
-                  <label class="form-label text-secondary small fw-semibold">Unit of Measure</label>
-                  <input type="text" class="form-control" [(ngModel)]="newProduct.unit" name="unit" placeholder="PCS, BAG, KG, L">
+                <div class="col-md-2">
+                  <label class="form-label text-secondary small fw-semibold">Unit</label>
+                  <input type="text" class="form-control" [(ngModel)]="newProduct.unit" name="unit" placeholder="PCS, KG">
                 </div>
                 <div class="col-md-3">
-                  <label class="form-label text-secondary small fw-semibold">Reorder Threshold *</label>
+                  <label class="form-label text-secondary small fw-semibold">Reorder Point *</label>
                   <input type="number" class="form-control" [(ngModel)]="newProduct.reorderLevel" name="reorderLevel" required>
                 </div>
               </div>
@@ -254,6 +261,25 @@ export class ProductsComponent implements OnInit {
   selectedCategory = '';
   exportUrl = '';
 
+  availableCurrencies = [
+    { symbol: 'Rs.', code: 'LKR - Sri Lanka' },
+    { symbol: '$', code: 'USD - US Dollar' },
+    { symbol: '₹', code: 'INR - India' },
+    { symbol: '€', code: 'EUR - Euro' },
+    { symbol: '£', code: 'GBP - UK Pound' },
+    { symbol: 'AED', code: 'AED - UAE Dirham' },
+    { symbol: 'SAR', code: 'SAR - Saudi Riyal' },
+    { symbol: 'QAR', code: 'QAR - Qatar' },
+    { symbol: 'KWD', code: 'KWD - Kuwait' },
+    { symbol: 'BHD', code: 'BHD - Bahrain' },
+    { symbol: 'OMR', code: 'OMR - Oman' },
+    { symbol: 'RM', code: 'MYR - Malaysia' },
+    { symbol: 'S$', code: 'SGD - Singapore' },
+    { symbol: 'C$', code: 'CAD - Canada' },
+    { symbol: 'A$', code: 'AUD - Australia' }
+  ];
+  defaultCurrency = localStorage.getItem('wms_currency') || 'Rs.';
+
   showAddModal = false;
   showCodeModal = false;
   showImportModal = false;
@@ -267,6 +293,7 @@ export class ProductsComponent implements OnInit {
     sku: '',
     barcode: '',
     price: 0,
+    currency: this.defaultCurrency,
     categoryId: undefined,
     brand: '',
     unit: 'PCS',
@@ -275,6 +302,13 @@ export class ProductsComponent implements OnInit {
     maxStockLevel: 1000,
     expiryTrackingEnabled: false
   };
+
+  onDefaultCurrencyChange() {
+    localStorage.setItem('wms_currency', this.defaultCurrency);
+    if (this.newProduct) {
+      this.newProduct.currency = this.defaultCurrency;
+    }
+  }
 
   constructor(private wmsApi: WmsApiService) {}
 
@@ -322,6 +356,7 @@ export class ProductsComponent implements OnInit {
       sku: '',
       barcode: '',
       price: 0,
+      currency: this.defaultCurrency,
       categoryId: undefined,
       brand: '',
       unit: 'PCS',

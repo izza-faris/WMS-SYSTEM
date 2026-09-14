@@ -57,6 +57,9 @@ public class Product {
     @Column(precision = 12, scale = 2)
     private Double price = 0.0;
 
+    @Column(length = 20)
+    private String currency = "$";
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -144,4 +147,7 @@ public class Product {
 
     public Double getPrice() { return price; }
     public void setPrice(Double price) { this.price = price != null ? price : 0.0; }
+
+    public String getCurrency() { return currency; }
+    public void setCurrency(String currency) { this.currency = currency != null && !currency.trim().isEmpty() ? currency : "$"; }
 }

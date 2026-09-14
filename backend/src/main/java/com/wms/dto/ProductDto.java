@@ -20,6 +20,7 @@ public class ProductDto {
     private String brand;
     private String unit = "PCS";
     private Double price = 0.0;
+    private String currency = "$";
     private String description;
     private Integer reorderLevel = 10;
     private Integer minStockLevel = 5;
@@ -87,4 +88,7 @@ public class ProductDto {
 
     public Double getPrice() { return price; }
     public void setPrice(Double price) { this.price = price != null ? price : 0.0; }
+
+    public String getCurrency() { return currency; }
+    public void setCurrency(String currency) { this.currency = currency != null && !currency.trim().isEmpty() ? currency : "$"; }
 }

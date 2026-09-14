@@ -109,6 +109,7 @@ export interface Product {
   brand?: string;
   unit: string;
   price?: number;
+  currency?: string;
   description?: string;
   reorderLevel: number;
   minStockLevel: number;
