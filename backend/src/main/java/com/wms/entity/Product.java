@@ -54,7 +54,7 @@ public class Product {
     @Column(nullable = false)
     private Boolean isActive = true;
 
-    @Column(precision = 12, scale = 2)
+    @Column
     private Double price = 0.0;
 
     @Column(length = 20)
