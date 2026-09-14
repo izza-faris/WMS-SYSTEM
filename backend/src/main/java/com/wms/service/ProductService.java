@@ -141,6 +141,7 @@ public class ProductService {
                 dto.getDescription(), dto.getReorderLevel(), dto.getMinStockLevel(),
                 dto.getMaxStockLevel(), dto.getExpiryTrackingEnabled()
         );
+        product.setPrice(dto.getPrice() != null ? dto.getPrice() : 0.0);
 
         product = productRepository.save(product);
         auditLogService.logClientAction(clientId, "PRODUCT_CREATED", "Product", product.getId(),
@@ -159,6 +160,9 @@ public class ProductService {
         product.setCategoryId(dto.getCategoryId());
         product.setBrand(dto.getBrand());
         product.setUnit(dto.getUnit());
+        if (dto.getPrice() != null) {
+            product.setPrice(dto.getPrice());
+        }
         product.setDescription(dto.getDescription());
         product.setReorderLevel(dto.getReorderLevel());
         product.setMinStockLevel(dto.getMinStockLevel());
@@ -241,7 +245,7 @@ public class ProductService {
             Sheet sheet = workbook.createSheet("Products");
 
             Row headerRow = sheet.createRow(0);
-            String[] columns = {"ID", "Name", "SKU", "Barcode", "Brand", "Unit", "Reorder Level", "Total Stock"};
+            String[] columns = {"ID", "Name", "SKU", "Price", "Barcode", "Brand", "Unit", "Reorder Level", "Total Stock"};
             for (int i = 0; i < columns.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(columns[i]);
@@ -253,13 +257,14 @@ public class ProductService {
                 row.createCell(0).setCellValue(p.getId());
                 row.createCell(1).setCellValue(p.getName());
                 row.createCell(2).setCellValue(p.getSku());
-                row.createCell(3).setCellValue(p.getBarcode() != null ? p.getBarcode() : "");
-                row.createCell(4).setCellValue(p.getBrand() != null ? p.getBrand() : "");
-                row.createCell(5).setCellValue(p.getUnit());
-                row.createCell(6).setCellValue(p.getReorderLevel());
+                row.createCell(3).setCellValue(p.getPrice() != null ? p.getPrice() : 0.0);
+                row.createCell(4).setCellValue(p.getBarcode() != null ? p.getBarcode() : "");
+                row.createCell(5).setCellValue(p.getBrand() != null ? p.getBrand() : "");
+                row.createCell(6).setCellValue(p.getUnit());
+                row.createCell(7).setCellValue(p.getReorderLevel());
 
                 Integer stock = inventoryRepository.getTotalStockForProduct(clientId, p.getId());
-                row.createCell(7).setCellValue(stock != null ? stock : 0);
+                row.createCell(8).setCellValue(stock != null ? stock : 0);
             }
 
             workbook.write(out);
@@ -283,6 +288,7 @@ public class ProductService {
         dto.setCategoryId(p.getCategoryId());
         dto.setName(p.getName());
         dto.setSku(p.getSku());
+        dto.setPrice(p.getPrice() != null ? p.getPrice() : 0.0);
         dto.setBarcode(p.getBarcode());
         dto.setQrCode(p.getQrCode());
         dto.setBrand(p.getBrand());

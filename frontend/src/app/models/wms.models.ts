@@ -108,6 +108,7 @@ export interface Product {
   qrCode?: string;
   brand?: string;
   unit: string;
+  price?: number;
   description?: string;
   reorderLevel: number;
   minStockLevel: number;

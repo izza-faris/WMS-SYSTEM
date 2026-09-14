@@ -54,6 +54,9 @@ public class Product {
     @Column(nullable = false)
     private Boolean isActive = true;
 
+    @Column(precision = 12, scale = 2)
+    private Double price = 0.0;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -138,4 +141,7 @@ public class Product {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public Double getPrice() { return price; }
+    public void setPrice(Double price) { this.price = price != null ? price : 0.0; }
 }

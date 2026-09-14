@@ -67,6 +67,7 @@ import { Category, Product } from '../../models/wms.models';
                 <th>Product Info</th>
                 <th>SKU</th>
                 <th>Category / Brand</th>
+                <th>Price</th>
                 <th>Stock Level</th>
                 <th>Reorder Point</th>
                 <th>Tracking</th>
@@ -75,7 +76,7 @@ import { Category, Product } from '../../models/wms.models';
             </thead>
             <tbody>
               <tr *ngIf="products().length === 0">
-                <td colspan="7" class="text-center py-5 text-muted">
+                <td colspan="8" class="text-center py-5 text-muted">
                   <i class="bi bi-inbox fs-2 d-block mb-2"></i>
                   No products found matching the criteria.
                 </td>
@@ -91,6 +92,9 @@ import { Category, Product } from '../../models/wms.models';
                 <td>
                   <div class="text-secondary small">{{ p.categoryName || 'Unassigned' }}</div>
                   <small class="text-muted">{{ p.brand || '-' }}</small>
+                </td>
+                <td>
+                  <span class="text-success fw-bold font-monospace">₹{{ (p.price || 0) | number:'1.2-2' }}</span>
                 </td>
                 <td>
                   <div class="d-flex align-items-center gap-2">
@@ -165,15 +169,22 @@ import { Category, Product } from '../../models/wms.models';
               </div>
 
               <div class="row g-3 mb-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
+                  <label class="form-label text-secondary small fw-semibold">Price (₹)</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-secondary">₹</span>
+                    <input type="number" step="0.01" min="0" class="form-control" [(ngModel)]="newProduct.price" name="price" placeholder="0.00">
+                  </div>
+                </div>
+                <div class="col-md-3">
                   <label class="form-label text-secondary small fw-semibold">Brand</label>
                   <input type="text" class="form-control" [(ngModel)]="newProduct.brand" name="brand" placeholder="Brand name">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                   <label class="form-label text-secondary small fw-semibold">Unit of Measure</label>
                   <input type="text" class="form-control" [(ngModel)]="newProduct.unit" name="unit" placeholder="PCS, BAG, KG, L">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                   <label class="form-label text-secondary small fw-semibold">Reorder Threshold *</label>
                   <input type="number" class="form-control" [(ngModel)]="newProduct.reorderLevel" name="reorderLevel" required>
                 </div>
@@ -255,6 +266,7 @@ export class ProductsComponent implements OnInit {
     name: '',
     sku: '',
     barcode: '',
+    price: 0,
     categoryId: undefined,
     brand: '',
     unit: 'PCS',
@@ -309,6 +321,7 @@ export class ProductsComponent implements OnInit {
       name: '',
       sku: '',
       barcode: '',
+      price: 0,
       categoryId: undefined,
       brand: '',
       unit: 'PCS',
