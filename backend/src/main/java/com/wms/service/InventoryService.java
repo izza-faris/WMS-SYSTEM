@@ -97,8 +97,20 @@ public class InventoryService {
         Long clientId = tenantSecurityService.requireCurrentClientId();
         Long userId = tenantSecurityService.getCurrentUserId();
 
-        Warehouse wh = warehouseRepository.findByIdAndClientId(request.getWarehouseId(), clientId)
-                .orElseThrow(() -> new ResourceNotFoundException("Warehouse not found."));
+        Long warehouseId = request.getWarehouseId();
+        Warehouse wh = null;
+        if (warehouseId != null) {
+            wh = warehouseRepository.findByIdAndClientId(warehouseId, clientId).orElse(null);
+        }
+        if (wh == null) {
+            List<Warehouse> clientWhs = warehouseRepository.findByClientId(clientId);
+            if (!clientWhs.isEmpty()) {
+                wh = clientWhs.get(0);
+            } else {
+                throw new ResourceNotFoundException("No warehouse found for this account. Please create a warehouse first.");
+            }
+        }
+        request.setWarehouseId(wh.getId());
         tenantSecurityService.validateBranchAccess(wh.getBranchId());
 
         Product product = productRepository.findByIdAndClientId(request.getProductId(), clientId)
@@ -145,8 +157,29 @@ public class InventoryService {
         Long clientId = tenantSecurityService.requireCurrentClientId();
         Long userId = tenantSecurityService.getCurrentUserId();
 
-        Warehouse wh = warehouseRepository.findByIdAndClientId(request.getWarehouseId(), clientId)
-                .orElseThrow(() -> new ResourceNotFoundException("Warehouse not found."));
+        Long warehouseId = request.getWarehouseId();
+        Warehouse wh = null;
+        if (warehouseId != null) {
+            wh = warehouseRepository.findByIdAndClientId(warehouseId, clientId).orElse(null);
+        }
+        if (wh == null) {
+            // Check if product exists in any warehouse with quantity > 0
+            List<Inventory> stockLocations = inventoryRepository.findByClientIdAndProductId(clientId, request.getProductId()).stream()
+                    .filter(i -> i.getQuantity() > 0)
+                    .collect(Collectors.toList());
+            if (!stockLocations.isEmpty()) {
+                wh = warehouseRepository.findById(stockLocations.get(0).getWarehouseId()).orElse(null);
+            }
+            if (wh == null) {
+                List<Warehouse> clientWhs = warehouseRepository.findByClientId(clientId);
+                if (!clientWhs.isEmpty()) {
+                    wh = clientWhs.get(0);
+                } else {
+                    throw new ResourceNotFoundException("No warehouse found for this account.");
+                }
+            }
+        }
+        request.setWarehouseId(wh.getId());
         tenantSecurityService.validateBranchAccess(wh.getBranchId());
 
         Product product = productRepository.findByIdAndClientId(request.getProductId(), clientId)

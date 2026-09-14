@@ -50,15 +50,15 @@ import { Product, Warehouse, StockTransaction, FefoBatchRecommendation } from '.
               </div>
 
               <div class="mb-3">
-                <label class="form-label text-secondary small fw-semibold">Destination Warehouse *</label>
+                <label class="form-label text-secondary small fw-semibold">Destination Warehouse <span class="text-muted fw-normal">(Optional)</span></label>
                 <div class="input-group">
                   <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-building"></i></span>
-                  <input type="text" class="form-control" [(ngModel)]="stockInForm.warehouseSearch" name="warehouseSearch" list="stockInWhList" placeholder="Type Warehouse (e.g. Main Warehouse)" required>
+                  <input type="text" class="form-control" [(ngModel)]="stockInForm.warehouseSearch" name="warehouseSearch" list="stockInWhList" placeholder="Main Warehouse (or leave blank)">
                 </div>
                 <datalist id="stockInWhList">
                   <option *ngFor="let w of warehouses()" [value]="w.name">{{ w.name }}</option>
                 </datalist>
-                <small class="text-muted text-xs mt-1 d-block">Type warehouse name (creates automatically if new)</small>
+                <small class="text-muted text-xs mt-1 d-block">Optional: Defaults to Main Warehouse automatically</small>
               </div>
 
               <div class="row g-2 mb-3">
@@ -112,14 +112,15 @@ import { Product, Warehouse, StockTransaction, FefoBatchRecommendation } from '.
               </div>
 
               <div class="mb-3">
-                <label class="form-label text-secondary small fw-semibold">Source Warehouse *</label>
+                <label class="form-label text-secondary small fw-semibold">Source Warehouse <span class="text-muted fw-normal">(Optional)</span></label>
                 <div class="input-group">
                   <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-building"></i></span>
-                  <input type="text" class="form-control" [(ngModel)]="stockOutForm.warehouseSearch" name="warehouseSearchOut" list="stockOutWhList" placeholder="Type Warehouse (e.g. Main Warehouse)" (input)="onProductChangeForOut()" required>
+                  <input type="text" class="form-control" [(ngModel)]="stockOutForm.warehouseSearch" name="warehouseSearchOut" list="stockOutWhList" placeholder="Main Warehouse (or leave blank)" (input)="onProductChangeForOut()">
                 </div>
                 <datalist id="stockOutWhList">
                   <option *ngFor="let w of warehouses()" [value]="w.name">{{ w.name }}</option>
                 </datalist>
+                <small class="text-muted text-xs mt-1 d-block">Optional: Auto-detected from available inventory</small>
               </div>
 
               <!-- FEFO Batch Recommendation Preview -->
@@ -221,7 +222,7 @@ export class StockMovementComponent implements OnInit {
     productId: null,
     warehouseId: null,
     productSearch: '',
-    warehouseSearch: '',
+    warehouseSearch: 'Main Warehouse',
     quantity: 10,
     batchNumber: '',
     mfgDate: '',
@@ -234,7 +235,7 @@ export class StockMovementComponent implements OnInit {
     productId: null,
     warehouseId: null,
     productSearch: '',
-    warehouseSearch: '',
+    warehouseSearch: 'Main Warehouse',
     quantity: 5,
     batchId: null,
     referenceNumber: '',

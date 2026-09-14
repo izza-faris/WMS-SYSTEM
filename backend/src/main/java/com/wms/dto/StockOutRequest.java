@@ -8,7 +8,7 @@ public class StockOutRequest {
     @NotNull(message = "Product ID is required")
     private Long productId;
 
-    @NotNull(message = "Warehouse ID is required")
+    // Optional: Defaults to client's default warehouse or available stock location if null
     private Long warehouseId;
 
     private Long binId;

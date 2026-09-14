@@ -9,7 +9,7 @@ public class StockInRequest {
     @NotNull(message = "Product ID is required")
     private Long productId;
 
-    @NotNull(message = "Warehouse ID is required")
+    // Optional: Defaults to client's default/main warehouse if null
     private Long warehouseId;
 
     private Long binId;
