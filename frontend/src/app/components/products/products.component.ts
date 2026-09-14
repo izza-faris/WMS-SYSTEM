@@ -1,23 +1,30 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { WmsApiService } from '../../services/wms-api.service';
 import { Category, Product } from '../../models/wms.models';
 
 @Component({
   selector: 'app-products',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   template: `
     <div class="products-page animate__animated animate__fadeIn">
       <!-- Top Title & Actions -->
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div>
-          <h2 class="fw-bold text-light mb-1">Products & Catalog</h2>
-          <p class="text-secondary small mb-0">Manage items, barcodes, QR tags, reorder thresholds & categories</p>
+          <h2 class="fw-bold text-light mb-1">Products & Catalog (பொருட்கள் & விலை விபரம்)</h2>
+          <p class="text-secondary small mb-0">Manage items, barcodes, prices, stock levels, and print price tag stickers</p>
         </div>
 
         <div class="d-flex flex-wrap align-items-center gap-2">
+          <!-- Quick Price Checker Button -->
+          <button (click)="openScannerModal()" class="btn btn-outline-success btn-sm d-flex align-items-center gap-2" title="Check product price instantly">
+            <i class="bi bi-upc-scan"></i>
+            <span>Instant Price Checker (விலை சரிபார்ப்பு)</span>
+          </button>
+
           <button (click)="openAddModal()" class="btn btn-glow-primary btn-sm d-flex align-items-center gap-2">
             <i class="bi bi-plus-lg"></i>
             <span>Add Product</span>
@@ -35,29 +42,45 @@ import { Category, Product } from '../../models/wms.models';
         </div>
       </div>
 
-      <!-- Search & Filters -->
+      <!-- Search & Filters Toolbar -->
       <div class="glass-panel p-3 mb-4">
         <div class="row g-2 align-items-center">
-          <div class="col-md-5">
+          <!-- General Search -->
+          <div class="col-md-4">
             <div class="input-group">
               <span class="input-group-text bg-dark border-secondary border-opacity-25 text-secondary"><i class="bi bi-search"></i></span>
-              <input type="text" class="form-control" [(ngModel)]="searchQuery" (input)="onSearch()" placeholder="Search by SKU, Product Name, Barcode, Brand...">
+              <input type="text" class="form-control" [(ngModel)]="searchQuery" (input)="onSearch()" placeholder="Search Name, SKU, Brand...">
             </div>
           </div>
+
+          <!-- Quick Barcode Price Lookup -->
           <div class="col-md-3">
+            <div class="input-group">
+              <span class="input-group-text bg-dark border-success border-opacity-50 text-success"><i class="bi bi-upc-scan"></i></span>
+              <input type="text" class="form-control border-success border-opacity-30" [(ngModel)]="quickBarcode" (keyup.enter)="checkPriceDirect()" placeholder="Scan/Type Barcode for Price...">
+              <button (click)="checkPriceDirect()" class="btn btn-outline-success btn-sm">Check</button>
+            </div>
+          </div>
+
+          <!-- Category Filter -->
+          <div class="col-md-2">
             <select class="form-select" [(ngModel)]="selectedCategory" (change)="onFilterCategory()">
               <option value="">All Categories</option>
               <option *ngFor="let cat of categories()" [value]="cat.id">{{ cat.name }}</option>
             </select>
           </div>
+
+          <!-- Currency Selector -->
           <div class="col-md-2">
             <select class="form-select bg-dark text-light border-secondary" [(ngModel)]="defaultCurrency" (change)="onDefaultCurrencyChange()" title="Choose Currency Symbol">
               <option *ngFor="let c of availableCurrencies" [value]="c.symbol">{{ c.symbol }} ({{ c.code }})</option>
             </select>
           </div>
-          <div class="col-md-2">
-            <button (click)="openCategoryModal()" class="btn btn-glass w-100 btn-sm py-2">
-              <i class="bi bi-tags me-1"></i> Categories
+
+          <!-- Categories modal button -->
+          <div class="col-md-1">
+            <button (click)="openCategoryModal()" class="btn btn-glass w-100 btn-sm py-2" title="Manage Categories">
+              <i class="bi bi-tags"></i>
             </button>
           </div>
         </div>
@@ -70,9 +93,9 @@ import { Category, Product } from '../../models/wms.models';
             <thead>
               <tr>
                 <th>Product Info</th>
-                <th>SKU</th>
+                <th>SKU & Barcode</th>
                 <th>Category / Brand</th>
-                <th>Price</th>
+                <th>Price / விலை</th>
                 <th>Stock Level</th>
                 <th>Reorder Point</th>
                 <th>Tracking</th>
@@ -93,13 +116,20 @@ import { Category, Product } from '../../models/wms.models';
                 </td>
                 <td>
                   <span class="badge bg-dark border border-secondary text-primary font-monospace">{{ p.sku }}</span>
+                  <div *ngIf="p.barcode" class="text-secondary text-xs font-monospace mt-1">
+                    <i class="bi bi-upc me-1 text-success"></i>{{ p.barcode }}
+                  </div>
                 </td>
                 <td>
                   <div class="text-secondary small">{{ p.categoryName || 'Unassigned' }}</div>
                   <small class="text-muted">{{ p.brand || '-' }}</small>
                 </td>
                 <td>
-                  <span class="text-success fw-bold font-monospace">{{ p.currency || defaultCurrency }} {{ (p.price || 0) | number:'1.2-2' }}</span>
+                  <!-- Prominent Price Display in Table -->
+                  <div class="fs-6 fw-bold text-success font-monospace">
+                    {{ p.currency || defaultCurrency }} {{ (p.price || 0) | number:'1.2-2' }}
+                  </div>
+                  <small class="text-muted text-xs">per {{ p.unit }}</small>
                 </td>
                 <td>
                   <div class="d-flex align-items-center gap-2">
@@ -121,12 +151,23 @@ import { Category, Product } from '../../models/wms.models';
                 </td>
                 <td class="text-end">
                   <div class="btn-group btn-group-sm">
-                    <button (click)="viewQr(p)" class="btn btn-glass" title="View QR Code">
-                      <i class="bi bi-qr-code text-info"></i>
+                    <!-- Check Price Quick Button -->
+                    <button (click)="viewPriceDetail(p)" class="btn btn-glass text-success" title="View Price Card">
+                      <i class="bi bi-tag-fill"></i>
                     </button>
-                    <button (click)="viewBarcode(p)" class="btn btn-glass" title="View Barcode">
-                      <i class="bi bi-upc text-success"></i>
+                    <!-- View/Print Barcode Sticker -->
+                    <button (click)="viewBarcode(p)" class="btn btn-glass text-info" title="Barcode & Price Sticker">
+                      <i class="bi bi-upc"></i>
                     </button>
+                    <!-- QR Code -->
+                    <button (click)="viewQr(p)" class="btn btn-glass text-primary" title="View QR Code">
+                      <i class="bi bi-qr-code"></i>
+                    </button>
+                    <!-- Edit Product -->
+                    <button (click)="openEditModal(p)" class="btn btn-glass text-warning" title="Edit Product, Price & Barcode">
+                      <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <!-- Delete Product -->
                     <button (click)="deleteProduct(p)" class="btn btn-glass text-danger" title="Delete Product">
                       <i class="bi bi-trash3"></i>
                     </button>
@@ -143,7 +184,10 @@ import { Category, Product } from '../../models/wms.models';
         <div class="modal-dialog modal-lg modal-dialog-centered">
           <div class="modal-content glass-panel border-0 p-4">
             <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-10">
-              <h5 class="fw-bold text-light mb-0">Add New Product</h5>
+              <h5 class="fw-bold text-light mb-0">
+                <i class="bi" [ngClass]="isEditing ? 'bi-pencil-square text-warning' : 'bi-plus-circle text-primary'"></i>
+                {{ isEditing ? 'Edit Product & Price' : 'Add New Product' }}
+              </h5>
               <button (click)="showAddModal = false" class="btn btn-sm text-secondary"><i class="bi bi-x-lg"></i></button>
             </div>
 
@@ -160,10 +204,22 @@ import { Category, Product } from '../../models/wms.models';
               </div>
 
               <div class="row g-3 mb-3">
+                <!-- Barcode with Auto-Generate helper -->
                 <div class="col-md-6">
-                  <label class="form-label text-secondary small fw-semibold">Barcode (Optional)</label>
-                  <input type="text" class="form-control" [(ngModel)]="newProduct.barcode" name="barcode" placeholder="890123456789">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <label class="form-label text-secondary small fw-semibold mb-1">Barcode (Optional)</label>
+                    <button type="button" (click)="autoGenerateBarcode()" class="btn btn-link text-info text-decoration-none p-0 text-xs">
+                      <i class="bi bi-magic me-1"></i> Auto-Generate Barcode
+                    </button>
+                  </div>
+                  <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-upc"></i></span>
+                    <input type="text" class="form-control" [(ngModel)]="newProduct.barcode" name="barcode" placeholder="e.g. 890123456789 or scan barcode here">
+                  </div>
+                  <small class="text-muted text-xs">You can also scan directly using your USB barcode scanner</small>
                 </div>
+
+                <!-- Category -->
                 <div class="col-md-6">
                   <label class="form-label text-secondary small fw-semibold">Category</label>
                   <select class="form-select" [(ngModel)]="newProduct.categoryId" name="categoryId">
@@ -174,15 +230,17 @@ import { Category, Product } from '../../models/wms.models';
               </div>
 
               <div class="row g-3 mb-3">
+                <!-- Currency & Price -->
                 <div class="col-md-4">
-                  <label class="form-label text-secondary small fw-semibold">Currency & Price</label>
+                  <label class="form-label text-secondary small fw-semibold">Price / விற்பனை விலை *</label>
                   <div class="input-group">
                     <select class="form-select bg-dark text-light border-secondary" style="max-width: 95px;" [(ngModel)]="newProduct.currency" name="currency">
                       <option *ngFor="let c of availableCurrencies" [value]="c.symbol">{{ c.symbol }}</option>
                     </select>
-                    <input type="number" step="0.01" min="0" class="form-control" [(ngModel)]="newProduct.price" name="price" placeholder="0.00">
+                    <input type="number" step="0.01" min="0" class="form-control text-success fw-bold" [(ngModel)]="newProduct.price" name="price" placeholder="0.00" required>
                   </div>
                 </div>
+
                 <div class="col-md-3">
                   <label class="form-label text-secondary small fw-semibold">Brand</label>
                   <input type="text" class="form-control" [(ngModel)]="newProduct.brand" name="brand" placeholder="Brand name">
@@ -206,25 +264,103 @@ import { Category, Product } from '../../models/wms.models';
 
               <div class="d-flex justify-content-end gap-2">
                 <button type="button" (click)="showAddModal = false" class="btn btn-glass">Cancel</button>
-                <button type="submit" class="btn btn-glow-primary">Save Product</button>
+                <button type="submit" class="btn btn-glow-primary">{{ isEditing ? 'Update Product' : 'Save Product' }}</button>
               </div>
             </form>
           </div>
         </div>
       </div>
 
-      <!-- QR / Barcode Preview Modal -->
-      <div *ngIf="showCodeModal" class="modal d-block" style="background: rgba(0,0,0,0.75); z-index: 1060;">
-        <div class="modal-dialog modal-dialog-centered" style="max-width: 380px;">
-          <div class="modal-content glass-panel text-center p-4">
-            <h5 class="fw-bold text-light mb-1">{{ codeModalTitle }}</h5>
-            <p class="text-secondary small mb-3">{{ activeProduct?.name }} ({{ activeProduct?.sku }})</p>
+      <!-- Quick Price Card Modal (Shows immediately upon Barcode Scan) -->
+      <div *ngIf="showPriceModal" class="modal d-block" style="background: rgba(0,0,0,0.8); z-index: 1070;">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+          <div class="modal-content glass-panel border border-success border-opacity-50 p-4 text-center">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 px-2 py-1">
+                <i class="bi bi-check-circle-fill me-1"></i> Barcode Verified
+              </span>
+              <button (click)="showPriceModal = false" class="btn btn-sm text-secondary"><i class="bi bi-x-lg"></i></button>
+            </div>
 
-            <div class="bg-white p-3 rounded-3 d-inline-block mx-auto mb-3">
-              <img [src]="codeImageBase64" alt="Code Image" class="img-fluid" style="max-height: 200px;">
+            <h4 class="fw-bold text-light mb-1 mt-2">{{ lookedUpProduct?.name }}</h4>
+            <div class="text-secondary small mb-3">
+              SKU: <span class="font-monospace text-primary">{{ lookedUpProduct?.sku }}</span>
+              <span *ngIf="lookedUpProduct?.barcode"> &bull; Barcode: <span class="font-monospace text-light">{{ lookedUpProduct?.barcode }}</span></span>
+            </div>
+
+            <!-- Glowing Price Box -->
+            <div class="p-3 rounded-3 my-3 shadow" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(6, 78, 59, 0.35)); border: 2px solid #10b981;">
+              <small class="text-uppercase text-success fw-bold tracking-wider d-block">Selling Price / விலை</small>
+              <div class="display-4 fw-bolder text-light font-monospace my-1">
+                <span class="text-success">{{ lookedUpProduct?.currency || defaultCurrency }}</span> {{ (lookedUpProduct?.price || 0) | number:'1.2-2' }}
+              </div>
+              <small class="text-light text-opacity-75">Per {{ lookedUpProduct?.unit || 'Unit' }} &bull; Tax Incl.</small>
+            </div>
+
+            <div class="row g-2 text-start mb-3">
+              <div class="col-6">
+                <div class="p-2 bg-dark rounded border border-secondary border-opacity-20 text-center">
+                  <small class="text-secondary text-xs d-block">Current Stock</small>
+                  <strong class="fs-5 text-light">{{ lookedUpProduct?.currentStock }} {{ lookedUpProduct?.unit }}</strong>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="p-2 bg-dark rounded border border-secondary border-opacity-20 text-center">
+                  <small class="text-secondary text-xs d-block">Brand / Category</small>
+                  <strong class="fs-6 text-light">{{ lookedUpProduct?.brand || lookedUpProduct?.categoryName || '-' }}</strong>
+                </div>
+              </div>
             </div>
 
             <div class="d-flex justify-content-center gap-2">
+              <button (click)="viewBarcode(lookedUpProduct!)" class="btn btn-outline-info btn-sm">
+                <i class="bi bi-printer me-1"></i> Print Sticker
+              </button>
+              <button (click)="showPriceModal = false" class="btn btn-glass btn-sm">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Realistic Barcode & Price Tag Sticker Modal -->
+      <div *ngIf="showCodeModal" class="modal d-block" style="background: rgba(0,0,0,0.8); z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+          <div class="modal-content glass-panel text-center p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="fw-bold text-light mb-0">{{ codeModalTitle }}</h5>
+              <button (click)="showCodeModal = false" class="btn btn-sm text-secondary"><i class="bi bi-x-lg"></i></button>
+            </div>
+
+            <!-- Professional Printable Sticker Label -->
+            <div id="printable-sticker" class="bg-white text-dark p-3 rounded-3 shadow-lg mx-auto mb-3 border border-dark" style="max-width: 320px; text-align: center;">
+              <div class="fw-bold text-uppercase text-truncate" style="font-size: 0.95rem; letter-spacing: 0.5px;">
+                {{ activeProduct?.name }}
+              </div>
+              <div class="text-muted small mb-2 font-monospace">
+                SKU: {{ activeProduct?.sku }} <span *ngIf="activeProduct?.brand">&bull; {{ activeProduct?.brand }}</span>
+              </div>
+
+              <div class="my-2 d-flex justify-content-center">
+                <img [src]="codeImageBase64" alt="Barcode Image" class="img-fluid" style="max-height: 95px;">
+              </div>
+
+              <div class="font-monospace fw-bold text-dark small mb-2" *ngIf="activeProduct?.barcode">
+                {{ activeProduct?.barcode }}
+              </div>
+
+              <!-- Big Bold Price Tag on Sticker -->
+              <div class="pt-2 border-top border-dark border-opacity-50 d-flex align-items-center justify-content-between px-2">
+                <span class="text-uppercase small fw-bold text-muted">PRICE:</span>
+                <span class="fs-4 fw-bolder text-dark font-monospace">
+                  {{ activeProduct?.currency || defaultCurrency }} {{ (activeProduct?.price || 0) | number:'1.2-2' }}
+                </span>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-center gap-2">
+              <button (click)="printSticker()" class="btn btn-glow-primary">
+                <i class="bi bi-printer me-1"></i> Print Sticker Label
+              </button>
               <button (click)="showCodeModal = false" class="btn btn-glass">Close</button>
             </div>
           </div>
@@ -259,6 +395,7 @@ export class ProductsComponent implements OnInit {
   categories = signal<Category[]>([]);
   searchQuery = '';
   selectedCategory = '';
+  quickBarcode = '';
   exportUrl = '';
 
   availableCurrencies = [
@@ -282,10 +419,14 @@ export class ProductsComponent implements OnInit {
 
   showAddModal = false;
   showCodeModal = false;
+  showPriceModal = false;
   showImportModal = false;
+  isEditing = false;
+  editingId: number | null = null;
   codeModalTitle = '';
   codeImageBase64 = '';
   activeProduct: Product | null = null;
+  lookedUpProduct: Product | null = null;
   selectedFile: File | null = null;
 
   newProduct: Partial<Product> = {
@@ -303,19 +444,19 @@ export class ProductsComponent implements OnInit {
     expiryTrackingEnabled: false
   };
 
-  onDefaultCurrencyChange() {
-    localStorage.setItem('wms_currency', this.defaultCurrency);
-    if (this.newProduct) {
-      this.newProduct.currency = this.defaultCurrency;
-    }
-  }
-
   constructor(private wmsApi: WmsApiService) {}
 
   ngOnInit(): void {
     this.exportUrl = this.wmsApi.exportProductsExcelUrl();
     this.loadProducts();
     this.loadCategories();
+  }
+
+  onDefaultCurrencyChange() {
+    localStorage.setItem('wms_currency', this.defaultCurrency);
+    if (this.newProduct) {
+      this.newProduct.currency = this.defaultCurrency;
+    }
   }
 
   loadProducts() {
@@ -341,7 +482,6 @@ export class ProductsComponent implements OnInit {
   }
 
   onFilterCategory() {
-    // Client-side filtering or reload
     if (!this.selectedCategory) {
       this.loadProducts();
     } else {
@@ -350,7 +490,65 @@ export class ProductsComponent implements OnInit {
     }
   }
 
+  playBeep() {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1760, ctx.currentTime);
+      gain.gain.setValueAtTime(0.25, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.12);
+    } catch (e) {}
+  }
+
+  checkPriceDirect() {
+    if (!this.quickBarcode || !this.quickBarcode.trim()) return;
+    const code = this.quickBarcode.trim();
+    this.wmsApi.scanProductCode(code).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.playBeep();
+          this.lookedUpProduct = res.data;
+          this.showPriceModal = true;
+          this.quickBarcode = '';
+        }
+      },
+      error: () => {
+        alert('No product found for Barcode / SKU: ' + code);
+      }
+    });
+  }
+
+  viewPriceDetail(p: Product) {
+    this.lookedUpProduct = p;
+    this.showPriceModal = true;
+  }
+
+  openScannerModal() {
+    // Navigate or prompt barcode
+    const code = prompt('Scan barcode with your scanner or type SKU / Barcode:');
+    if (code && code.trim()) {
+      this.quickBarcode = code.trim();
+      this.checkPriceDirect();
+    }
+  }
+
+  autoGenerateBarcode() {
+    // Generate 12-digit standard barcode prefix 890 + 9 digits
+    const rand = Math.floor(100000000 + Math.random() * 900000000).toString();
+    this.newProduct.barcode = '890' + rand;
+  }
+
   openAddModal() {
+    this.isEditing = false;
+    this.editingId = null;
     this.newProduct = {
       name: '',
       sku: '',
@@ -368,6 +566,26 @@ export class ProductsComponent implements OnInit {
     this.showAddModal = true;
   }
 
+  openEditModal(p: Product) {
+    this.isEditing = true;
+    this.editingId = p.id;
+    this.newProduct = {
+      name: p.name,
+      sku: p.sku,
+      barcode: p.barcode || '',
+      price: p.price || 0,
+      currency: p.currency || this.defaultCurrency,
+      categoryId: p.categoryId,
+      brand: p.brand || '',
+      unit: p.unit || 'PCS',
+      reorderLevel: p.reorderLevel,
+      minStockLevel: p.minStockLevel,
+      maxStockLevel: p.maxStockLevel,
+      expiryTrackingEnabled: p.expiryTrackingEnabled
+    };
+    this.showAddModal = true;
+  }
+
   openCategoryModal() {
     const catName = prompt('Enter new Category Name:');
     if (catName && catName.trim()) {
@@ -378,13 +596,23 @@ export class ProductsComponent implements OnInit {
   }
 
   saveProduct() {
-    this.wmsApi.createProduct(this.newProduct).subscribe({
-      next: () => {
-        this.showAddModal = false;
-        this.loadProducts();
-      },
-      error: (err) => alert(err.error?.message || 'Failed to save product')
-    });
+    if (this.isEditing && this.editingId) {
+      this.wmsApi.updateProduct(this.editingId, this.newProduct).subscribe({
+        next: () => {
+          this.showAddModal = false;
+          this.loadProducts();
+        },
+        error: (err) => alert(err.error?.message || 'Failed to update product')
+      });
+    } else {
+      this.wmsApi.createProduct(this.newProduct).subscribe({
+        next: () => {
+          this.showAddModal = false;
+          this.loadProducts();
+        },
+        error: (err) => alert(err.error?.message || 'Failed to save product')
+      });
+    }
   }
 
   deleteProduct(p: Product) {
@@ -412,13 +640,53 @@ export class ProductsComponent implements OnInit {
 
   viewBarcode(p: Product) {
     this.activeProduct = p;
-    this.codeModalTitle = 'Product Barcode';
+    this.codeModalTitle = 'Product Barcode & Price Sticker';
     this.wmsApi.getProductBarcodeImage(p.id).subscribe({
       next: (res) => {
         this.codeImageBase64 = res.data;
         this.showCodeModal = true;
+        if (this.showPriceModal) {
+          this.showPriceModal = false;
+        }
       }
     });
+  }
+
+  printSticker() {
+    const printWindow = window.open('', '_blank', 'width=450,height=500');
+    if (printWindow && this.activeProduct) {
+      const p = this.activeProduct;
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Barcode Price Sticker - ${p.name}</title>
+            <style>
+              @page { size: auto; margin: 4mm; }
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; margin: 0; padding: 12px; }
+              .sticker { border: 2px dashed #222; padding: 14px; border-radius: 8px; max-width: 320px; margin: 0 auto; }
+              .prod-name { font-size: 15px; font-weight: 800; margin-bottom: 2px; text-transform: uppercase; }
+              .sku { font-size: 11px; color: #555; font-family: monospace; margin-bottom: 8px; }
+              img { max-height: 85px; width: auto; margin: 6px 0; }
+              .barcode-num { font-family: monospace; font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+              .price-tag { border-top: 2px solid #000; padding-top: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: 900; }
+            </style>
+          </head>
+          <body onload="window.print(); window.close();">
+            <div class="sticker">
+              <div class="prod-name">${p.name}</div>
+              <div class="sku">SKU: ${p.sku} ${p.brand ? '• ' + p.brand : ''}</div>
+              <img src="${this.codeImageBase64}" />
+              <div class="barcode-num">${p.barcode || p.sku}</div>
+              <div class="price-tag">
+                <span>PRICE:</span>
+                <span>${p.currency || this.defaultCurrency} ${Number(p.price || 0).toFixed(2)}</span>
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
   }
 
   openImportModal() {
