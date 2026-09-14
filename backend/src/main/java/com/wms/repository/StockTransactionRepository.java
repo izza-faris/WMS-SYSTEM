@@ -15,6 +15,8 @@ import java.util.List;
 @Repository
 public interface StockTransactionRepository extends JpaRepository<StockTransaction, Long> {
     Page<StockTransaction> findByClientId(Long clientId, Pageable pageable);
+    List<StockTransaction> findByClientId(Long clientId);
+    void deleteByClientId(Long clientId);
     List<StockTransaction> findByClientIdAndWarehouseId(Long clientId, Long warehouseId);
     List<StockTransaction> findByClientIdAndProductId(Long clientId, Long productId);
 

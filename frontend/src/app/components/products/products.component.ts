@@ -70,7 +70,7 @@ import { Category, Product } from '../../models/wms.models';
                 <th>Stock Level</th>
                 <th>Reorder Point</th>
                 <th>Tracking</th>
-                <th class="text-end">Barcode / QR</th>
+                <th class="text-end">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -117,6 +117,9 @@ import { Category, Product } from '../../models/wms.models';
                     </button>
                     <button (click)="viewBarcode(p)" class="btn btn-glass" title="View Barcode">
                       <i class="bi bi-upc text-success"></i>
+                    </button>
+                    <button (click)="deleteProduct(p)" class="btn btn-glass text-danger" title="Delete Product">
+                      <i class="bi bi-trash3"></i>
                     </button>
                   </div>
                 </td>
@@ -333,6 +336,18 @@ export class ProductsComponent implements OnInit {
         this.loadProducts();
       },
       error: (err) => alert(err.error?.message || 'Failed to save product')
+    });
+  }
+
+  deleteProduct(p: Product) {
+    if (!confirm(`Are you sure you want to delete "${p.name}" (${p.sku})?\n\nThis will permanently remove the product along with its inventory stock balances and movement ledger records.`)) {
+      return;
+    }
+    this.wmsApi.deleteProduct(p.id).subscribe({
+      next: () => {
+        this.loadProducts();
+      },
+      error: (err) => alert(err.error?.message || 'Failed to delete product')
     });
   }
 

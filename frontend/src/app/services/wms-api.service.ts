@@ -179,6 +179,10 @@ export class WmsApiService {
     return this.http.put<ApiResponse<Product>>(`${this.baseUrl}/products/${id}`, product);
   }
 
+  deleteProduct(id: number): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/products/${id}`);
+  }
+
   getProductQrImage(id: number): Observable<ApiResponse<string>> {
     return this.http.get<ApiResponse<string>>(`${this.baseUrl}/products/${id}/qr-image`);
   }
@@ -222,6 +226,14 @@ export class WmsApiService {
   getStockTransactions(page = 0, size = 50): Observable<ApiResponse<any>> {
     const params = new HttpParams().set('page', page.toString()).set('size', size.toString());
     return this.http.get<ApiResponse<any>>(`${this.baseUrl}/stock/transactions`, { params });
+  }
+
+  deleteStockTransaction(id: number): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/stock/transactions/${id}`);
+  }
+
+  clearAllStockTransactions(): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/stock/transactions/all`);
   }
 
   // Transfers

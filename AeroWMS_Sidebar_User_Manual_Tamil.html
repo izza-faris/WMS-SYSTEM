@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+  <meta charset="UTF-8">
+  <title>AeroWMS — பயனர் வழிகாட்டி & பக்க மெனு விளக்கம் (User Manual in Tamil)</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 12mm 14mm 14mm 14mm;
+      @bottom-right {
+        content: "பக்கம் " counter(page);
+        font-size: 8.5pt;
+        color: #64748b;
+        font-family: 'Nirmala UI', 'Latha', 'Segoe UI', Arial, sans-serif;
+      }
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    body {
+      font-family: 'Nirmala UI', 'Latha', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      background: #ffffff;
+      line-height: 1.55;
+      font-size: 9.5pt;
+      margin: 0;
+      padding: 0;
+    }
+    h1, h2, h3, h4, h5 {
+      color: #0f172a;
+      margin-top: 0;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+    h1 {
+      font-size: 19pt;
+      margin-bottom: 4px;
+    }
+    h2 {
+      font-size: 13pt;
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 5px;
+      margin-top: 18px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #1e3a8a;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 10.8pt;
+      margin-top: 12px;
+      margin-bottom: 5px;
+      color: #1d4ed8;
+      page-break-after: avoid;
+    }
+    h4 {
+      font-size: 9.8pt;
+      margin-top: 8px;
+      margin-bottom: 4px;
+      color: #0f172a;
+    }
+    p {
+      margin: 0 0 7px 0;
+      color: #334155;
+    }
+    .hero-header {
+      background: linear-gradient(135deg, #091e42 0%, #1e3a8a 60%, #2563eb 100%);
+      color: #ffffff;
+      padding: 18px 22px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .hero-header h1 {
+      color: #ffffff;
+      font-size: 20pt;
+    }
+    .hero-tagline {
+      font-size: 10.5pt;
+      color: #bfdbfe;
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+    .badge-container {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      font-size: 7.5pt;
+      font-weight: 700;
+      border-radius: 9999px;
+      letter-spacing: 0.3px;
+    }
+    .badge-primary { background: #2563eb; color: #fff; }
+    .badge-success { background: #059669; color: #fff; }
+    .badge-purple { background: #7c3aed; color: #fff; }
+    .badge-amber { background: #d97706; color: #fff; }
+    .badge-danger { background: #dc2626; color: #fff; }
+    .badge-dark { background: #1e293b; color: #fff; }
+    .badge-outline { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+
+    .category-card {
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      padding: 11px 13px;
+      margin-bottom: 12px;
+      background: #f8fafc;
+      page-break-inside: avoid;
+    }
+    .category-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+    }
+    .category-title {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .category-tag {
+      font-size: 7.5pt;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .tag-ops { background: #e0e7ff; color: #3730a3; }
+    .tag-log { background: #ecfdf5; color: #065f46; }
+    .tag-str { background: #fef3c7; color: #92400e; }
+    .tag-ent { background: #f3e8ff; color: #6b21a8; }
+
+    .section-block {
+      margin-bottom: 6px;
+    }
+    .section-label {
+      font-weight: 700;
+      font-size: 8.8pt;
+      color: #1e40af;
+      display: inline-block;
+      min-width: 140px;
+    }
+
+    ul, ol {
+      margin: 4px 0 8px 18px;
+      padding: 0;
+    }
+    li {
+      margin-bottom: 4px;
+      color: #334155;
+    }
+
+    .alert-box {
+      background: #eff6ff;
+      border-left: 3px solid #2563eb;
+      padding: 7px 10px;
+      border-radius: 4px;
+      font-size: 8.8pt;
+      margin-top: 6px;
+      color: #1e3a8a;
+    }
+    .alert-box strong {
+      color: #1d4ed8;
+    }
+
+    .example-box {
+      background: #fdf4ff;
+      border-left: 3px solid #a855f7;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 8.8pt;
+      margin-top: 6px;
+      color: #581c87;
+    }
+
+    .tip-box {
+      background: #f0fdf4;
+      border-left: 3px solid #10b981;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 8.8pt;
+      margin-top: 6px;
+      color: #064e3b;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 12px 0;
+      font-size: 8.5pt;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 6px 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+    }
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .toc {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+    }
+    .toc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      font-size: 8.5pt;
+    }
+    .toc-item {
+      color: #1d4ed8;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .icon-symbol {
+      font-weight: bold;
+      margin-right: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hero Header -->
+  <div class="hero-header">
+    <div class="d-flex" style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <h1>AeroWMS — பக்க மெனு வழிகாட்டி & பயன்பாட்டு கையேடு</h1>
+        <div class="hero-tagline">Side Bar Categories: முழுமையான விளக்கம், எதற்கு பயன்படுகிறது மற்றும் எவ்வாறு பயன்படுத்துவது?</div>
+      </div>
+      <div style="text-align:right;">
+        <span class="badge badge-outline">Multi-Tenant WMS</span><br>
+        <span class="badge badge-outline" style="margin-top:4px;">நிறுவனம்: Zains cuisine</span>
+      </div>
+    </div>
+    <div class="badge-container" style="margin-top: 8px;">
+      <span class="badge badge-primary">Operations (செயல்பாடுகள்)</span>
+      <span class="badge badge-success">Logistics (சரக்கு நகர்வுகள்)</span>
+      <span class="badge badge-amber">Structure (கிடங்கு கட்டமைப்பு)</span>
+      <span class="badge badge-purple">Enterprise (நிர்வாகம் & தணிக்கை)</span>
+      <span class="badge badge-dark">FEFO & Camera Scanner</span>
+    </div>
+  </div>
+
+  <!-- விரைவு சுருக்கம் & பொருளடக்கம் -->
+  <div class="toc">
+    <h4 style="margin-bottom: 6px; color:#1e3a8a;"><span class="icon-symbol">📋</span> AeroWMS பக்க மெனு பொருளடக்கம் (Table of Contents)</h4>
+    <div class="toc-grid">
+      <div>
+        <strong>பிரிவு 1: OPERATIONS (செயல்பாடுகள்)</strong>
+        <ol style="margin-top:3px; margin-bottom:6px;">
+          <li>Dashboard (டாஷ்போர்டு - கட்டுப்பாட்டு மையம்)</li>
+          <li>Products & Catalog (பொருட்கள் பட்டியல் & விபரங்கள்)</li>
+          <li>Inventory & FEFO (சரக்கு இருப்பு & காலாவதி கண்காணிப்பு)</li>
+          <li>Camera Scanner (கேமரா பார்-கோட் & QR ஸ்கேனர்)</li>
+        </ol>
+        <strong>பிரிவு 2: LOGISTICS (சரக்கு நகர்வுகள்)</strong>
+        <ol start="5" style="margin-top:3px; margin-bottom:6px;">
+          <li>Stock In / Out (சரக்கு வரவு மற்றும் விநியோகம்)</li>
+          <li>Stock Transfers (கிளைகளுக்கு இடையிலான இடமாற்றம்)</li>
+          <li>Adjustments (இருப்பு திருத்தம் & கணக்கெடுப்பு சரிசெய்தல்)</li>
+        </ol>
+      </div>
+      <div>
+        <strong>பிரிவு 3: STRUCTURE (கிடங்கு கட்டமைப்பு)</strong>
+        <ol start="8" style="margin-top:3px; margin-bottom:6px;">
+          <li>Spatial Warehouses (5-அடுக்கு துல்லிய கிடங்கு கட்டமைப்பு)</li>
+          <li>Branches (கிளைகள் & பிராந்திய மேலாண்மை)</li>
+        </ol>
+        <strong>பிரிவு 4: ENTERPRISE (நிர்வாகம் & தணிக்கை)</strong>
+        <ol start="10" style="margin-top:3px; margin-bottom:6px;">
+          <li>Reports & PDF (அறிக்கைகள் & பிடிஎஃப் / எக்செல் ஆவணங்கள்)</li>
+          <li>Team & Roles (பணியாளர்கள் & அனுமதி நிலைகள்)</li>
+          <li>Audit Trail (பாதுகாப்பு & தணிக்கைப் பதிவு)</li>
+        </ol>
+        <strong>பிரிவு 5: விரைவு கட்டுப்பாடுகள் (Quick Actions)</strong>
+        <ul style="margin-top:3px; margin-bottom:6px;">
+          <li>Camera Scanner பட்டன், Notification Bell & User Profile</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- முன்னுரை -->
+  <p>
+    <strong>AeroWMS</strong> என்பது நவீன கிடங்கு மற்றும் பல கிளை சரக்கு மேலாண்மை மென்பொருளாகும் (Multi-Branch Warehouse Management System). மொபைல் போன் திரையின் இடதுபுறம் தோன்றும் <strong>Side Bar (பக்க மெனு)</strong> உங்கள் வணிகத்தின் ஒட்டுமொத்த கிடங்கு செயல்பாடுகளையும் 4 பிரதான பிரிவுகளாகப் பிரித்து வழங்குகிறது. இந்த கையேட்டில் ஒவ்வொரு பிரிவும் <em>என்ன</em>, <em>எதற்கு பயன்படுகிறது</em>, மற்றும் <em>எவ்வாறு பயன்படுத்துவது</em> என்று எளிய தமிழில் நிஜ வாழ்க்கை உதாரணங்களுடன் விளக்கப்பட்டுள்ளது.
+  </p>
+
+  <!-- பிரிவு 1: OPERATIONS -->
+  <h2><span class="icon-symbol">⚡</span> பிரிவு 1: OPERATIONS (செயல்பாடுகள் மேலாண்மை)</h2>
+
+  <!-- 1. Dashboard -->
+  <div class="category-card">
+    <div class="category-header">
+      <div class="category-title">
+        <span class="icon-symbol">📊</span> 1. Dashboard (டாஷ்போர்டு - கட்டுப்பாட்டு மையம்)
+      </div>
+      <span class="category-tag tag-ops">OPERATIONS</span>
+    </div>
+    
+    <div class="section-block">
+      <span class="section-label">1. என்ன இது? (Overview):</span>
+      உங்கள் கிடங்கு மற்றும் கிளைகளின் ஒட்டுமொத்த செயல்பாடுகளையும் ஒரே திரையில் படம்பிடித்துக் காட்டும் நேரடி வணிக நுண்ணறிவு மையம் (Live Business Intelligence Cockpit).
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">2. எதற்கு பயன்படுகிறது? (Why to use):</span>
+      <ul>
+        <li><strong>முக்கிய அளவீடுகள் (Live KPIs):</strong> மொத்த பொருட்களின் எண்ணிக்கை (Total Products), மொத்த இருப்பு (On-Hand Units), இயங்கும் கிளைகள் (Active Branches), மற்றும் கிடங்குகளின் எண்ணிக்கையை உடனடியாக அறிய.</li>
+        <li><strong>அபாய எச்சரிக்கைகள்:</strong> இருப்பு தீர்ந்துபோகும் நிலையில் உள்ள பொருட்கள் (<strong>Low Stock Alerts</strong>) மற்றும் அடுத்த 30 நாட்களுக்குள் காலாவதியாக உள்ள பொருட்கள் (<strong>Expiring in 30 Days</strong>) ஆகியவற்றை முன்கூட்டியே காட்டி நஷ்டத்தைத் தடுக்க.</li>
+        <li><strong>இயக்க வரைபடங்கள் (Visual Velocity Charts):</strong> கடந்த 7 நாட்களில் எவ்வளவு சரக்கு உள்ளே வந்தது (Inbound) மற்றும் வெளியே சென்றது (Outbound) என்பதை ஊடாடும் விளக்கப்படங்கள் மூலம் கண்காணிக்க.</li>
+      </ul>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">3. எப்படி பயன்படுத்துவது? (How to use):</span>
+      <ol>
+        <li>Side Bar-இல் <strong>Dashboard</strong> பொத்தானைக் கிளிக் செய்யவும்.</li>
+        <li>திரையின் மேலே உள்ள <em>வண்ண அட்டைகளை (Metric Cards)</em> கவனிக்கவும்:
+          <ul>
+            <li>சிவப்பு/ஆரஞ்சு எச்சரிக்கை இருந்தால் உடனே அந்த தயாரிப்புகளை ஆர்டர் செய்யவோ அல்லது விற்கவோ திட்டமிடுங்கள்.</li>
+          </ul>
+        </li>
+        <li>கீழே உள்ள <em>7-Day Movement Graph</em> மற்றும் <em>Live Activity Feed</em>-ஐப் பார்த்து இன்றைய பரிவர்த்தனைகளை உறுதிப்படுத்திக் கொள்ளுங்கள்.</li>
+      </ol>
+    </div>
+
+    <div class="example-box">
+      <strong>உதாரணம் (Zains Cuisine):</strong> உங்கள் சமையலறை கிடங்கில் 'பாஸ்மதி அரிசி' 10 மூட்டைகளுக்கும் குறைவாக இருந்தால் அல்லது 'சீஸ்/பால்' இன்னும் 5 நாட்களில் காலாவதியாகப் போகிறது என்றால், டாஷ்போர்டு உடனே சிவப்பு எச்சரிக்கை காட்டும்.
+    </div>
+  </div>
+
+  <!-- 2. Products & Catalog -->
+  <div class="category-card">
+    <div class="category-header">
+      <div class="category-title">
+        <span class="icon-symbol">📦</span> 2. Products & Catalog (பொருட்கள் பட்டியல் & அட்டவணை)
+      </div>
+      <span class="category-tag tag-ops">OPERATIONS</span>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">1. என்ன இது? (Overview):</span>
+      உங்கள் நிறுவனத்தில் கையாளப்படும் அனைத்து தயாரிப்புகளின் முழுமையான மூல விபரக் களஞ்சியம் (Master Product Catalog). புதிய பொருட்களை உருவாக்கவும், பார்கோடுகளை இணைக்கவும் இதுவே பிரதான இடம்.
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">2. எதற்கு பயன்படுகிறது? (Why to use):</span>
+      <ul>
+        <li>புதிய பொருட்களை கணினியில் பதிவு செய்ய (Product Name, SKU குறியீடு, Brand, Category).</li>
+        <li>பொருட்களுக்கான <strong>Barcode / QR Code</strong> எண்களை இணைக்க (ஸ்கேனரில் காட்டியவுடன் பொருள் அடையாளம் காணப்படுவதற்கு இது அவசியம்).</li>
+        <li>விலை நிர்ணயம் (Cost Price மற்றும் Selling Price) மற்றும் அளவீட்டு அலகுகளை (Unit: KG, Liters, Boxes, Pcs) பதிவு செய்ய.</li>
+        <li><strong>Reorder Threshold (குறைந்தபட்ச எச்சரிக்கை அளவு):</strong> ஒரு பொருளின் இருப்பு எத்தனை எண்ணிக்கைக்குக் கீழ் சென்றால் அலர்ட் வர வேண்டும் என்பதைத் தீர்மானிக்க.</li>
+        <li>Excel மூலம் நூற்றுக்கணக்கான பொருட்களை ஒரே கிளிக்கில் பதிவேற்ற (Excel Import / Export).</li>
+      </ul>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">3. எப்படி பயன்படுத்துவது? (How to use):</span>
+      <ol>
+        <li>Side Bar-இல் <strong>Products & Catalog</strong> கிளிக் செய்யவும்.</li>
+        <li>புதிய பொருளைச் சேர்க்க திரையின் மேலே உள்ள <strong>"Add Product"</strong> நீல பொத்தானை அழுத்தவும்.</li>
+        <li>திறக்கும் படிவத்தில்:
+          <ul>
+            <li><em>Product Name</em> (எ.கா: Biryani Basmati Rice 5kg)</li>
+            <li><em>SKU</em> (தனித்துவ குறியீடு, எ.கா: RICE-BAS-001)</li>
+            <li><em>Category</em> (எ.கா: Grains & Spices)</li>
+            <li><em>Barcode</em> (பொருளின் மீதுள்ள பார்கோடு எண், எ.கா: 8901234560011)</li>
+            <li><em>Unit Price & Cost Price</em> மற்றும் <em>Reorder Level</em> (எ.கா: 20) ஆகியவற்றை உள்ளிட்டு <strong>"Save Product"</strong> கொடுக்கவும்.</li>
+          </ul>
+        </li>
+        <li>பொருட்களைத் தேட மேல் உள்ள <em>Search Bar</em>-இல் SKU அல்லது பெயரைத் தட்டச்சு செய்யலாம்.</li>
+      </ol>
+    </div>
+
+    <div class="tip-box">
+      <strong>முக்கிய குறிப்பு:</strong> ஒரு பொருளை Stock In அல்லது Scanner-இல் பயன்படுத்துவதற்கு முன்பு, அப்பொருளை முதலில் இந்த Catalog-இல் சேர்த்திருக்க வேண்டும்.
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- 3. Inventory & FEFO -->
+  <div class="category-card">
+    <div class="category-header">
+      <div class="category-title">
+        <span class="icon-symbol">📑</span> 3. Inventory & FEFO (சரக்கு இருப்பு & காலாவதி கண்காணிப்பு)
+      </div>
+      <span class="category-tag tag-ops">OPERATIONS</span>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">1. என்ன இது? (Overview):</span>
+      எந்தெந்த கிடங்கில், எந்தெந்த அலமாரியில் (Bin), எந்தெந்த பேட்சில் (Batch Number) எவ்வளவு சரக்கு உள்ளது என்பதை காலாவதி தேதியுடன் (Expiration Date) காட்டும் நேரடி இருப்பு அட்டவணை.
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">2. எதற்கு பயன்படுகிறது? (Why to use):</span>
+      <ul>
+        <li><strong>FEFO (First-Expired, First-Out) மேலாண்மை:</strong> எந்த பேட்ச் முதலில் காலாவதியாகிறதோ, அதை முதலில் அடையாளம் கண்டு விற்க/பயன்படுத்த உதவுகிறது. இதனால் காலாவதியாகும் பொருட்களால் ஏற்படும் நஷ்டம் முற்றிலுமாகத் தவிர்க்கப்படுகிறது.</li>
+        <li><strong>துல்லியமான இருப்பு அறிதல்:</strong> கணினியில் உள்ள இருப்பு எந்தக் கிடங்கில், எந்த சேமிப்புப் பெட்டியில் (Bin Code: A-01-02) உள்ளது என்பதை நேரடியாகக் காட்டுகிறது.</li>
+        <li><strong>காலாவதி வண்ணக் குறியீடுகள் (Color Heatmap):</strong>
+          <ul>
+            <li><span class="badge badge-success">பச்சை நிறம்</span>: நீண்ட காலம் காலாவதி உள்ள நல்ல பொருட்கள்.</li>
+            <li><span class="badge badge-amber">மஞ்சள் நிறம்</span>: அடுத்த 30 நாட்களுக்குள் காலாவதியாகப் போகும் பொருட்கள் (உடனடி கவனம் தேவை).</li>
+            <li><span class="badge badge-danger">சிவப்பு நிறம்</span>: காலாவதியான பொருட்கள் (உடனடியாக அகற்றப்பட வேண்டும்).</li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">3. எப்படி பயன்படுத்துவது? (How to use):</span>
+      <ol>
+        <li>Side Bar-இல் <strong>Inventory & FEFO</strong> என்பதைத் தேர்ந்தெடுக்கவும்.</li>
+        <li>மேலே உள்ள <em>Warehouse Filter</em>-இல் நீங்கள் பார்க்க விரும்பும் கிடங்கைத் தேர்ந்தெடுக்கவும் (எ.கா: Main Warehouse அல்லது All Warehouses).</li>
+        <li>தேவைப்பட்டால் Search பெட்டியில் பொருளின் பெயர் அல்லது Batch Number-ஐ உள்ளிட்டு உடனடியாக வடிகட்டலாம்.</li>
+        <li>பட்டியலில் <em>Available Quantity</em>, <em>Storage Bin</em>, மற்றும் <em>Expiry Date</em> ஆகியவற்றைச் சரிபார்க்கவும்.</li>
+      </ol>
+    </div>
+
+    <div class="example-box">
+      <strong>உதாரணம்:</strong> சமையல் எண்ணெய் (Cooking Oil) இரண்டு பேட்ச்களில் உள்ளது. Batch-A (Expiry: Oct 2026), Batch-B (Expiry: Dec 2026). இந்த திரையில் Batch-A முன்னுரிமை பெற்று மஞ்சள் எச்சரிக்கையுடன் தோன்றும்.
+    </div>
+  </div>
+
+  <!-- 4. Camera Scanner -->
+  <div class="category-card">
+    <div class="category-header">
+      <div class="category-title">
+        <span class="icon-symbol">📷</span> 4. Camera Scanner (ஆப்டிகல் கேமரா பார்-கோட் & QR ஸ்கேனர்)
+      </div>
+      <span class="category-tag tag-ops">OPERATIONS</span>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">1. என்ன இது? (Overview):</span>
+      எந்தவொரு கூடுதல் பார்கோடு கருவியும் வாங்காமல், உங்கள் ஸ்மார்ட்போன், டேப்லெட் அல்லது லேப்டாப்பின் கேமராவைப் பயன்படுத்தி பொருட்களின் பார்கோடு மற்றும் க்யூஆர் கோடுகளை நொடிப் பொழுதில் ஸ்கேன் செய்யும் நவீன ஆப்டிகல் ஸ்கேனிங் வசதி.
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">2. எதற்கு பயன்படுகிறது? (Why to use):</span>
+      <ul>
+        <li><strong>பொருட்களை உடனடி அடையாளம் காண:</strong> ஒரு பொருளின் மீது கேமராவைக் காட்டியவுடன், அதன் பெயர், SKU, தற்போதைய இருப்பு (Available Stock), மற்றும் Reorder Level உடனே திரையில் தோன்றும் (Instant Item Telemetry).</li>
+        <li><strong>வேகமான கிடங்கு செயல்பாடுகள்:</strong> ஊழியர்கள் கைகளால் தட்டச்சு செய்யத் தேவையின்றி பார்கோடை ஸ்கேன் செய்து உடனடியாக <em>Stock In</em> அல்லது <em>Stock Out</em> செய்ய முடியும்.</li>
+        <li><strong>செலவு மிச்சம்:</strong> கிடங்கு பணியாளர்களுக்கு லட்சக்கணக்கில் செலவழித்து பிரத்யேக ஸ்கேனிங் கருவிகள் வாங்க வேண்டிய அவசியமில்லை.</li>
+      </ul>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">3. எப்படி பயன்படுத்துவது? (How to use):</span>
+      <ol>
+        <li>Side Bar-இல் மஞ்சள் நிறத்தில் ஒளிரும் <strong>Camera Scanner</strong> பொத்தானை அழுத்தவும் (அல்லது மேல் தலைப்பில் உள்ள கேமரா ஐகானைத் தொடவும்).</li>
+        <li>மொபைல் போனில் கேமரா அனுமதி (Allow Camera Access) கேட்டால் 'Allow' கொடுக்கவும்.</li>
+        <li>திரையில் பச்சை நிற லேசர் கோட்டுடன் கூடிய கேமரா வியூபோர்ட் (Scanner Viewfinder) தோன்றும்.</li>
+        <li>பொருளின் பார்கோடு அல்லது க்யூஆர் கோடை கேமராவின் செவ்வகக் கட்டத்திற்குள் காட்டவும்.</li>
+        <li>ஸ்கேன் ஆனவுடன் வலதுபுறம் பச்சை நிறத்தில் <strong>"MATCH CONFIRMED"</strong> என்று தோன்றி, அப்பொருளின் தற்போதைய இருப்பு விவரங்கள் காட்டப்படும்.</li>
+        <li>அங்கிருந்தே நேரடியாக <strong>"Stock In"</strong> அல்லது <strong>"Stock Out"</strong> பொத்தான்களை அழுத்தி பரிவர்த்தனையை முடிக்கலாம்.</li>
+      </ol>
+    </div>
+
+    <div class="tip-box">
+      <strong>Pro-Tip:</strong> கேமரா இல்லாத கணினிகளில், கீழே உள்ள <em>Manual Code Input</em> பெட்டியில் பார்கோடு எண்ணைத் தட்டச்சு செய்து 'Lookup' கொடுக்கலாம்; அல்லது கடைகளில் உள்ள USB Barcode Gun மூலமும் உள்ளிடலாம்.
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- பிரிவு 2: LOGISTICS -->
+  <h2><span class="icon-symbol">🚚</span> பிரிவு 2: LOGISTICS (சரக்கு போக்குவரத்து & நகர்வுகள்)</h2>
+
+  <!-- 5. Stock In / Out -->
+  <div class="category-card">
+    <div class="category-header">
+      <div class="category-title">
+        <span class="icon-symbol">🔄</span> 5. Stock In / Out (சரக்கு வரவு மற்றும் விநியோகம்)
+      </div>
+      <span class="category-tag tag-log">LOGISTICS</span>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">1. என்ன இது? (Overview):</span>
+      கிடங்கிற்குள் சரக்குகள் உள்ளே வரும்போதும் (Inbound Receiving) அல்லது வாடிக்கையாளர்/ஆர்டர்களுக்காக சரக்குகள் வெளியே செல்லும்போதும் (Outbound Dispatch) அதிகாரப்பூர்வமாகப் பதிவு செய்யும் மிக முக்கியமான தொகுதி.
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">2. எதற்கு பயன்படுகிறது? (Why to use):</span>
+      <ul>
+        <li><strong>Stock In (வரவு):</strong> சப்ளையர்களிடமிருந்து சரக்கு டெலிவரி வரும்போது, Purchase Order/GRN எண், Batch Number, தயாரிப்பு தேதி (Mfg Date), காலாவதி தேதி (Expiry Date) மற்றும் சேமிக்கப்படும் கிடங்கு/பின் (Warehouse/Bin) விபரங்களுடன் உள்ளிட.</li>
+        <li><strong>Stock Out (விநியோகம்):</strong> சரக்குகளை விற்பனைக்காக அல்லது உற்பத்திக்கு அனுப்பும்போது பதிவு செய்ய.</li>
+        <li><strong>தானியங்கி FEFO சிபாரிசு:</strong> நீங்கள் Stock Out செய்யும்போது, கணினி தானாகவே <em>"முதலில் காலாவதியாகும் பேட்ச் இதுதான், இதிலிருந்து எடுங்கள்"</em> என்று பரிந்துரைத்து இருப்பைக் கழிக்கும்.</li>
+      </ul>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">3. எப்படி பயன்படுத்துவது? (How to use):</span>
+      <p><strong>சரக்கு வரவு வைக்க (Stock In):</strong></p>
+      <ol>
+        <li>மேலே உள்ள <strong>"Stock In"</strong> (பச்சை பட்டன்) தேர்ந்தெடுக்கவும்.</li>
+        <li><em>Product Name:</em> பொருளின் பெயர் அல்லது பார்கோடை டைப் செய்யுங்கள் (தானாகவே பரிந்துரைக்கும்).</li>
+        <li><em>Destination Warehouse:</em> சரக்கு வைக்கப்படும் கிடங்கைத் தேர்வு செய்யுங்கள்.</li>
+        <li><em>Quantity:</em> வரவு வைக்கப்பட்ட அளவு (எ.கா: 50).</li>
+        <li><em>Batch Number & Expiry Date:</em> தயாரிப்பு பாக்கெட்டில் உள்ள பேட்ச் எண் மற்றும் காலாவதி தேதியை உள்ளிடவும்.</li>
+        <li><em>Reference / GRN #:</em> இன்வாய்ஸ் எண் கொடுத்து <strong>"Confirm Stock In"</strong> அழுத்தவும். இருப்பு உடனடியாக உயரும்!</li>
+      </ol>
+      <p><strong>சரக்கு விநியோகம் செய்ய (Stock Out):</strong></p>
+      <ol>
+        <li>மேலே உள்ள <strong>"Stock Out"</strong> (நீல பட்டன்) தேர்ந்தெடுக்கவும்.</li>
+        <li>பொருளையும் மூலக் கிடங்கையும் (Source Warehouse) தேர்வு செய்யவும்.</li>
+        <li>உடனே கணினி <strong>"FEFO Earliest Expiry Recommendation"</strong> பெட்டியில் மிக விரைவாக காலாவதியாகும் பேட்சை முன்னிலைப்படுத்தும்.</li>
+        <li>அனுப்பும் அளவை (Dispatch Quantity) உள்ளிட்டு <strong>"Confirm Dispatch Out"</strong> அழுத்தவும். இருப்பு தானாகக் குறையும்!</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 6. Stock Transfers -->
+  <div class="category-card">
+    <div class="category-header">
+      <div class="category-title">
+        <span class="icon-symbol">🚛</span> 6. Stock Transfers (கிளைகளுக்கு இடையிலான இடமாற்றம்)
+      </div>
+      <span class="category-tag tag-log">LOGISTICS</span>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">1. என்ன இது? (Overview):</span>
+      உங்கள் நிறுவனத்திற்கு சொந்தமான ஒரு கிடங்கிலிருந்து மற்றொரு கிடங்கிற்கு (அல்லது ஒரு கிளையிலிருந்து மற்றொரு கிளைக்கு) பாதுகாப்பாக சரக்குகளை இடமாற்றம் செய்யும் பணிப்பாய்வு முறைமை (Transfer Workflow).
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">2. எதற்கு பயன்படுகிறது? (Why to use):</span>
+      <ul>
+        <li>சரக்குகள் கொண்டு செல்லப்படும் வழியில் காணாமல் போவதைத் தடுத்து முழுமையான பொறுப்புணர்வை (Chain of Custody) உருவாக்க.</li>
+        <li>மத்திய கிடங்கில் இருந்து (Central Hub) சில்லறை கிளைகளுக்கு (Retail Branches) சரக்குகளை மறு-இருப்பு (Rebalance) செய்ய.</li>
+        <li>4-நிலை அதிகாரப்பூர்வ பாதுகாப்பு நிலைகள்: <code>PENDING</code> ➔ <code>APPROVED</code> ➔ <code>DISPATCHED</code> ➔ <code>COMPLETED</code>.</li>
+      </ul>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">3. எப்படி பயன்படுத்துவது? (How to use):</span>
+      <ol>
+        <li>Side Bar-இல் <strong>Stock Transfers</strong> கிளிக் செய்து <strong>"New Transfer Request"</strong> அழுத்தவும்.</li>
+        <li>அனுப்பும் கிடங்கு (Source Warehouse) மற்றும் பெறும் கிடங்கு (Destination Warehouse)-ஐத் தேர்வு செய்யவும்.</li>
+        <li>இடமாற்ற வேண்டிய பொருளையும் அளவையும் குறிப்பிட்டு கோரிக்கையை சமர்ப்பிக்கவும் (Status: <code>PENDING</code>).</li>
+        <li>மேலாளர் பரிசீலித்து <strong>"Approve"</strong> செய்வார்.</li>
+        <li>லாரி புறப்படும்போது <strong>"Dispatch"</strong> கிளிக் செய்யவும்.</li>
+        <li>சேருமிடக் கிடங்கிற்கு சரக்கு வந்தடைந்ததும், சரிபார்த்து <strong>"Receive"</strong> அழுத்தினால் பரிமாற்றம் முடிவடைந்து இலக்கு கிடங்கில் இருப்பு தானாக உயரும்!</li>
+      </ol>
+    </div>
+
+    <div class="example-box">
+      <strong>உதாரணம்:</strong> Zains Cuisine Central Kitchen-இல் இருந்து Branch 2 (கொழும்பு கிளைக்கு) 100 கிலோ கோழி இறைச்சியை இடமாற்றம் செய்யும்போது இந்த படிவத்தைப் பயன்படுத்த வேண்டும்.
+    </div>
+  </div>
+
+  <!-- 7. Adjustments -->
+  <div class="category-card">
+    <div class="category-header">
+      <div class="category-title">
+        <span class="icon-symbol">📋</span> 7. Adjustments (இருப்பு திருத்தம் & கணக்கெடுப்பு சரிசெய்தல்)
+      </div>
+      <span class="category-tag tag-log">LOGISTICS</span>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">1. என்ன இது? (Overview):</span>
+      நேரடி கிடங்கு கணக்கெடுப்பின் போது (Physical Stock Audit) கணினியில் உள்ள எண்ணிக்கைக்கும் நேரடி எண்ணிக்கைக்கும் வித்தியாசம் இருந்தால், அல்லது பொருட்கள் சேதமடைந்தால் அதை அதிகாரப்பூர்வமாக சரிசெய்யும் பகுதி.
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">2. எதற்கு பயன்படுகிறது? (Why to use):</span>
+      <ul>
+        <li><strong>சேதக் கழிவு (Damaged Goods / Spillage):</strong> போக்குவரத்து அல்லது அடுக்கும்போது சேதமடைந்த பொருட்களை கணக்கிலிருந்து கழிக்க.</li>
+        <li><strong>காலாவதி கழிவு (Expired Write-Off):</strong> விற்க முடியாத காலாவதியான பொருட்களை அழிக்க.</li>
+        <li><strong>சுழற்சி கணக்கெடுப்பு (Cycle Count Discrepancy):</strong> நேரடி சோதனையில் இருப்பு கூடுதலாகவோ குறைவாகவோ இருந்தால் காரணத்துடன் திருத்த.</li>
+        <li><strong>நிர்வாக அனுமதி (Maker-Checker Control):</strong> ஊழியர்கள் தன்னிச்சையாக இருப்பை மாற்ற முடியாது; மேலாளர் ஒப்புதல் அளித்தால் மட்டுமே இருப்பு மாறும்.</li>
+      </ul>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">3. எப்படி பயன்படுத்துவது? (How to use):</span>
+      <ol>
+        <li>Side Bar-இல் <strong>Adjustments</strong> கிளிக் செய்து <strong>"Report Discrepancy"</strong> அழுத்தவும்.</li>
+        <li>கிடங்கு, பொருள், மற்றும் கணினியில் உள்ள அளவுக்கு பதிலாக நீங்கள் நேரில் எண்ணிய <em>Physical Quantity</em>-ஐ உள்ளிடவும்.</li>
+        <li>திருத்தத்திற்கான காரணத்தைத் தேர்ந்தெடுக்கவும் (Damaged, Expired, Cycle Count Discrepancy).</li>
+        <li>கோரிக்கை மேலாளரின் ஒப்புதலுக்குச் செல்லும். மேலாளர் <strong>"Approve"</strong> செய்தவுடன் தணிக்கைப் பதிவேட்டில் காரணத்துடன் பதிவாகி இருப்பு சரிசெய்யப்படும்.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- பிரிவு 3: STRUCTURE -->
+  <h2><span class="icon-symbol">🏛️</span> பிரிவு 3: STRUCTURE (கிடங்கு மற்றும் கிளைக் கட்டமைப்பு)</h2>
+
+  <!-- 8. Spatial Warehouses -->
+  <div class="category-card">
+    <div class="category-header">
+      <div class="category-title">
+        <span class="icon-symbol">🏗️</span> 8. Spatial Warehouses (5-அடுக்கு துல்லிய கிடங்கு கட்டமைப்பு)
+      </div>
+      <span class="category-tag tag-str">STRUCTURE</span>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">1. என்ன இது? (Overview):</span>
+      உங்கள் கிடங்கை நிஜ உலகில் இருப்பது போலவே 5 நிலைகளாகப் பிரித்து டிஜிட்டல் வரைபடமாக அமைக்கும் பகுதி: <strong>Warehouse ➔ Zone ➔ Rack ➔ Shelf ➔ Bin</strong>.
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">2. எதற்கு பயன்படுகிறது? (Why to use):</span>
+      <ul>
+        <li><strong>சரக்கைத் தேடும் நேரம் மிச்சம்:</strong> ஒரு புதிய ஊழியர் கிடங்கிற்குள் நுழைந்தாலும், "இந்த பொருள் Zone A-வில் உள்ள Rack 02, Shelf 03, Bin 04-இல் உள்ளது" என்பதை உடனடியாக அறிந்து நேராகச் சென்று எடுக்கலாம்.</li>
+        <li><strong>Bin Location QR Codes:</strong> ஒவ்வொரு சேமிப்பு அலமாரிக்கும் தனித்துவமான QR குறியீடு உருவாக்கப்பட்டு ஒட்டப்படும். ஊழியர் அந்த க்யூஆரை ஸ்கேன் செய்தே சரியான இடத்தில் சரக்கை வைப்பார்.</li>
+        <li><strong>பல கிடங்குகள் மேலாண்மை:</strong> உலர் கிடங்கு (Dry Goods), குளிர்சாதன கிடங்கு (Cold Storage), மூலப்பொருள் கிடங்கு என பல பிரிவுகளை தனித்தனியாக நிர்வகிக்க.</li>
+      </ul>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">3. எப்படி பயன்படுத்துவது? (How to use):</span>
+      <ol>
+        <li>Side Bar-இல் <strong>Spatial Warehouses</strong> என்பதைத் தேர்ந்தெடுக்கவும்.</li>
+        <li>புதிய கிடங்கை உருவாக்க <strong>"Add Warehouse"</strong> கிளிக் செய்து பெயர், குறியீடு மற்றும் முகவரியை உள்ளிடவும்.</li>
+        <li>உருவாக்கப்பட்ட கிடங்கைத் தேர்ந்தெடுத்து:
+          <ul>
+            <li><strong>Add Zone</strong> (மண்டலம்: எ.கா: Zone A - Cold Room).</li>
+            <li><strong>Add Rack</strong> (வரிசை அலமாரி: எ.கா: Rack 01).</li>
+            <li><strong>Add Shelf & Bin</strong> (தட்டு மற்றும் இறுதிப் பெட்டி குறியீடு: எ.கா: Bin A-01-02-04).</li>
+          </ul>
+        </li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 9. Branches -->
+  <div class="category-card">
+    <div class="category-header">
+      <div class="category-title">
+        <span class="icon-symbol">📍</span> 9. Branches (கிளைகள் & பிராந்திய மேலாண்மை)
+      </div>
+      <span class="category-tag tag-str">STRUCTURE</span>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">1. என்ன இது? (Overview):</span>
+      உங்கள் வணிகத்தின் பல்வேறு நகரக் கிளைகள், உற்பத்தி அலகுகள் அல்லது விற்பனை மையங்களை நிர்வகிக்கும் மேலாண்மைப் பகுதி.
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">2. எதற்கு பயன்படுகிறது? (Why to use):</span>
+      <ul>
+        <li>ஒவ்வொரு கிளைக்கும் தனித்தனி கிடங்குகளை ஒதுக்கவும், கிளை வாரியாக விற்பனை மற்றும் இருப்புகளைப் பிரித்துக் கண்காணிக்கவும்.</li>
+        <li>கிளை மேலாளர்களுக்கு (Branch Managers) அவர்களின் கிளைக்கு மட்டுமேயான அணுகல் அனுமதியை வழங்க.</li>
+      </ul>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">3. எப்படி பயன்படுத்துவது? (How to use):</span>
+      <ol>
+        <li>Side Bar-இல் <strong>Branches</strong> கிளிக் செய்யவும்.</li>
+        <li><strong>"Add Branch"</strong> பொத்தானை அழுத்தி, கிளை பெயர் (Branch Name), குறியீடு (Code: எ.கா: BR-CMB-01), முகவரி மற்றும் தொலைபேசி எண்களை உள்ளிட்டு சேமிக்கவும்.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- பிரிவு 4: ENTERPRISE -->
+  <h2><span class="icon-symbol">🏢</span> பிரிவு 4: ENTERPRISE (நிர்வாகம், தணிக்கை & அறிக்கைகள்)</h2>
+
+  <!-- 10. Reports & PDF -->
+  <div class="category-card">
+    <div class="category-header">
+      <div class="category-title">
+        <span class="icon-symbol">📑</span> 10. Reports & PDF (அறிக்கைகள் & பிடிஎஃப் / எக்செல் ஆவணங்கள்)
+      </div>
+      <span class="category-tag tag-ent">ENTERPRISE</span>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">1. என்ன இது? (Overview):</span>
+      உங்கள் கிடங்கின் தற்போதைய இருப்பு மற்றும் கடந்தகால பரிவர்த்தனைகளை அதிகாரப்பூர்வ ஆவணங்களாகப் பதிவிறக்கம் செய்யும் பகுதி.
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">2. எதற்கு பயன்படுகிறது? (Why to use):</span>
+      <ul>
+        <li><strong>Inventory Balances Report (PDF):</strong> தணிக்கையாளர்கள், நிர்வாகிகள் அல்லது முதலீட்டாளர்களுக்குச் சமர்ப்பிக்கக்கூடிய நேர்த்தியான A4 Landscape PDF அறிக்கை. இதில் பொருட்கள், சேமிப்பு இடம், காலாவதி தேதி, மற்றும் யூனிட் இருப்பு துல்லியமாக இருக்கும்.</li>
+        <li><strong>Stock Movements Ledger (Excel .xlsx):</strong> கணக்கியல் (Accounting), வரி தணிக்கை மற்றும் உள்நாட்டு வரவு-செலவு சரிபார்ப்பிற்கான விரிவான எக்செல் பதிவேடு.</li>
+      </ul>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">3. எப்படி பயன்படுத்துவது? (How to use):</span>
+      <ol>
+        <li>Side Bar-இல் <strong>Reports & PDF</strong> கிளிக் செய்யவும்.</li>
+        <li>PDF அறிக்கைக்கு: <strong>"Download PDF Report"</strong> (சிவப்பு பொத்தான்) அழுத்தவும். உடனே அச்சிடக்கூடிய பிடிஎஃப் பைல் டவுன்லோட் ஆகும்.</li>
+        <li>Excel அறிக்கைக்கு: <strong>"Download Excel Spreadsheet"</strong> (பச்சை பொத்தான்) அழுத்தவும். விரிவான வரலாற்றுப் பதிவேடு பதிவிறங்கும்.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- 11. Team & Roles -->
+  <div class="category-card">
+    <div class="category-header">
+      <div class="category-title">
+        <span class="icon-symbol">👥</span> 11. Team & Roles (பணியாளர்கள் & அனுமதி நிலைகள் / RBAC)
+      </div>
+      <span class="category-tag tag-ent">ENTERPRISE</span>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">1. என்ன இது? (Overview):</span>
+      நிறுவனத்தின் ஊழியர்களுக்கு மென்பொருளில் கணக்கு உருவாக்கி, அவர்களின் பதவிக்குத் தேவையான அதிகாரங்களை மட்டும் வழங்கும் பாதுகாப்புப் பகுதி (Role-Based Access Control).
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">2. எதற்கு பயன்படுகிறது? (Why to use):</span>
+      <ul>
+        <li>அனைத்து ஊழியர்களுக்கும் எல்லா அதிகாரமும் வழங்கப்படக் கூடாது. தவறுகள் மற்றும் மோசடிகளைத் தடுக்க பதவி வாரியான கட்டுப்பாடுகள் அவசியம்.</li>
+        <li><strong>பதவி நிலைகள் (User Roles):</strong>
+          <ul>
+            <li><code>CLIENT_ADMIN</code>: முழு நிறுவன உரிமையாளர் / பொது மேலாளர் (அனைத்து அம்சங்களையும் கட்டுப்படுத்தலாம்).</li>
+            <li><code>BRANCH_MANAGER</code>: குறிப்பிட்ட கிளையின் சரக்கு வரவு, இடமாற்றம் மற்றும் திருத்தங்களை அங்கீகரிப்பவர்.</li>
+            <li><code>WAREHOUSE_STAFF</code>: களப் பணியாளர்கள் (ஸ்கேனிங், பார்சல் எடுத்தல், Stock In / Out செய்வது மட்டுமே இயலும்).</li>
+            <li><code>VIEWER</code>: தணிக்கையாளர்கள் மற்றும் பார்வையாளர்கள் (இருப்புகளைப் பார்க்க மட்டுமே முடியும்; திருத்த முடியாது).</li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">3. எப்படி பயன்படுத்துவது? (How to use):</span>
+      <ol>
+        <li>Side Bar-இல் <strong>Team & Roles</strong> கிளிக் செய்து <strong>"Invite User"</strong> அழுத்தவும்.</li>
+        <li>பணியாளரின் பெயர், மின்னஞ்சல், கடவுச்சொல், தொலைபேசி எண், மற்றும் பொருத்தமான <em>Role</em>-ஐத் தேர்ந்தெடுத்து சேமிக்கவும்.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 12. Audit Trail -->
+  <div class="category-card">
+    <div class="category-header">
+      <div class="category-title">
+        <span class="icon-symbol">🛡️</span> 12. Audit Trail (பாதுகாப்பு & தணிக்கைப் பதிவு)
+      </div>
+      <span class="category-tag tag-ent">ENTERPRISE</span>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">1. என்ன இது? (Overview):</span>
+      கணினியில் நடக்கும் ஒவ்வொரு செயலையும் மாற்ற முடியாத வகையில் நிரந்தரமாக பதிவு செய்து வைக்கும் டிஜிட்டல் தணிக்கைப் பதிவேடு (Immutable Security Log).
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">2. எதற்கு பயன்படுகிறது? (Why to use):</span>
+      <ul>
+        <li>யார், எப்போது லாக்-இன் செய்தார்கள்? யார் இருப்பை மாற்றினார்கள்? யார் சரக்கு பரிமாற்றத்தை அங்கீகரித்தார்கள் என்பதை துல்லியமாக அறிய.</li>
+        <li>தேதி, நேரம், பயனர் பெயர் மற்றும் அவர்களின் கணினி <strong>IP Address</strong> உட்பட பதிவு செய்யப்படுவதால் மோசடிகள் முற்றிலும் தடுக்கப்படும்.</li>
+      </ul>
+    </div>
+
+    <div class="section-block">
+      <span class="section-label">3. எப்படி பயன்படுத்துவது? (How to use):</span>
+      <ol>
+        <li>Side Bar-இல் <strong>Audit Trail</strong> என்பதைத் தேர்ந்தெடுக்கவும்.</li>
+        <li>பட்டியலில் காலவரிசைப்படி (Timestamp) நடக்கும் அனைத்து செயல்பாடுகளையும் ஆய்வு செய்யலாம். ஏதேனும் முரண்பாடு ஏற்பட்டால் யார் மாற்றியது என்பதை நொடியில் கண்டறியலாம்.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- பிரிவு 5: விரைவு கட்டுப்பாடுகள் -->
+  <h2><span class="icon-symbol">⚡</span> பிரிவு 5: மேல் பகுதி & கீழ் பகுதி விரைவுக் கட்டுப்பாடுகள் (Quick Controls)</h2>
+
+  <div class="category-card">
+    <table style="margin: 0;">
+      <thead>
+        <tr>
+          <th style="width: 25%;">அம்சம் / பொத்தான்</th>
+          <th style="width: 35%;">எதற்கு பயன்படுகிறது?</th>
+          <th style="width: 40%;">எப்படி இயக்குவது?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Quick Scanner (மஞ்சள் கேமரா)</strong></td>
+          <td>எந்த பக்கத்தில் இருந்தாலும் உடனடியாக கேமரா ஸ்கேனரைத் திறந்து பார்கோடை ஸ்கேன் செய்ய.</td>
+          <td>மொபைல் திரையின் மேல் வலது மூலையில் உள்ள மஞ்சள் நிற <strong>கேமரா ஐகானைத்</strong> தொடவும்.</td>
+        </tr>
+        <tr>
+          <td><strong>Notification Bell (மணி ஐகான்)</strong></td>
+          <td>குறைந்த இருப்பு எச்சரிக்கைகள் (Low stock) மற்றும் காலாவதி எச்சரிக்கைகளை உடனுக்குடன் பார்க்க.</td>
+          <td>மேல் மூலையில் உள்ள மணி ஐகானைத் தொட்டு விரித்து, எச்சரிக்கைகளைப் பார்த்து 'Mark all read' செய்யலாம்.</td>
+        </tr>
+        <tr>
+          <td><strong>User Profile (கீழ் பகுதி)</strong></td>
+          <td>தற்போது உள்நுழைந்துள்ள பயனர் பெயர் (எ.கா: <em>Zainab Faris</em>) மற்றும் பதவியைப் (<em>CLIENT_ADMIN</em>) பார்க்க.</td>
+          <td>பக்க மெனுவின் கீழ் பகுதியில் உங்கள் பெயர் தோன்றும். அருகிலுள்ள சிவப்பு அம்பு பொத்தானை அழுத்தினால் <strong>Logout (வெளியேறுதல்)</strong> செய்யலாம்.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- தினசரி பணிப்பாய்வு அட்டவணை -->
+  <h2><span class="icon-symbol">🔄</span> AeroWMS தினசரி பணிப்பாய்வு சுருக்கம் (Daily Operational Workflow)</h2>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>படி நிலை</th>
+        <th>செயல்பாடு</th>
+        <th>பயன்படுத்த வேண்டிய Side Bar மெனு</th>
+        <th>முக்கிய நோக்கம்</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>காலை நேர ஆய்வு</td>
+        <td><strong>Dashboard</strong></td>
+        <td>குறைந்த இருப்பு மற்றும் இன்றைக்குள் காலாவதியாகும் எச்சரிக்கைகளை ஆய்வு செய்தல்.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>புதிய சரக்கு வரவு</td>
+        <td><strong>Stock In / Out</strong> ➔ Stock In</td>
+        <td>டெலிவரி வந்த சரக்கை பேட்ச் எண் மற்றும் காலாவதி தேதியுடன் கிடங்கில் பதிவு செய்தல்.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>சேமிப்பு இடத்தில் வைத்தல்</td>
+        <td><strong>Camera Scanner</strong></td>
+        <td>பொருளின் பார்கோடு மற்றும் அலமாரி Bin QR-ஐ ஸ்கேன் செய்து சரியான இடத்தில் வைத்தல்.</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>ஆர்டர் விநியோகம்</td>
+        <td><strong>Stock In / Out</strong> ➔ Stock Out</td>
+        <td>தானியங்கி FEFO வழிகாட்டலின்படி பழைய பேட்ச் சரக்கை முதலில் அனுப்பி இருப்பைக் கழித்தல்.</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>கிளைகளுக்கு அனுப்புதல்</td>
+        <td><strong>Stock Transfers</strong></td>
+        <td>ஒரு கிளையிலிருந்து மற்றொன்றுக்கு சரக்கை பாதுகாப்பாக இடமாற்றம் செய்தல்.</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>தினசரி தணிக்கை</td>
+        <td><strong>Reports & PDF</strong> / <strong>Audit Trail</strong></td>
+        <td>மாலை நேரத்தில் PDF அறிக்கையைப் பதிவிறக்கம் செய்து இருப்பை உறுதிப்படுத்துதல்.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="tip-box" style="margin-top: 14px; text-align: center;">
+    <strong>AeroWMS — Intelligent Multi-Tenant Cloud Warehouse Management System</strong><br>
+    <small>வடிவமைப்பு & பொறியியல்: Spring Boot 3 + Angular 18 Enterprise Architecture</small>
+  </div>
+
+</body>
+</html>

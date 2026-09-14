@@ -64,6 +64,13 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.ok("Product updated successfully", updated));
     }
 
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('CLIENT_ADMIN', 'BRANCH_MANAGER')")
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable Long id) {
+        productService.deleteProduct(id);
+        return ResponseEntity.ok(ApiResponse.ok("Product deleted successfully", null));
+    }
+
     @PostMapping("/import")
     @PreAuthorize("hasRole('CLIENT_ADMIN')")
     public ResponseEntity<ApiResponse<String>> importProducts(@RequestParam("file") MultipartFile file) {

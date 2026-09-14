@@ -205,6 +205,42 @@ public class InventoryService {
         return stockTransactionRepository.findByClientId(clientId, pageable);
     }
 
+    @Transactional
+    public void deleteStockTransaction(Long transactionId) {
+        Long clientId = tenantSecurityService.requireCurrentClientId();
+        StockTransaction tx = stockTransactionRepository.findById(transactionId)
+                .filter(t -> t.getClientId().equals(clientId))
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found with ID: " + transactionId));
+
+        // Revert stock balance in Inventory if applicable
+        Inventory inv = inventoryRepository.findByClientIdAndWarehouseIdAndBinIdAndProductIdAndBatchId(
+                clientId, tx.getWarehouseId(), tx.getBinId(), tx.getProductId(), tx.getBatchId()
+        ).orElse(null);
+
+        if (inv != null) {
+            if (tx.getTransactionType() == TransactionType.STOCK_IN || tx.getTransactionType() == TransactionType.ADJUSTMENT_ADD) {
+                int newQty = Math.max(0, inv.getQuantity() - tx.getQuantity());
+                inv.setQuantity(newQty);
+                inventoryRepository.save(inv);
+            } else if (tx.getTransactionType() == TransactionType.STOCK_OUT || tx.getTransactionType() == TransactionType.ADJUSTMENT_SUB) {
+                inv.setQuantity(inv.getQuantity() + tx.getQuantity());
+                inventoryRepository.save(inv);
+            }
+        }
+
+        stockTransactionRepository.delete(tx);
+        auditLogService.logClientAction(clientId, "STOCK_TRANSACTION_DELETED", "StockTransaction", transactionId,
+                "Deleted stock movement #" + transactionId + " (" + tx.getTransactionType() + " qty: " + tx.getQuantity() + ")");
+    }
+
+    @Transactional
+    public void clearAllStockTransactions() {
+        Long clientId = tenantSecurityService.requireCurrentClientId();
+        stockTransactionRepository.deleteByClientId(clientId);
+        auditLogService.logClientAction(clientId, "STOCK_TRANSACTIONS_CLEARED", "StockTransaction", null,
+                "Cleared all stock movement transactions for tenant.");
+    }
+
     private InventoryBalanceDto convertInventoryToDto(Inventory inv) {
         InventoryBalanceDto dto = new InventoryBalanceDto();
         dto.setId(inv.getId());

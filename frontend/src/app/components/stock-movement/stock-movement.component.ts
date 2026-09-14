@@ -155,7 +155,12 @@ import { Product, Warehouse, StockTransaction, FefoBatchRecommendation } from '.
         <!-- Recent Stock Transactions Ledger -->
         <div class="col-lg-7">
           <div class="glass-panel p-4 h-100">
-            <h5 class="fw-bold text-light mb-3"><i class="bi bi-journal-text text-primary me-2"></i>Stock Movements Ledger</h5>
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h5 class="fw-bold text-light mb-0"><i class="bi bi-journal-text text-primary me-2"></i>Stock Movements Ledger</h5>
+              <button *ngIf="transactions().length > 0" (click)="clearAllTransactions()" class="btn btn-outline-danger btn-sm px-2 py-1" title="Clear all stock movement records">
+                <i class="bi bi-trash3 me-1"></i>Clear All
+              </button>
+            </div>
 
             <div class="table-responsive">
               <table class="table table-custom mb-0">
@@ -165,10 +170,17 @@ import { Product, Warehouse, StockTransaction, FefoBatchRecommendation } from '.
                     <th>Product / Ref</th>
                     <th>Quantity</th>
                     <th>Balance</th>
-                    <th class="text-end">Time</th>
+                    <th>Time</th>
+                    <th class="text-end">Action</th>
                   </tr>
                 </thead>
                 <tbody>
+                  <tr *ngIf="transactions().length === 0">
+                    <td colspan="6" class="text-center py-4 text-muted">
+                      <i class="bi bi-inbox fs-3 d-block mb-1"></i>
+                      No stock movements recorded yet.
+                    </td>
+                  </tr>
                   <tr *ngFor="let tx of transactions()" class="animate__animated animate__fadeIn">
                     <td>
                       <span class="badge" [ngClass]="{
@@ -177,12 +189,17 @@ import { Product, Warehouse, StockTransaction, FefoBatchRecommendation } from '.
                       }">{{ tx.transactionType }}</span>
                     </td>
                     <td>
-                      <div class="text-light small fw-bold">Product #{{ tx.productId }}</div>
-                      <small class="text-muted text-xs">{{ tx.referenceNumber || 'Direct' }}</small>
+                      <div class="text-light small fw-bold">{{ getProductName(tx.productId) }}</div>
+                      <small class="text-muted text-xs">{{ getProductSku(tx.productId) ? (getProductSku(tx.productId) + ' • ') : '' }}{{ tx.referenceNumber || 'Direct' }}</small>
                     </td>
                     <td class="fw-bold">{{ tx.quantity }}</td>
                     <td class="text-secondary small">{{ tx.previousQuantity }} -> {{ tx.newQuantity }}</td>
-                    <td class="text-muted text-xs text-end">{{ tx.createdAt | date:'shortTime' }}</td>
+                    <td class="text-muted text-xs">{{ tx.createdAt | date:'shortTime' }}</td>
+                    <td class="text-end">
+                      <button (click)="deleteTransaction(tx)" class="btn btn-outline-danger btn-sm p-1 px-2" title="Delete Movement Record">
+                        <i class="bi bi-trash3"></i>
+                      </button>
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -262,6 +279,41 @@ export class StockMovementComponent implements OnInit {
       next: (res) => {
         if (res.success && res.data?.content) this.transactions.set(res.data.content);
       }
+    });
+  }
+
+  getProductName(productId: number): string {
+    const p = this.products().find(item => item.id === productId);
+    return p ? p.name : ('Product #' + productId);
+  }
+
+  getProductSku(productId: number): string {
+    const p = this.products().find(item => item.id === productId);
+    return p?.sku || '';
+  }
+
+  deleteTransaction(tx: StockTransaction): void {
+    const name = this.getProductName(tx.productId);
+    if (!confirm(`Are you sure you want to delete this ${tx.transactionType} record (${tx.quantity} units for "${name}")? Inventory balance will be adjusted accordingly.`)) {
+      return;
+    }
+    this.wmsApi.deleteStockTransaction(tx.id).subscribe({
+      next: () => {
+        this.loadTransactions();
+      },
+      error: (err) => alert(err.error?.message || 'Failed to delete stock movement record')
+    });
+  }
+
+  clearAllTransactions(): void {
+    if (!confirm('Are you sure you want to clear ALL stock movement records? This action cannot be undone.')) {
+      return;
+    }
+    this.wmsApi.clearAllStockTransactions().subscribe({
+      next: () => {
+        this.loadTransactions();
+      },
+      error: (err) => alert(err.error?.message || 'Failed to clear stock movements')
     });
   }
 

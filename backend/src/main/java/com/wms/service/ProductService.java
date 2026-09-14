@@ -3,12 +3,17 @@ package com.wms.service;
 import com.wms.dto.CategoryDto;
 import com.wms.dto.ProductDto;
 import com.wms.entity.Category;
+import com.wms.entity.Inventory;
 import com.wms.entity.Product;
+import com.wms.entity.ProductBatch;
+import com.wms.entity.StockTransaction;
 import com.wms.exception.BusinessRuleException;
 import com.wms.exception.ResourceNotFoundException;
 import com.wms.repository.CategoryRepository;
 import com.wms.repository.InventoryRepository;
+import com.wms.repository.ProductBatchRepository;
 import com.wms.repository.ProductRepository;
+import com.wms.repository.StockTransactionRepository;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
@@ -28,16 +33,21 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final InventoryRepository inventoryRepository;
+    private final ProductBatchRepository productBatchRepository;
+    private final StockTransactionRepository stockTransactionRepository;
     private final TenantSecurityService tenantSecurityService;
     private final AuditLogService auditLogService;
     private final QrBarcodeService qrBarcodeService;
 
     public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository,
-                          InventoryRepository inventoryRepository, TenantSecurityService tenantSecurityService,
+                          InventoryRepository inventoryRepository, ProductBatchRepository productBatchRepository,
+                          StockTransactionRepository stockTransactionRepository, TenantSecurityService tenantSecurityService,
                           AuditLogService auditLogService, QrBarcodeService qrBarcodeService) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.inventoryRepository = inventoryRepository;
+        this.productBatchRepository = productBatchRepository;
+        this.stockTransactionRepository = stockTransactionRepository;
         this.tenantSecurityService = tenantSecurityService;
         this.auditLogService = auditLogService;
         this.qrBarcodeService = qrBarcodeService;
@@ -163,6 +173,34 @@ public class ProductService {
                 "Updated product: " + product.getName());
 
         return convertProductToDto(product);
+    }
+
+    @Transactional
+    public void deleteProduct(Long id) {
+        Long clientId = tenantSecurityService.requireCurrentClientId();
+        Product product = productRepository.findByIdAndClientId(id, clientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
+
+        // Cascade delete related entities for this tenant and product
+        List<Inventory> inventories = inventoryRepository.findByClientIdAndProductId(clientId, id);
+        if (!inventories.isEmpty()) {
+            inventoryRepository.deleteAll(inventories);
+        }
+
+        List<ProductBatch> batches = productBatchRepository.findByClientIdAndProductId(clientId, id);
+        if (!batches.isEmpty()) {
+            productBatchRepository.deleteAll(batches);
+        }
+
+        List<StockTransaction> transactions = stockTransactionRepository.findByClientIdAndProductId(clientId, id);
+        if (!transactions.isEmpty()) {
+            stockTransactionRepository.deleteAll(transactions);
+        }
+
+        productRepository.delete(product);
+
+        auditLogService.logClientAction(clientId, "PRODUCT_DELETED", "Product", id,
+                "Deleted product: " + product.getName() + " (SKU: " + product.getSku() + ")");
     }
 
     @Transactional

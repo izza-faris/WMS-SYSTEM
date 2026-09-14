@@ -41,4 +41,18 @@ public class StockMovementController {
     public ResponseEntity<ApiResponse<Page<StockTransaction>>> getTransactions(Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.ok(inventoryService.getStockTransactions(pageable)));
     }
+
+    @DeleteMapping("/transactions/{id}")
+    @PreAuthorize("hasAnyRole('CLIENT_ADMIN', 'BRANCH_MANAGER', 'WAREHOUSE_STAFF')")
+    public ResponseEntity<ApiResponse<Void>> deleteTransaction(@PathVariable Long id) {
+        inventoryService.deleteStockTransaction(id);
+        return ResponseEntity.ok(ApiResponse.ok("Stock movement transaction deleted successfully", null));
+    }
+
+    @DeleteMapping("/transactions/all")
+    @PreAuthorize("hasRole('CLIENT_ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> clearAllTransactions() {
+        inventoryService.clearAllStockTransactions();
+        return ResponseEntity.ok(ApiResponse.ok("All stock transactions cleared successfully", null));
+    }
 }

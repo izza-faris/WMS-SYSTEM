@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AeroWMS — Product Overview & Client Presentation Guide</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 14mm 14mm 16mm 14mm;
+      @bottom-right {
+        content: "Page " counter(page);
+        font-size: 9pt;
+        color: #64748b;
+      }
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #1e293b;
+      background: #ffffff;
+      line-height: 1.5;
+      font-size: 10pt;
+      margin: 0;
+      padding: 0;
+    }
+    h1, h2, h3, h4 {
+      color: #0f172a;
+      margin-top: 0;
+      font-weight: 700;
+    }
+    h1 {
+      font-size: 20pt;
+      line-height: 1.2;
+      margin-bottom: 6px;
+    }
+    h2 {
+      font-size: 13.5pt;
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 5px;
+      margin-top: 22px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h3 {
+      font-size: 11pt;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      color: #1e40af;
+    }
+    p {
+      margin: 0 0 8px 0;
+      color: #334155;
+    }
+    .hero-header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+      color: #ffffff;
+      padding: 24px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .hero-header h1 {
+      color: #ffffff;
+      font-size: 22pt;
+      margin-bottom: 4px;
+    }
+    .hero-tagline {
+      font-size: 11.5pt;
+      color: #93c5fd;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+    .hero-badge-container {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      font-size: 8pt;
+      font-weight: 600;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-primary { background: #3b82f6; color: #fff; }
+    .badge-success { background: #10b981; color: #fff; }
+    .badge-purple { background: #8b5cf6; color: #fff; }
+    .badge-amber { background: #f59e0b; color: #fff; }
+    .badge-dark { background: #334155; color: #fff; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .card-highlight {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+    }
+    .card h4 {
+      margin-bottom: 4px;
+      color: #1e3a8a;
+      font-size: 10pt;
+    }
+
+    .stat-card {
+      background: #f1f5f9;
+      border-left: 4px solid #3b82f6;
+      border-radius: 6px;
+      padding: 10px 12px;
+      text-align: left;
+    }
+    .stat-number {
+      font-size: 16pt;
+      font-weight: 800;
+      color: #1e3a8a;
+      line-height: 1.1;
+    }
+    .stat-label {
+      font-size: 8pt;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 16px 0;
+      font-size: 8.5pt;
+    }
+    th {
+      background: #1e293b;
+      color: #ffffff;
+      padding: 7px 10px;
+      text-align: left;
+      font-weight: 600;
+    }
+    td {
+      padding: 7px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    .flow-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 14px;
+      font-size: 8.5pt;
+    }
+    .flow-step {
+      flex: 1;
+      text-align: center;
+      padding: 6px;
+    }
+    .flow-step-num {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      line-height: 24px;
+      background: #2563eb;
+      color: #ffffff;
+      border-radius: 50%;
+      font-weight: bold;
+      font-size: 9pt;
+      margin-bottom: 4px;
+    }
+    .flow-arrow {
+      color: #94a3b8;
+      font-size: 14pt;
+      font-weight: bold;
+      padding: 0 4px;
+    }
+
+    .hierarchy-container {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .hierarchy-level {
+      flex: 1;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px;
+      text-align: center;
+    }
+    .hierarchy-level.final {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+    }
+    .hierarchy-title {
+      font-weight: 700;
+      color: #0f172a;
+      font-size: 9pt;
+    }
+    .hierarchy-desc {
+      font-size: 7.5pt;
+      color: #64748b;
+    }
+
+    .callout {
+      background: #fefce8;
+      border-left: 4px solid #eab308;
+      padding: 10px 14px;
+      border-radius: 0 6px 6px 0;
+      margin: 12px 0;
+      font-size: 9pt;
+    }
+    .callout-pro {
+      background: #f0fdf4;
+      border-left: 4px solid #16a34a;
+      padding: 10px 14px;
+      border-radius: 0 6px 6px 0;
+      margin: 12px 0;
+      font-size: 9pt;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .script-quote {
+      background: #f8fafc;
+      border-left: 4px solid #6366f1;
+      padding: 12px 16px;
+      font-style: italic;
+      color: #334155;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 12px;
+      font-size: 9pt;
+    }
+
+    .footer-bar {
+      margin-top: 24px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      color: #94a3b8;
+      font-size: 8pt;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== PAGE 1: EXECUTIVE SUMMARY & CORE PROBLEMS ==================== -->
+  <div class="hero-header">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <h1>AeroWMS</h1>
+        <div class="hero-tagline">Enterprise Multi-Tenant Intelligent Warehouse Management System</div>
+      </div>
+      <div style="text-align: right;">
+        <span class="badge badge-primary">Spring Boot 3</span>
+        <span class="badge badge-success">Angular 18</span>
+        <span class="badge badge-amber">FEFO Engine</span>
+      </div>
+    </div>
+    <p style="color: #e2e8f0; margin-bottom: 0; font-size: 9.5pt; max-width: 90%;">
+      A complete, high-performance platform engineered to give business owners and warehouse directors 100% digital visibility, automated batch expiry prevention, 5-level bin-location tracking, and zero-hardware camera barcode scanning.
+    </p>
+  </div>
+
+  <!-- Key Stat Highlights -->
+  <div class="grid-4">
+    <div class="stat-card">
+      <div class="stat-number">99.8%</div>
+      <div class="stat-label">Inventory Accuracy</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">-75%</div>
+      <div class="stat-label">Expiry Wastage (FEFO)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">2x Faster</div>
+      <div class="stat-label">Picking & Fulfillment</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">$0 Extra</div>
+      <div class="stat-label">Hardware Scanner Cost</div>
+    </div>
+  </div>
+
+  <h2>1. What is AeroWMS & Why Do Businesses Need It?</h2>
+  <p>
+    Traditional warehouses rely on spreadsheets, paper registers, or basic accounting software that only show total stock numbers. They cannot answer the two most vital operational questions: <strong>"Which exact shelf is this product on?"</strong> and <strong>"Which batch must we ship out first to avoid expiry?"</strong>
+  </p>
+  <p>
+    <strong>AeroWMS</strong> bridges the gap between physical warehouse operations and executive decision-making. It operates as an end-to-end digital nervous system across multiple branches, from supplier intake down to the customer dispatch door.
+  </p>
+
+  <h2>2. The 5 Major Headaches AeroWMS Solves for Clients</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Warehouse Challenge</th>
+        <th style="width: 35%;">The Cost to Business</th>
+        <th style="width: 40%;">AeroWMS Solution</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Stock Expiry Wastage</strong></td>
+        <td>Goods sit in the back while newer stock is shipped first, causing massive financial write-offs.</td>
+        <td><strong>Automated FEFO (First-Expired, First-Out):</strong> System forces pickers to dispatch oldest batches first with automatic 30-day early warnings.</td>
+      </tr>
+      <tr>
+        <td><strong>Time Lost Searching for Items</strong></td>
+        <td>Pickers walk through aisles trying to locate products, slowing down customer orders.</td>
+        <td><strong>5-Level Bin Storage:</strong> System provides the exact path: Warehouse ➔ Zone ➔ Rack ➔ Shelf ➔ Bin on the picker's screen.</td>
+      </tr>
+      <tr>
+        <td><strong>Multi-Branch Blind Spots</strong></td>
+        <td>Branch A runs out of stock while Branch B is overstocked; no easy way to track transit.</td>
+        <td><strong>Centralized Multi-Branch Transfers:</strong> Formal transfer pipelines with statuses (`PENDING`, `COMPLETED`) and real-time ledger tracking.</td>
+      </tr>
+      <tr>
+        <td><strong>Expensive Barcode Hardware</strong></td>
+        <td>Buying specialized RF handheld scanners costs $500–$1,200 per unit, limiting adoption.</td>
+        <td><strong>Optical Web/Camera Scanner:</strong> Staff use existing smartphones, tablets, or laptops to scan barcodes & QR codes at zero additional cost.</td>
+      </tr>
+      <tr>
+        <td><strong>Inventory Theft & Mystery Losses</strong></td>
+        <td>Discrepancies discovered during audits without any trace of who touched or changed stock.</td>
+        <td><strong>Immutable Audit Logs:</strong> Every adjustment, stock movement, login, and user action is permanently timestamped and logged.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ==================== PAGE 2: ARCHITECTURE & CORE MODULES ==================== -->
+  <div class="page-break"></div>
+
+  <h2>3. The 5-Level Storage Hierarchy (Pinpoint Physical Location)</h2>
+  <p>
+    AeroWMS models warehouse floors with extreme spatial accuracy. Staff never wander around looking for goods:
+  </p>
+
+  <div class="hierarchy-container">
+    <div class="hierarchy-level">
+      <div class="hierarchy-title">1. Branch</div>
+      <div class="hierarchy-desc">e.g., Colombo HQ / Chennai Hub</div>
+    </div>
+    <div class="hierarchy-level">
+      <div class="hierarchy-title">2. Warehouse</div>
+      <div class="hierarchy-desc">e.g., Main Facility / Cold Storage</div>
+    </div>
+    <div class="hierarchy-level">
+      <div class="hierarchy-title">3. Zone</div>
+      <div class="hierarchy-desc">e.g., Zone A (Dry Goods)</div>
+    </div>
+    <div class="hierarchy-level">
+      <div class="hierarchy-title">4. Rack & Shelf</div>
+      <div class="hierarchy-desc">e.g., Rack 04, Shelf 02</div>
+    </div>
+    <div class="hierarchy-level final">
+      <div class="hierarchy-title" style="color: #065f46;">5. Bin (Target)</div>
+      <div class="hierarchy-desc" style="color: #047857; font-weight: 600;">BIN-A-04-02-08</div>
+    </div>
+  </div>
+
+  <h2>4. Core Modules & Capabilities Breakdown</h2>
+
+  <div class="grid-2">
+    <div class="card card-highlight">
+      <h4>📦 1. Inbound Stock Receiving</h4>
+      <p style="font-size: 8.5pt;">
+        Record vendor deliveries, generate or scan barcodes, capture batch numbers, manufacturing & expiry dates, and assign target bins immediately upon arrival.
+      </p>
+    </div>
+    <div class="card card-highlight">
+      <h4>🚀 2. Outbound Order Fulfillment (FEFO)</h4>
+      <p style="font-size: 8.5pt;">
+        When fulfilling orders, AeroWMS automatically prioritizes batches expiring earliest, preventing old stock from turning into dead stock and protecting profitability.
+      </p>
+    </div>
+    <div class="card">
+      <h4>🔄 3. Multi-Branch Transfers</h4>
+      <p style="font-size: 8.5pt;">
+        Seamless movement between central hubs and retail branches. Stock deducted from the source warehouse is tracked in-transit until acknowledged and binned at destination.
+      </p>
+    </div>
+    <div class="card">
+      <h4>⚖️ 4. Stock Adjustments & Cycle Counts</h4>
+      <p style="font-size: 8.5pt;">
+        Built-in maker-checker approval workflows for cycle count discrepancies, damaged packages, or customer returns. Preserves integrity without unapproved edits.
+      </p>
+    </div>
+    <div class="card">
+      <h4>📷 5. Optical Barcode & QR Scanner</h4>
+      <p style="font-size: 8.5pt;">
+        Integrated live camera viewfinder powered by `html5-qrcode` with an animated laser guide. Also supports traditional USB / Bluetooth hardware laser scanners.
+      </p>
+    </div>
+    <div class="card">
+      <h4>📊 6. Executive BI & Reporting</h4>
+      <p style="font-size: 8.5pt;">
+        Real-time metrics: Out-of-Stock count, Reorder Level warnings, 7-Day In/Out velocity chart, and one-click export to <strong>PDF Audit Reports</strong> &amp; <strong>Excel Ledgers</strong>.
+      </p>
+    </div>
+  </div>
+
+  <h2>5. End-to-End Operational Workflow (Day-in-the-Life)</h2>
+  <div class="flow-box">
+    <div class="flow-step">
+      <div class="flow-step-num">1</div>
+      <div><strong>Dock Inbound</strong></div>
+      <div style="color: #64748b; font-size: 7.5pt;">Receive PO &amp; Inspect</div>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">
+      <div class="flow-step-num">2</div>
+      <div><strong>Batch &amp; Bin Putaway</strong></div>
+      <div style="color: #64748b; font-size: 7.5pt;">Scan Bin QR Code</div>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">
+      <div class="flow-step-num">3</div>
+      <div><strong>Live Monitoring</strong></div>
+      <div style="color: #64748b; font-size: 7.5pt;">Dashboard &amp; 30d Expiry</div>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">
+      <div class="flow-step-num">4</div>
+      <div><strong>FEFO Picking</strong></div>
+      <div style="color: #64748b; font-size: 7.5pt;">Oldest Batch First</div>
+    </div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">
+      <div class="flow-step-num">5</div>
+      <div><strong>Dispatch / Transfer</strong></div>
+      <div style="color: #64748b; font-size: 7.5pt;">Stock Ledger Auto-Sync</div>
+    </div>
+  </div>
+
+  <div class="callout-pro">
+    <strong>Auditing & Compliance Ready:</strong> Every stock movement automatically registers an entry into the centralized <em>AuditLog</em> table recording: Timestamp, Client ID, User, Action type, and Old vs. New Quantity balances.
+  </div>
+
+  <!-- ==================== PAGE 3: CLIENT PITCH & FAQS ==================== -->
+  <div class="page-break"></div>
+
+  <h2>6. How to Pitch AeroWMS to Clients (Scripts & Flow)</h2>
+
+  <h3>🎙️ The 2-Minute Customer Pitch Script</h3>
+  <div class="script-quote">
+    "Managing warehouse operations across multiple locations using Excel sheets or basic accounting packages leads to three huge problems: lost products, expired goods, and painful shipping delays.<br><br>
+    We built <strong>AeroWMS</strong> to eliminate these issues entirely. AeroWMS is an intelligent warehouse management platform that tells your workers the exact shelf and bin to walk to, cuts expiry losses by automatically dispatching older batches first (FEFO), and allows your warehouse staff to scan barcodes directly using their mobile phones without buying costly barcode equipment.<br><br>
+    Whether you have one central warehouse or twenty regional branches, your management team gets real-time inventory visibility, automated PDF and Excel audit reports, and complete security."
+  </div>
+
+  <h3>📋 Recommended 10-Minute Live Demo Walkthrough</h3>
+  <div class="grid-2">
+    <div class="card">
+      <strong style="color: #1e40af;">Step 1: The Executive Dashboard (2 min)</strong>
+      <p style="font-size: 8pt; margin-top: 4px;">
+        Show KPI widgets: Total Stock Quantity, Low-Stock items, Expiring-Soon alerts, and the 7-day movement velocity chart.
+      </p>
+    </div>
+    <div class="card">
+      <strong style="color: #1e40af;">Step 2: 5-Level Bin Hierarchy (2 min)</strong>
+      <p style="font-size: 8pt; margin-top: 4px;">
+        Click on Warehouses. Show how easily an aisle is mapped down to Zone ➔ Rack ➔ Shelf ➔ Bin.
+      </p>
+    </div>
+    <div class="card">
+      <strong style="color: #1e40af;">Step 3: Optical Camera Scanner (3 min)</strong>
+      <p style="font-size: 8pt; margin-top: 4px;">
+        Open the Scanner page. Point webcam/phone at a barcode. Show instant product telemetry, live stock count, and location.
+      </p>
+    </div>
+    <div class="card">
+      <strong style="color: #1e40af;">Step 4: FEFO Outbound & Reports (3 min)</strong>
+      <p style="font-size: 8pt; margin-top: 4px;">
+        Trigger a Stock Out and demonstrate the system auto-recommending the oldest batch. Download the PDF audit report.
+      </p>
+    </div>
+  </div>
+
+  <h2>7. Client FAQs & Handling Customer Objections</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 40%;">Customer Question</th>
+        <th style="width: 60%;">Proven Answer</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>"Do we need to buy expensive barcode guns?"</strong></td>
+        <td><strong>No.</strong> AeroWMS includes built-in optical camera recognition. Any smartphone, tablet, or laptop camera functions as a scanner. If you already have USB/Bluetooth laser scanners, they work seamlessly out of the box.</td>
+      </tr>
+      <tr>
+        <td><strong>"Can we handle multiple branches in different cities?"</strong></td>
+        <td><strong>Yes.</strong> The system has full multi-branch support. You can track stock per branch and initiate formal Inter-Branch Transfers with in-transit tracking.</td>
+      </tr>
+      <tr>
+        <td><strong>"How does it prevent expired goods from being sold?"</strong></td>
+        <td>AeroWMS enforces <strong>FEFO (First-Expired, First-Out)</strong>. When creating dispatch orders, the system automatically selects and suggests the batch expiring earliest, plus flags items 30 days before expiration on the dashboard.</td>
+      </tr>
+      <tr>
+        <td><strong>"Is our corporate data safe and secure?"</strong></td>
+        <td><strong>Yes.</strong> AeroWMS uses enterprise-grade multi-tenant data isolation, Spring Security 6 with stateless JWT tokens, and role-based permissions (Admin, Branch Manager, Staff, Viewer).</td>
+      </tr>
+      <tr>
+        <td><strong>"Can we export our inventory for accounting audits?"</strong></td>
+        <td><strong>Yes.</strong> With a single click, download formatted <strong>PDF Inventory Balance Reports</strong> (A4 landscape) or <strong>Excel (.xlsx) Stock Ledgers</strong> covering all historical transactions.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>8. Technical Specifications & Architecture</h2>
+  <div class="grid-3" style="font-size: 8.5pt;">
+    <div class="card">
+      <strong>Backend Engine</strong><br>
+      • Java 17 / 21 LTS<br>
+      • Spring Boot 3.x<br>
+      • Spring Security 6 (JWT)<br>
+      • Spring Data JPA / Hibernate
+    </div>
+    <div class="card">
+      <strong>Frontend SPA</strong><br>
+      • Angular 18 (Standalone)<br>
+      • Bootstrap 5.3 Modern UI<br>
+      • Chart.js Interactive BI<br>
+      • html5-qrcode Vision Engine
+    </div>
+    <div class="card">
+      <strong>Deployment & DB</strong><br>
+      • PostgreSQL / H2 Database<br>
+      • Multi-Tenant Schema Design<br>
+      • Docker & Cloud VM Ready<br>
+      • Low Latency REST APIs
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <div>AeroWMS Enterprise Presentation &mdash; Confidential Document for Client Presentations</div>
+    <div>Generated for AeroWMS Product Deployment</div>
+  </div>
+
+</body>
+</html>
