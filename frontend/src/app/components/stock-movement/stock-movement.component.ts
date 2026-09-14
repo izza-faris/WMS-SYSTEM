@@ -332,11 +332,27 @@ export class StockMovementComponent implements OnInit {
     const product = this.resolveProduct(this.stockOutForm.productSearch);
     if (product) {
       this.stockOutForm.productId = product.id;
-      const wh = this.warehouses().find(w => w.name.toLowerCase() === (this.stockOutForm.warehouseSearch || '').trim().toLowerCase());
-      const whId = wh ? wh.id : (this.warehouses()[0]?.id || null);
+      const termWh = (this.stockOutForm.warehouseSearch || '').trim().toLowerCase();
+      const wh = this.warehouses().find(w => w.name.toLowerCase() === termWh);
+      const whId = (wh && termWh !== '-') ? wh.id : null;
+
       this.wmsApi.getFefoRecommendations(product.id, whId).subscribe({
         next: (res) => {
-          if (res.success) this.fefoRecommendations.set(res.data);
+          if (res.success && res.data) {
+            this.fefoRecommendations.set(res.data);
+            if (res.data.length > 0) {
+              const rec = res.data[0];
+              this.stockOutForm.batchId = rec.batchId;
+              // If warehouse is empty, '-', or invalid, auto-fill with the warehouse that actually has this batch
+              if (!this.stockOutForm.warehouseSearch || this.stockOutForm.warehouseSearch === '-' || !wh) {
+                const actualWh = this.warehouses().find(w => w.id === rec.warehouseId);
+                if (actualWh) {
+                  this.stockOutForm.warehouseSearch = actualWh.name;
+                  this.stockOutForm.warehouseId = actualWh.id;
+                }
+              }
+            }
+          }
         }
       });
     }
@@ -350,7 +366,8 @@ export class StockMovementComponent implements OnInit {
     }
     this.stockInForm.productId = product.id;
 
-    const whName = (this.stockInForm.warehouseSearch || 'Main Warehouse').trim();
+    let whName = (this.stockInForm.warehouseSearch || 'Main Warehouse').trim();
+    if (whName === '-') whName = 'Main Warehouse';
     const existingWh = this.warehouses().find(w => w.name.toLowerCase() === whName.toLowerCase());
 
     const executeStockIn = (whId: number) => {
@@ -389,7 +406,24 @@ export class StockMovementComponent implements OnInit {
     }
     this.stockOutForm.productId = product.id;
 
-    const whName = (this.stockOutForm.warehouseSearch || 'Main Warehouse').trim();
+    let whName = (this.stockOutForm.warehouseSearch || '').trim();
+    if (whName === '-') whName = '';
+
+    // If recommendation exists, bind the recommended batchId and warehouse
+    if (this.fefoRecommendations().length > 0) {
+      const rec = this.fefoRecommendations()[0];
+      if (!this.stockOutForm.batchId) {
+        this.stockOutForm.batchId = rec.batchId;
+      }
+      if (!whName && rec.warehouseId) {
+        const recWh = this.warehouses().find(w => w.id === rec.warehouseId);
+        if (recWh) whName = recWh.name;
+      }
+    }
+
+    whName = whName || (this.warehouses()[0]?.name || 'Main Warehouse');
+    this.stockOutForm.warehouseSearch = whName;
+
     const existingWh = this.warehouses().find(w => w.name.toLowerCase() === whName.toLowerCase());
     this.stockOutForm.warehouseId = existingWh ? existingWh.id : (this.warehouses()[0]?.id || 1);
 

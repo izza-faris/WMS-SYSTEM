@@ -154,18 +154,54 @@ public class InventoryService {
 
         Client client = clientRepository.findById(clientId).orElseThrow();
 
-        // If batch not specified and expiry tracking enabled, FEFO selects earliest batch
+        // If batch not specified, try to resolve via FEFO recommendations
         Long batchId = request.getBatchId();
-        if (batchId == null && product.getExpiryTrackingEnabled()) {
+        if (batchId == null) {
             List<FefoBatchRecommendationDto> fefo = getFefoRecommendations(product.getId(), request.getWarehouseId());
             if (!fefo.isEmpty()) {
                 batchId = fefo.get(0).getBatchId();
             }
         }
 
-        Inventory inventory = inventoryRepository.findByClientIdAndWarehouseIdAndBinIdAndProductIdAndBatchId(
-                clientId, request.getWarehouseId(), request.getBinId(), product.getId(), batchId
-        ).orElseThrow(() -> new BusinessRuleException("No inventory found at the selected warehouse/location."));
+        Inventory inventory = null;
+        if (batchId != null) {
+            inventory = inventoryRepository.findByClientIdAndWarehouseIdAndBinIdAndProductIdAndBatchId(
+                    clientId, request.getWarehouseId(), request.getBinId(), product.getId(), batchId
+            ).orElse(null);
+        }
+
+        if (inventory == null) {
+            // Check if there is inventory with null batchId
+            inventory = inventoryRepository.findByClientIdAndWarehouseIdAndBinIdAndProductIdAndBatchId(
+                    clientId, request.getWarehouseId(), request.getBinId(), product.getId(), null
+            ).orElse(null);
+        }
+
+        if (inventory == null) {
+            // Check any available inventory for this product at the specified warehouse
+            List<Inventory> warehouseInv = inventoryRepository.findByClientIdAndWarehouseId(clientId, request.getWarehouseId()).stream()
+                    .filter(i -> i.getProductId().equals(product.getId()) && i.getQuantity() > 0)
+                    .sorted((a, b) -> Integer.compare(b.getQuantity(), a.getQuantity()))
+                    .collect(Collectors.toList());
+            if (!warehouseInv.isEmpty()) {
+                inventory = warehouseInv.get(0);
+                batchId = inventory.getBatchId();
+            }
+        }
+
+        if (inventory == null) {
+            // Check if product exists in ANY warehouse for this client to give clear error
+            List<Inventory> anyInv = inventoryRepository.findByClientIdAndProductId(clientId, product.getId()).stream()
+                    .filter(i -> i.getQuantity() > 0)
+                    .collect(Collectors.toList());
+            if (!anyInv.isEmpty()) {
+                Warehouse actualWh = warehouseRepository.findById(anyInv.get(0).getWarehouseId()).orElse(null);
+                String actualWhName = actualWh != null ? actualWh.getName() : "another warehouse";
+                throw new BusinessRuleException("No inventory found at '" + wh.getName() + "'. Available stock (" + 
+                        anyInv.get(0).getQuantity() + " units) is located in warehouse: '" + actualWhName + "'. Please select '" + actualWhName + "'.");
+            }
+            throw new BusinessRuleException("No inventory found for '" + product.getName() + "' at the selected warehouse/location.");
+        }
 
         int prevQty = inventory.getQuantity();
         if (prevQty < request.getQuantity() && !client.getAllowNegativeStock()) {
