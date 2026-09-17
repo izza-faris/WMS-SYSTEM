@@ -2,18 +2,23 @@ package com.wms.service;
 
 import com.wms.dto.CategoryDto;
 import com.wms.dto.ProductDto;
+import com.wms.entity.Branch;
 import com.wms.entity.Category;
 import com.wms.entity.Inventory;
 import com.wms.entity.Product;
 import com.wms.entity.ProductBatch;
 import com.wms.entity.StockTransaction;
+import com.wms.entity.Warehouse;
+import com.wms.entity.enums.TransactionType;
 import com.wms.exception.BusinessRuleException;
 import com.wms.exception.ResourceNotFoundException;
+import com.wms.repository.BranchRepository;
 import com.wms.repository.CategoryRepository;
 import com.wms.repository.InventoryRepository;
 import com.wms.repository.ProductBatchRepository;
 import com.wms.repository.ProductRepository;
 import com.wms.repository.StockTransactionRepository;
+import com.wms.repository.WarehouseRepository;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
@@ -35,19 +40,24 @@ public class ProductService {
     private final InventoryRepository inventoryRepository;
     private final ProductBatchRepository productBatchRepository;
     private final StockTransactionRepository stockTransactionRepository;
+    private final WarehouseRepository warehouseRepository;
+    private final BranchRepository branchRepository;
     private final TenantSecurityService tenantSecurityService;
     private final AuditLogService auditLogService;
     private final QrBarcodeService qrBarcodeService;
 
     public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository,
                           InventoryRepository inventoryRepository, ProductBatchRepository productBatchRepository,
-                          StockTransactionRepository stockTransactionRepository, TenantSecurityService tenantSecurityService,
+                          StockTransactionRepository stockTransactionRepository, WarehouseRepository warehouseRepository,
+                          BranchRepository branchRepository, TenantSecurityService tenantSecurityService,
                           AuditLogService auditLogService, QrBarcodeService qrBarcodeService) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.inventoryRepository = inventoryRepository;
         this.productBatchRepository = productBatchRepository;
         this.stockTransactionRepository = stockTransactionRepository;
+        this.warehouseRepository = warehouseRepository;
+        this.branchRepository = branchRepository;
         this.tenantSecurityService = tenantSecurityService;
         this.auditLogService = auditLogService;
         this.qrBarcodeService = qrBarcodeService;
@@ -145,6 +155,22 @@ public class ProductService {
         product.setCurrency(dto.getCurrency() != null && !dto.getCurrency().trim().isEmpty() ? dto.getCurrency().trim() : "$");
 
         product = productRepository.save(product);
+
+        // Record initial stock if provided
+        if (dto.getCurrentStock() != null && dto.getCurrentStock() > 0) {
+            Warehouse wh = getOrCreateDefaultWarehouse(clientId);
+            Inventory inv = new Inventory(clientId, wh.getId(), null, product.getId(), null, dto.getCurrentStock());
+            inventoryRepository.save(inv);
+
+            Long userId = tenantSecurityService.getCurrentUserId();
+            StockTransaction tx = new StockTransaction(
+                    clientId, wh.getId(), null, product.getId(), null,
+                    userId, TransactionType.STOCK_IN, dto.getCurrentStock(), 0, dto.getCurrentStock(),
+                    "INIT-" + product.getSku(), "Initial stock set during product creation"
+            );
+            stockTransactionRepository.save(tx);
+        }
+
         auditLogService.logClientAction(clientId, "PRODUCT_CREATED", "Product", product.getId(),
                 "Created product: " + product.getName() + " (SKU: " + product.getSku() + ")");
 
@@ -177,10 +203,62 @@ public class ProductService {
         }
 
         product = productRepository.save(product);
+
+        // Update/Adjust stock if provided
+        if (dto.getCurrentStock() != null && dto.getCurrentStock() >= 0) {
+            List<Inventory> invList = inventoryRepository.findByClientIdAndProductId(clientId, product.getId());
+            Long userId = tenantSecurityService.getCurrentUserId();
+            if (!invList.isEmpty()) {
+                Inventory primaryInv = invList.get(0);
+                int oldTotal = invList.stream().mapToInt(Inventory::getQuantity).sum();
+                int targetQty = dto.getCurrentStock();
+                if (oldTotal != targetQty) {
+                    int diff = targetQty - oldTotal;
+                    primaryInv.setQuantity(Math.max(0, primaryInv.getQuantity() + diff));
+                    inventoryRepository.save(primaryInv);
+
+                    StockTransaction tx = new StockTransaction(
+                            clientId, primaryInv.getWarehouseId(), primaryInv.getBinId(), product.getId(), primaryInv.getBatchId(),
+                            userId, diff > 0 ? TransactionType.ADJUSTMENT_ADD : TransactionType.ADJUSTMENT_SUB,
+                            Math.abs(diff), oldTotal, targetQty,
+                            "ADJ-" + product.getSku(), "Stock adjustment from product catalog"
+                    );
+                    stockTransactionRepository.save(tx);
+                }
+            } else if (dto.getCurrentStock() > 0) {
+                Warehouse wh = getOrCreateDefaultWarehouse(clientId);
+                Inventory inv = new Inventory(clientId, wh.getId(), null, product.getId(), null, dto.getCurrentStock());
+                inventoryRepository.save(inv);
+
+                StockTransaction tx = new StockTransaction(
+                        clientId, wh.getId(), null, product.getId(), null,
+                        userId, TransactionType.STOCK_IN, dto.getCurrentStock(), 0, dto.getCurrentStock(),
+                        "INIT-" + product.getSku(), "Initial stock set during product catalog update"
+                );
+                stockTransactionRepository.save(tx);
+            }
+        }
+
         auditLogService.logClientAction(clientId, "PRODUCT_UPDATED", "Product", product.getId(),
                 "Updated product: " + product.getName());
 
         return convertProductToDto(product);
+    }
+
+    private Warehouse getOrCreateDefaultWarehouse(Long clientId) {
+        List<Warehouse> whs = warehouseRepository.findByClientId(clientId);
+        if (!whs.isEmpty()) {
+            return whs.get(0);
+        }
+        List<Branch> branches = branchRepository.findByClientId(clientId);
+        Branch branch;
+        if (!branches.isEmpty()) {
+            branch = branches.get(0);
+        } else {
+            branch = branchRepository.save(new Branch(clientId, "Main Branch", "BR-MAIN-" + clientId, "Default Head Office", ""));
+        }
+        Warehouse wh = new Warehouse(clientId, branch.getId(), "Main Warehouse", "WH-MAIN-" + clientId, "Default Storage Location");
+        return warehouseRepository.save(wh);
     }
 
     @Transactional

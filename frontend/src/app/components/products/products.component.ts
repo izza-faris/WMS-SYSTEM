@@ -42,6 +42,81 @@ import { Category, Product } from '../../models/wms.models';
         </div>
       </div>
 
+      <!-- Executive Catalog Total & Metric Cards (அனைத்து பொருட்களின் மொத்த விபரம்) -->
+      <div class="row g-3 mb-4">
+        <!-- 1. Full Total Catalog Value (Grand Total of all products) -->
+        <div class="col-12 col-sm-6 col-lg-4">
+          <div class="glass-panel p-3 h-100 position-relative overflow-hidden" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 78, 59, 0.28)); border: 1px solid rgba(16, 185, 129, 0.45);">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <span class="text-secondary small fw-semibold">Total Catalog Value (மொத்த மதிப்பு)</span>
+              <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 text-xs">
+                <i class="bi bi-wallet2 me-1"></i> Full Total
+              </span>
+            </div>
+            <div class="display-6 fw-bold text-success font-monospace my-1">
+              <span class="fs-4">{{ defaultCurrency }}</span> {{ getGrandTotalAmount() | number:'1.2-2' }}
+            </div>
+            <div class="small text-light text-opacity-75 mt-2 d-flex align-items-center justify-content-between">
+              <span><i class="bi bi-layers text-success me-1"></i> All {{ products().length }} Products Combined</span>
+              <span class="text-xs text-muted">{{ getTotalStockUnits() | number }} Total Pieces</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Total Stock Units / Pieces -->
+        <div class="col-6 col-sm-6 col-lg-3">
+          <div class="glass-panel p-3 h-100 position-relative overflow-hidden" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(30, 58, 138, 0.22)); border: 1px solid rgba(59, 130, 246, 0.35);">
+            <div class="text-secondary small fw-semibold mb-1">Total Stock (கையிருப்பு)</div>
+            <div class="display-6 fw-bold text-info font-monospace my-1">
+              {{ getTotalStockUnits() | number }} <span class="fs-6 text-secondary fw-normal">Pieces</span>
+            </div>
+            <div class="small text-muted mt-2 d-flex align-items-center gap-1">
+              <i class="bi bi-boxes text-info"></i> Total pieces across catalog
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Total Products Count -->
+        <div class="col-6 col-sm-6 col-lg-2">
+          <div class="glass-panel p-3 h-100 position-relative overflow-hidden">
+            <div class="text-secondary small fw-semibold mb-1">Total Products (பொருட்கள்)</div>
+            <div class="display-6 fw-bold text-light font-monospace my-1">
+              {{ products().length }} <span class="fs-6 text-secondary fw-normal">Items</span>
+            </div>
+            <div class="small text-muted mt-2 d-flex align-items-center gap-1">
+              <i class="bi bi-tag text-primary"></i> Active Catalog SKUs
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Stock Health Breakdown -->
+        <div class="col-12 col-sm-6 col-lg-3">
+          <div class="glass-panel p-3 h-100 position-relative overflow-hidden">
+            <div class="text-secondary small fw-semibold mb-1">Stock Status (கையிருப்பு நிலை)</div>
+            <div class="d-flex align-items-center gap-3 my-2">
+              <div class="d-flex align-items-center gap-1 text-success">
+                <i class="bi bi-check-circle-fill"></i>
+                <span class="fw-bold">{{ getInStockCount() }}</span>
+                <span class="text-xs text-muted">In Stock</span>
+              </div>
+              <div class="d-flex align-items-center gap-1 text-danger">
+                <i class="bi bi-x-circle-fill"></i>
+                <span class="fw-bold">{{ getOutOfStockCount() }}</span>
+                <span class="text-xs text-muted">Out of Stock</span>
+              </div>
+            </div>
+            <div class="small text-muted mt-1 text-xs">
+              <span *ngIf="getLowStockCount() > 0" class="text-warning">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ getLowStockCount() }} need reorder
+              </span>
+              <span *ngIf="getLowStockCount() === 0" class="text-success">
+                <i class="bi bi-shield-check me-1"></i>Stock health normal
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Search & Filters Toolbar -->
       <div class="glass-panel p-3 mb-4">
         <div class="row g-2 align-items-center">
@@ -95,8 +170,9 @@ import { Category, Product } from '../../models/wms.models';
                 <th>Product Info</th>
                 <th>SKU & Barcode</th>
                 <th>Category / Brand</th>
-                <th>Price / விலை</th>
-                <th>Stock Level</th>
+                <th>Unit Price / விலை</th>
+                <th>Stock Level (Pieces)</th>
+                <th>Total Amount / மொத்த மதிப்பு</th>
                 <th>Reorder Point</th>
                 <th>Tracking</th>
                 <th class="text-end">Actions</th>
@@ -104,7 +180,7 @@ import { Category, Product } from '../../models/wms.models';
             </thead>
             <tbody>
               <tr *ngIf="products().length === 0">
-                <td colspan="8" class="text-center py-5 text-muted">
+                <td colspan="9" class="text-center py-5 text-muted">
                   <i class="bi bi-inbox fs-2 d-block mb-2"></i>
                   No products found matching the criteria.
                 </td>
@@ -112,7 +188,7 @@ import { Category, Product } from '../../models/wms.models';
               <tr *ngFor="let p of products()" class="animate__animated animate__fadeIn">
                 <td>
                   <div class="fw-bold text-light">{{ p.name }}</div>
-                  <small class="text-muted">{{ p.unit }}</small>
+                  <small class="text-muted">{{ isNumeric(p.unit) ? (p.unit + ' PCS') : p.unit }}</small>
                 </td>
                 <td>
                   <span class="badge bg-dark border border-secondary text-primary font-monospace">{{ p.sku }}</span>
@@ -125,22 +201,32 @@ import { Category, Product } from '../../models/wms.models';
                   <small class="text-muted">{{ p.brand || '-' }}</small>
                 </td>
                 <td>
-                  <!-- Prominent Price Display in Table -->
-                  <div class="fs-6 fw-bold text-success font-monospace">
+                  <!-- Prominent Unit Price Display in Table -->
+                  <div class="fs-6 fw-bold text-info font-monospace">
                     {{ p.currency || defaultCurrency }} {{ (p.price || 0) | number:'1.2-2' }}
                   </div>
-                  <small class="text-muted text-xs">per {{ p.unit }}</small>
+                  <small class="text-muted text-xs">per {{ getProductUnit(p) }}</small>
                 </td>
                 <td>
+                  <!-- Current Stock / Pieces Count -->
                   <div class="d-flex align-items-center gap-2">
-                    <span class="fw-bold" [ngClass]="{
-                      'text-danger': p.currentStock === 0,
-                      'text-warning': p.currentStock > 0 && p.currentStock <= p.reorderLevel,
-                      'text-success': p.currentStock > p.reorderLevel
-                    }">{{ p.currentStock }}</span>
-                    <span *ngIf="p.currentStock <= p.reorderLevel && p.currentStock > 0" class="badge badge-glow-warning text-xs">Low Stock</span>
-                    <span *ngIf="p.currentStock === 0" class="badge badge-glow-danger text-xs">Out of Stock</span>
+                    <span class="fw-bold fs-6 font-monospace" [ngClass]="{
+                      'text-danger': getProductQuantity(p) === 0,
+                      'text-warning': getProductQuantity(p) > 0 && getProductQuantity(p) <= p.reorderLevel,
+                      'text-success': getProductQuantity(p) > p.reorderLevel
+                    }">{{ getProductQuantity(p) | number }} {{ getProductUnit(p) }}</span>
+                    <span *ngIf="getProductQuantity(p) <= p.reorderLevel && getProductQuantity(p) > 0" class="badge badge-glow-warning text-xs">Low Stock</span>
+                    <span *ngIf="getProductQuantity(p) === 0" class="badge badge-glow-danger text-xs">Out of Stock</span>
                   </div>
+                </td>
+                <td>
+                  <!-- Key New Feature: Total Amount for this product (e.g. 1500 * 120 = Rs. 180,000.00) -->
+                  <div class="fs-6 fw-bolder text-success font-monospace">
+                    {{ p.currency || defaultCurrency }} {{ getProductTotal(p) | number:'1.2-2' }}
+                  </div>
+                  <small class="text-light text-opacity-50 text-xs">
+                    {{ getProductQuantity(p) | number }} {{ getProductUnit(p) }} &times; {{ (p.price || 0) | number:'1.2-2' }}
+                  </small>
                 </td>
                 <td class="text-secondary small">{{ p.reorderLevel }} units</td>
                 <td>
@@ -164,7 +250,7 @@ import { Category, Product } from '../../models/wms.models';
                       <i class="bi bi-qr-code"></i>
                     </button>
                     <!-- Edit Product -->
-                    <button (click)="openEditModal(p)" class="btn btn-glass text-warning" title="Edit Product, Price & Barcode">
+                    <button (click)="openEditModal(p)" class="btn btn-glass text-warning" title="Edit Product, Price, Stock & Barcode">
                       <i class="bi bi-pencil-square"></i>
                     </button>
                     <!-- Delete Product -->
@@ -175,6 +261,29 @@ import { Category, Product } from '../../models/wms.models';
                 </td>
               </tr>
             </tbody>
+            <!-- Key 2nd Feature: Table Footer Grand Total for All Products -->
+            <tfoot *ngIf="products().length > 0" class="border-top border-secondary border-opacity-40" style="background: rgba(15, 23, 42, 0.75);">
+              <tr class="fw-bold">
+                <td colspan="4" class="text-end text-light py-3">
+                  <div class="d-flex align-items-center justify-content-end gap-2 text-uppercase fs-6">
+                    <i class="bi bi-calculator-fill text-success fs-5"></i>
+                    <span>Catalog Grand Total (அனைத்து பொருட்களின் கூட்டுத் தொகை):</span>
+                  </div>
+                </td>
+                <td class="py-3">
+                  <span class="badge bg-dark border border-info border-opacity-50 text-info fs-6 font-monospace px-2 py-1">
+                    {{ getTotalStockUnits() | number }} Pieces
+                  </span>
+                </td>
+                <td class="py-3">
+                  <div class="fs-5 fw-bolder text-success font-monospace">
+                    {{ defaultCurrency }} {{ getGrandTotalAmount() | number:'1.2-2' }}
+                  </div>
+                  <small class="text-muted text-xs">All {{ products().length }} Products Combined</small>
+                </td>
+                <td colspan="3"></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
@@ -186,7 +295,7 @@ import { Category, Product } from '../../models/wms.models';
             <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-10">
               <h5 class="fw-bold text-light mb-0">
                 <i class="bi" [ngClass]="isEditing ? 'bi-pencil-square text-warning' : 'bi-plus-circle text-primary'"></i>
-                {{ isEditing ? 'Edit Product & Price' : 'Add New Product' }}
+                {{ isEditing ? 'Edit Product, Stock & Price' : 'Add New Product' }}
               </h5>
               <button (click)="showAddModal = false" class="btn btn-sm text-secondary"><i class="bi bi-x-lg"></i></button>
             </div>
@@ -195,11 +304,11 @@ import { Category, Product } from '../../models/wms.models';
               <div class="row g-3 mb-3">
                 <div class="col-md-8">
                   <label class="form-label text-secondary small fw-semibold">Product Name *</label>
-                  <input type="text" class="form-control" [(ngModel)]="newProduct.name" name="name" required placeholder="e.g. Basmati Rice 5kg">
+                  <input type="text" class="form-control" [(ngModel)]="newProduct.name" name="name" required placeholder="e.g. Basmati Rice 5kg or Wool band">
                 </div>
                 <div class="col-md-4">
                   <label class="form-label text-secondary small fw-semibold">SKU Code *</label>
-                  <input type="text" class="form-control" [(ngModel)]="newProduct.sku" name="sku" required placeholder="RICE-001">
+                  <input type="text" class="form-control" [(ngModel)]="newProduct.sku" name="sku" required placeholder="e.g. WB-001">
                 </div>
               </div>
 
@@ -231,27 +340,51 @@ import { Category, Product } from '../../models/wms.models';
 
               <div class="row g-3 mb-3">
                 <!-- Currency & Price -->
-                <div class="col-md-4">
+                <div class="col-md-3">
                   <label class="form-label text-secondary small fw-semibold">Price / விற்பனை விலை *</label>
                   <div class="input-group">
-                    <select class="form-select bg-dark text-light border-secondary" style="max-width: 95px;" [(ngModel)]="newProduct.currency" name="currency">
+                    <select class="form-select bg-dark text-light border-secondary" style="max-width: 85px;" [(ngModel)]="newProduct.currency" name="currency">
                       <option *ngFor="let c of availableCurrencies" [value]="c.symbol">{{ c.symbol }}</option>
                     </select>
                     <input type="number" step="0.01" min="0" class="form-control text-success fw-bold" [(ngModel)]="newProduct.price" name="price" placeholder="0.00" required>
                   </div>
                 </div>
 
+                <!-- Stock Quantity / Pieces -->
                 <div class="col-md-3">
+                  <label class="form-label text-secondary small fw-semibold">Stock Quantity / Pieces (கையிருப்பு)</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-info"><i class="bi bi-boxes"></i></span>
+                    <input type="number" min="0" class="form-control text-info fw-bold" [(ngModel)]="newProduct.currentStock" name="currentStock" placeholder="e.g. 1500">
+                  </div>
+                  <small class="text-muted text-xs">Total pieces in stock</small>
+                </div>
+
+                <div class="col-md-2">
+                  <label class="form-label text-secondary small fw-semibold">Unit (அலகு)</label>
+                  <input type="text" class="form-control" [(ngModel)]="newProduct.unit" name="unit" placeholder="PCS, KG">
+                </div>
+
+                <div class="col-md-2">
                   <label class="form-label text-secondary small fw-semibold">Brand</label>
                   <input type="text" class="form-control" [(ngModel)]="newProduct.brand" name="brand" placeholder="Brand name">
                 </div>
+
                 <div class="col-md-2">
-                  <label class="form-label text-secondary small fw-semibold">Unit</label>
-                  <input type="text" class="form-control" [(ngModel)]="newProduct.unit" name="unit" placeholder="PCS, KG">
-                </div>
-                <div class="col-md-3">
                   <label class="form-label text-secondary small fw-semibold">Reorder Point *</label>
                   <input type="number" class="form-control" [(ngModel)]="newProduct.reorderLevel" name="reorderLevel" required>
+                </div>
+              </div>
+
+              <!-- Real-time Estimated Total Amount Banner inside modal -->
+              <div class="p-3 mb-3 rounded-2 bg-dark border border-secondary border-opacity-30 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-calculator-fill text-success fs-5"></i>
+                  <span class="text-secondary small fw-semibold">Estimated Total Value (மதிப்பிடப்பட்ட மொத்த தொகை):</span>
+                </div>
+                <div class="fs-5 fw-bold text-success font-monospace">
+                  {{ newProduct.currency || defaultCurrency }} {{ ((newProduct.currentStock || 0) * (newProduct.price || 0)) | number:'1.2-2' }}
+                  <small class="text-muted text-xs ms-1">({{ newProduct.currentStock || 0 }} {{ newProduct.unit || 'PCS' }} &times; {{ (newProduct.price || 0) | number:'1.2-2' }})</small>
                 </div>
               </div>
 
@@ -294,14 +427,23 @@ import { Category, Product } from '../../models/wms.models';
               <div class="display-4 fw-bolder text-light font-monospace my-1">
                 <span class="text-success">{{ lookedUpProduct?.currency || defaultCurrency }}</span> {{ (lookedUpProduct?.price || 0) | number:'1.2-2' }}
               </div>
-              <small class="text-light text-opacity-75">Per {{ lookedUpProduct?.unit || 'Unit' }} &bull; Tax Incl.</small>
+              <small class="text-light text-opacity-75">Per {{ getProductUnit(lookedUpProduct!) }} &bull; Tax Incl.</small>
+            </div>
+
+            <!-- Total Inventory Value for this product in Price Modal -->
+            <div class="p-2 mb-3 bg-dark rounded border border-success border-opacity-30 text-center" *ngIf="lookedUpProduct">
+              <small class="text-secondary text-xs d-block text-uppercase fw-semibold">Total Stock Value (மொத்த இருப்பு மதிப்பு)</small>
+              <div class="fs-5 fw-bold text-success font-monospace">
+                {{ lookedUpProduct.currency || defaultCurrency }} {{ getProductTotal(lookedUpProduct) | number:'1.2-2' }}
+              </div>
+              <small class="text-muted text-xs">({{ getProductQuantity(lookedUpProduct) | number }} {{ getProductUnit(lookedUpProduct) }} &times; {{ (lookedUpProduct.price || 0) | number:'1.2-2' }})</small>
             </div>
 
             <div class="row g-2 text-start mb-3">
               <div class="col-6">
                 <div class="p-2 bg-dark rounded border border-secondary border-opacity-20 text-center">
                   <small class="text-secondary text-xs d-block">Current Stock</small>
-                  <strong class="fs-5 text-light">{{ lookedUpProduct?.currentStock }} {{ lookedUpProduct?.unit }}</strong>
+                  <strong class="fs-5 text-light">{{ getProductQuantity(lookedUpProduct!) }} {{ getProductUnit(lookedUpProduct!) }}</strong>
                 </div>
               </div>
               <div class="col-6">
@@ -438,6 +580,7 @@ export class ProductsComponent implements OnInit {
     categoryId: undefined,
     brand: '',
     unit: 'PCS',
+    currentStock: 0,
     reorderLevel: 10,
     minStockLevel: 5,
     maxStockLevel: 1000,
@@ -488,6 +631,58 @@ export class ProductsComponent implements OnInit {
       const catId = Number(this.selectedCategory);
       this.products.update(list => list.filter(p => p.categoryId === catId));
     }
+  }
+
+  isNumeric(val: any): boolean {
+    if (val === null || val === undefined || val === '') return false;
+    return !isNaN(Number(val));
+  }
+
+  getProductQuantity(p: Product): number {
+    if (p.currentStock != null && p.currentStock > 0) {
+      return p.currentStock;
+    }
+    // If currentStock is 0 but unit is a number (e.g. 1500)
+    if (p.unit && !isNaN(Number(p.unit)) && Number(p.unit) > 0) {
+      return Number(p.unit);
+    }
+    return p.currentStock || 0;
+  }
+
+  getProductUnit(p: Product): string {
+    if (p.unit && isNaN(Number(p.unit))) {
+      return p.unit;
+    }
+    return 'PCS';
+  }
+
+  getProductTotal(p: Product): number {
+    const qty = this.getProductQuantity(p);
+    const price = p.price || 0;
+    return qty * price;
+  }
+
+  getGrandTotalAmount(): number {
+    return this.products().reduce((sum, p) => sum + this.getProductTotal(p), 0);
+  }
+
+  getTotalStockUnits(): number {
+    return this.products().reduce((sum, p) => sum + this.getProductQuantity(p), 0);
+  }
+
+  getInStockCount(): number {
+    return this.products().filter(p => this.getProductQuantity(p) > 0).length;
+  }
+
+  getOutOfStockCount(): number {
+    return this.products().filter(p => this.getProductQuantity(p) === 0).length;
+  }
+
+  getLowStockCount(): number {
+    return this.products().filter(p => {
+      const q = this.getProductQuantity(p);
+      return q > 0 && q <= p.reorderLevel;
+    }).length;
   }
 
   playBeep() {
@@ -558,6 +753,7 @@ export class ProductsComponent implements OnInit {
       categoryId: undefined,
       brand: '',
       unit: 'PCS',
+      currentStock: 0,
       reorderLevel: 10,
       minStockLevel: 5,
       maxStockLevel: 1000,
@@ -569,6 +765,14 @@ export class ProductsComponent implements OnInit {
   openEditModal(p: Product) {
     this.isEditing = true;
     this.editingId = p.id;
+    const numericUnit = Number(p.unit);
+    let resolvedStock = p.currentStock || 0;
+    let resolvedUnit = p.unit || 'PCS';
+    if ((!p.currentStock || p.currentStock === 0) && !isNaN(numericUnit) && numericUnit > 0) {
+      resolvedStock = numericUnit;
+      resolvedUnit = 'PCS';
+    }
+
     this.newProduct = {
       name: p.name,
       sku: p.sku,
@@ -577,7 +781,8 @@ export class ProductsComponent implements OnInit {
       currency: p.currency || this.defaultCurrency,
       categoryId: p.categoryId,
       brand: p.brand || '',
-      unit: p.unit || 'PCS',
+      unit: resolvedUnit,
+      currentStock: resolvedStock,
       reorderLevel: p.reorderLevel,
       minStockLevel: p.minStockLevel,
       maxStockLevel: p.maxStockLevel,
