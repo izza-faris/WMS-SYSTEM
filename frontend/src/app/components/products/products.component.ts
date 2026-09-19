@@ -58,20 +58,20 @@ import { Category, Product } from '../../models/wms.models';
             </div>
             <div class="small text-light text-opacity-75 mt-2 d-flex align-items-center justify-content-between">
               <span><i class="bi bi-layers text-success me-1"></i> All {{ products().length }} Products Combined</span>
-              <span class="text-xs text-muted">{{ getTotalStockUnits() | number }} Total Pieces</span>
+              <span class="text-xs text-muted">{{ getTotalStockUnits() | number }} Total Qty</span>
             </div>
           </div>
         </div>
 
-        <!-- 2. Total Stock Units / Pieces -->
+        <!-- 2. Total Stock Units (KG / PCS / L etc.) -->
         <div class="col-6 col-sm-6 col-lg-3">
           <div class="glass-panel p-3 h-100 position-relative overflow-hidden" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(30, 58, 138, 0.22)); border: 1px solid rgba(59, 130, 246, 0.35);">
             <div class="text-secondary small fw-semibold mb-1">Total Stock (கையிருப்பு)</div>
             <div class="display-6 fw-bold text-info font-monospace my-1">
-              {{ getTotalStockUnits() | number }} <span class="fs-6 text-secondary fw-normal">Pieces</span>
+              {{ getTotalStockUnits() | number }} <span class="fs-6 text-secondary fw-normal">Total Qty</span>
             </div>
             <div class="small text-muted mt-2 d-flex align-items-center gap-1">
-              <i class="bi bi-boxes text-info"></i> Total pieces across catalog
+              <i class="bi bi-boxes text-info"></i> Across all units (KG, PCS, L, etc.)
             </div>
           </div>
         </div>
@@ -171,7 +171,7 @@ import { Category, Product } from '../../models/wms.models';
                 <th>SKU & Barcode</th>
                 <th>Category / Brand</th>
                 <th>Unit Price / விலை</th>
-                <th>Stock Level (Pieces)</th>
+                <th>Stock Level / கையிருப்பு</th>
                 <th>Total Amount / மொத்த மதிப்பு</th>
                 <th>Reorder Point</th>
                 <th>Tracking</th>
@@ -208,7 +208,7 @@ import { Category, Product } from '../../models/wms.models';
                   <small class="text-muted text-xs">per {{ getProductUnit(p) }}</small>
                 </td>
                 <td>
-                  <!-- Current Stock / Pieces Count -->
+                  <!-- Current Stock / Quantity with Unit (e.g. 50 KG or 1500 PCS) -->
                   <div class="d-flex align-items-center gap-2">
                     <span class="fw-bold fs-6 font-monospace" [ngClass]="{
                       'text-danger': getProductQuantity(p) === 0,
@@ -220,7 +220,7 @@ import { Category, Product } from '../../models/wms.models';
                   </div>
                 </td>
                 <td>
-                  <!-- Key New Feature: Total Amount for this product (e.g. 1500 * 120 = Rs. 180,000.00) -->
+                  <!-- Key Feature: Total Amount for this product (e.g. 50 KG * 250 = Rs. 12,500.00) -->
                   <div class="fs-6 fw-bolder text-success font-monospace">
                     {{ p.currency || defaultCurrency }} {{ getProductTotal(p) | number:'1.2-2' }}
                   </div>
@@ -228,7 +228,7 @@ import { Category, Product } from '../../models/wms.models';
                     {{ getProductQuantity(p) | number }} {{ getProductUnit(p) }} &times; {{ (p.price || 0) | number:'1.2-2' }}
                   </small>
                 </td>
-                <td class="text-secondary small">{{ p.reorderLevel }} units</td>
+                <td class="text-secondary small">{{ p.reorderLevel }} {{ getProductUnit(p) }}</td>
                 <td>
                   <span *ngIf="p.expiryTrackingEnabled" class="badge badge-glow-warning text-xs">
                     <i class="bi bi-clock-history me-1"></i> FEFO Expiry
@@ -261,7 +261,7 @@ import { Category, Product } from '../../models/wms.models';
                 </td>
               </tr>
             </tbody>
-            <!-- Key 2nd Feature: Table Footer Grand Total for All Products -->
+            <!-- Table Footer Grand Total for All Products -->
             <tfoot *ngIf="products().length > 0" class="border-top border-secondary border-opacity-40" style="background: rgba(15, 23, 42, 0.75);">
               <tr class="fw-bold">
                 <td colspan="4" class="text-end text-light py-3">
@@ -272,7 +272,7 @@ import { Category, Product } from '../../models/wms.models';
                 </td>
                 <td class="py-3">
                   <span class="badge bg-dark border border-info border-opacity-50 text-info fs-6 font-monospace px-2 py-1">
-                    {{ getTotalStockUnits() | number }} Pieces
+                    {{ getTotalStockUnits() | number }} Total Qty
                   </span>
                 </td>
                 <td class="py-3">
@@ -339,40 +339,72 @@ import { Category, Product } from '../../models/wms.models';
               </div>
 
               <div class="row g-3 mb-3">
-                <!-- Currency & Price -->
-                <div class="col-md-3">
-                  <label class="form-label text-secondary small fw-semibold">Price / விற்பனை விலை *</label>
+                <!-- 1. Measurement Unit (அலகு) with Selector & Quick Pills -->
+                <div class="col-md-4">
+                  <div class="d-flex align-items-center justify-content-between mb-1">
+                    <label class="form-label text-secondary small fw-semibold mb-0">Measurement Unit / அலகு *</label>
+                    <span class="badge bg-success bg-opacity-25 text-success font-monospace text-xs">{{ newProduct.unit || 'PCS' }}</span>
+                  </div>
+                  <select class="form-select bg-dark text-light border-secondary" [(ngModel)]="selectedUnitCode" (change)="onUnitSelectChange()" name="unitSelect">
+                    <option *ngFor="let u of availableUnits" [value]="u.code">{{ u.name }}</option>
+                  </select>
+                  <input *ngIf="selectedUnitCode === 'CUSTOM'" type="text" class="form-control form-control-sm mt-1 border-info text-light bg-dark" [(ngModel)]="customUnitText" (input)="onCustomUnitInput()" name="customUnit" placeholder="Type custom unit (e.g. Roll, Tub, Sheet)">
+
+                  <!-- Quick Tap Pills for Instant Unit Selection (KG, PCS, G, L, etc.) -->
+                  <div class="d-flex flex-wrap gap-1 mt-2">
+                    <button type="button" *ngFor="let u of quickUnits"
+                      (click)="selectUnit(u)"
+                      class="btn btn-xs py-0 px-2 rounded-pill font-monospace"
+                      [ngClass]="newProduct.unit === u ? 'btn-success text-white fw-bold shadow-sm' : 'btn-outline-secondary text-secondary'"
+                      style="font-size: 0.72rem;">
+                      {{ u }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 2. Selling Price (per chosen unit) -->
+                <div class="col-md-4">
+                  <label class="form-label text-secondary small fw-semibold">
+                    Selling Price / விற்பனை விலை (1 {{ newProduct.unit || 'Unit' }}) *
+                  </label>
                   <div class="input-group">
                     <select class="form-select bg-dark text-light border-secondary" style="max-width: 85px;" [(ngModel)]="newProduct.currency" name="currency">
                       <option *ngFor="let c of availableCurrencies" [value]="c.symbol">{{ c.symbol }}</option>
                     </select>
                     <input type="number" step="0.01" min="0" class="form-control text-success fw-bold" [(ngModel)]="newProduct.price" name="price" placeholder="0.00" required>
                   </div>
+                  <small class="text-muted text-xs">Rate per 1 {{ newProduct.unit || 'Unit' }}</small>
                 </div>
 
-                <!-- Stock Quantity / Pieces -->
-                <div class="col-md-3">
-                  <label class="form-label text-secondary small fw-semibold">Stock Quantity / Pieces (கையிருப்பு)</label>
+                <!-- 3. Stock Quantity (Dynamic unit label, badge and placeholder) -->
+                <div class="col-md-4">
+                  <label class="form-label text-secondary small fw-semibold">
+                    Stock Quantity ({{ newProduct.unit || 'Units' }}) / கையிருப்பு *
+                  </label>
                   <div class="input-group">
-                    <span class="input-group-text bg-dark border-secondary text-info"><i class="bi bi-boxes"></i></span>
-                    <input type="number" min="0" class="form-control text-info fw-bold" [(ngModel)]="newProduct.currentStock" name="currentStock" placeholder="e.g. 1500">
+                    <span class="input-group-text bg-dark border-secondary text-info fw-bold font-monospace" style="min-width: 52px; justify-content: center;">
+                      {{ newProduct.unit || 'QTY' }}
+                    </span>
+                    <input type="number" step="any" min="0" class="form-control text-info fw-bold" [(ngModel)]="newProduct.currentStock" name="currentStock" [placeholder]="'e.g. ' + (newProduct.unit === 'KG' ? '50' : (newProduct.unit === 'PCS' ? '1500' : '25'))">
                   </div>
-                  <small class="text-muted text-xs">Total pieces in stock</small>
+                  <small class="text-muted text-xs">Total {{ newProduct.unit || 'units' }} currently in stock</small>
                 </div>
+              </div>
 
-                <div class="col-md-2">
-                  <label class="form-label text-secondary small fw-semibold">Unit (அலகு)</label>
-                  <input type="text" class="form-control" [(ngModel)]="newProduct.unit" name="unit" placeholder="PCS, KG">
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <label class="form-label text-secondary small fw-semibold">Brand / வர்த்தக நாமம்</label>
+                  <input type="text" class="form-control" [(ngModel)]="newProduct.brand" name="brand" placeholder="e.g. Motta, Sunlight">
                 </div>
-
-                <div class="col-md-2">
-                  <label class="form-label text-secondary small fw-semibold">Brand</label>
-                  <input type="text" class="form-control" [(ngModel)]="newProduct.brand" name="brand" placeholder="Brand name">
-                </div>
-
-                <div class="col-md-2">
-                  <label class="form-label text-secondary small fw-semibold">Reorder Point *</label>
-                  <input type="number" class="form-control" [(ngModel)]="newProduct.reorderLevel" name="reorderLevel" required>
+                <div class="col-md-6">
+                  <label class="form-label text-secondary small fw-semibold">
+                    Reorder Alert Level / குறைந்தபட்ச இருப்பு ({{ newProduct.unit || 'Units' }}) *
+                  </label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-bell"></i></span>
+                    <input type="number" class="form-control" [(ngModel)]="newProduct.reorderLevel" name="reorderLevel" required [placeholder]="'Minimum ' + (newProduct.unit || 'Units')">
+                  </div>
+                  <small class="text-muted text-xs">Alert triggers when stock drops below this {{ newProduct.unit || 'amount' }}</small>
                 </div>
               </div>
 
@@ -384,7 +416,7 @@ import { Category, Product } from '../../models/wms.models';
                 </div>
                 <div class="fs-5 fw-bold text-success font-monospace">
                   {{ newProduct.currency || defaultCurrency }} {{ ((newProduct.currentStock || 0) * (newProduct.price || 0)) | number:'1.2-2' }}
-                  <small class="text-muted text-xs ms-1">({{ newProduct.currentStock || 0 }} {{ newProduct.unit || 'PCS' }} &times; {{ (newProduct.price || 0) | number:'1.2-2' }})</small>
+                  <small class="text-muted text-xs ms-1">({{ newProduct.currentStock || 0 }} {{ newProduct.unit || 'Unit' }} &times; {{ (newProduct.price || 0) | number:'1.2-2' }})</small>
                 </div>
               </div>
 
@@ -558,6 +590,25 @@ export class ProductsComponent implements OnInit {
     { symbol: 'A$', code: 'AUD - Australia' }
   ];
   defaultCurrency = localStorage.getItem('wms_currency') || 'Rs.';
+
+  quickUnits = ['KG', 'PCS', 'G', 'L', 'PKT', 'BOX'];
+  availableUnits = [
+    { code: 'KG', name: 'KG - Kilogram (கிலோ)' },
+    { code: 'PCS', name: 'PCS - Pieces (பீஸ் / எண்ணிக்கை)' },
+    { code: 'G', name: 'G - Gram (கிராம்)' },
+    { code: 'L', name: 'L - Litre (லீட்டர்)' },
+    { code: 'ML', name: 'ML - Millilitre (மி.லீ)' },
+    { code: 'PKT', name: 'PKT - Packet (பாக்கெட்)' },
+    { code: 'BOX', name: 'BOX - Box / Carton (பெட்டி)' },
+    { code: 'BAG', name: 'BAG - Bag / Sack (மூட்டை / பை)' },
+    { code: 'BTL', name: 'BTL - Bottle (போத்தல்)' },
+    { code: 'CAN', name: 'CAN - Can / Tin (டின் / கேன்)' },
+    { code: 'DOZ', name: 'DOZ - Dozen (டஜன் - 12 pcs)' },
+    { code: 'MTR', name: 'MTR - Meter (மீட்டர்)' },
+    { code: 'CUSTOM', name: 'Other / Custom (வேறு அலகு...)' }
+  ];
+  selectedUnitCode = 'PCS';
+  customUnitText = '';
 
   showAddModal = false;
   showCodeModal = false;
@@ -741,9 +792,34 @@ export class ProductsComponent implements OnInit {
     this.newProduct.barcode = '890' + rand;
   }
 
+  selectUnit(code: string) {
+    this.selectedUnitCode = code;
+    if (code === 'CUSTOM') {
+      this.newProduct.unit = this.customUnitText.trim() || 'Unit';
+    } else {
+      this.newProduct.unit = code;
+    }
+  }
+
+  onUnitSelectChange() {
+    if (this.selectedUnitCode === 'CUSTOM') {
+      this.newProduct.unit = this.customUnitText.trim() || 'Unit';
+    } else {
+      this.newProduct.unit = this.selectedUnitCode;
+    }
+  }
+
+  onCustomUnitInput() {
+    if (this.selectedUnitCode === 'CUSTOM') {
+      this.newProduct.unit = this.customUnitText.trim() || 'Unit';
+    }
+  }
+
   openAddModal() {
     this.isEditing = false;
     this.editingId = null;
+    this.selectedUnitCode = 'PCS';
+    this.customUnitText = '';
     this.newProduct = {
       name: '',
       sku: '',
@@ -767,10 +843,19 @@ export class ProductsComponent implements OnInit {
     this.editingId = p.id;
     const numericUnit = Number(p.unit);
     let resolvedStock = p.currentStock || 0;
-    let resolvedUnit = p.unit || 'PCS';
+    let resolvedUnit = (p.unit && p.unit.trim()) ? p.unit.trim().toUpperCase() : 'PCS';
     if ((!p.currentStock || p.currentStock === 0) && !isNaN(numericUnit) && numericUnit > 0) {
       resolvedStock = numericUnit;
       resolvedUnit = 'PCS';
+    }
+
+    const matchingUnit = this.availableUnits.find(u => u.code === resolvedUnit);
+    if (matchingUnit && matchingUnit.code !== 'CUSTOM') {
+      this.selectedUnitCode = matchingUnit.code;
+      this.customUnitText = '';
+    } else {
+      this.selectedUnitCode = 'CUSTOM';
+      this.customUnitText = resolvedUnit;
     }
 
     this.newProduct = {
