@@ -185,69 +185,103 @@ interface CartItem {
                 <span class="fw-bold text-light small">
                   <i class="bi bi-bag-check text-success me-1"></i>Bill Items ({{ cart.length }})
                 </span>
-                <small class="text-warning text-xs ms-2">&bull; Rates are editable per shop</small>
+                <small class="text-warning text-xs ms-1.5">&bull; Rates editable</small>
               </div>
               <button *ngIf="cart.length > 0" (click)="clearCart()" class="btn btn-link btn-xs text-danger text-decoration-none p-0">
                 <i class="bi bi-trash3 me-0.5"></i>Clear Cart
               </button>
             </div>
 
+            <!-- Quick Barcode / SKU Scan & Type Input Box -->
+            <div class="p-2 rounded-2 bg-dark bg-opacity-70 border border-warning border-opacity-40 mb-2.5 shadow-sm">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <label class="form-label text-warning text-xs fw-bold mb-0">
+                  <i class="bi bi-upc-scan me-1"></i>Scan / Type Barcode or SKU to Add:
+                </label>
+                <small *ngIf="barcodeFeedback" class="text-xs animate__animated animate__fadeIn"
+                       [ngClass]="barcodeSuccess ? 'text-success fw-bold' : 'text-danger fw-bold'">
+                  {{ barcodeFeedback }}
+                </small>
+              </div>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-dark border-secondary text-warning">
+                  <i class="bi bi-upc"></i>
+                </span>
+                <input type="text" class="form-control bg-dark text-light border-secondary"
+                       [(ngModel)]="cartBarcode"
+                       (keydown.enter)="addByBarcode()"
+                       placeholder="Scan/type Barcode or SKU & press Enter...">
+                <button class="btn btn-warning text-dark fw-bold px-3"
+                        (click)="addByBarcode()"
+                        [disabled]="!cartBarcode || !cartBarcode.trim()">
+                  <i class="bi bi-plus-lg me-1"></i>+ Add
+                </button>
+              </div>
+            </div>
+
             <div class="cart-scroll flex-grow-1 overflow-y-auto mb-3 pe-1" style="max-height: 320px; min-height: 180px;">
-              <div *ngIf="cart.length === 0" class="text-center py-5 text-muted border border-dashed border-secondary border-opacity-25 rounded-2">
+              <div *ngIf="cart.length === 0" class="text-center py-4 text-muted border border-dashed border-secondary border-opacity-25 rounded-2">
                 <i class="bi bi-cart-x fs-2 d-block mb-1 text-secondary opacity-50"></i>
-                <span>Cart is empty. Click any product on the left or upload a Price Order.</span>
+                <span class="small">Cart is empty. Scan/type a barcode or click any product to add.</span>
               </div>
 
               <!-- Cart Row with Live Editable Price per Shop -->
-              <div *ngFor="let item of cart; let i = index" class="cart-item-row p-2 mb-1.5 rounded-2 bg-dark bg-opacity-40 border border-secondary border-opacity-20 d-flex align-items-center justify-content-between gap-2">
-                <!-- Item Name & Stock Warning -->
-                <div class="flex-grow-1 overflow-hidden" style="min-width: 100px;">
-                  <div class="fw-bold text-light small text-truncate" [title]="item.product.name">{{ item.product.name }}</div>
-                  <div class="text-muted text-xs">
-                    <span>Stock: {{ item.product.currentStock }} {{ item.product.unit || 'PCS' }}</span>
-                    <span *ngIf="item.quantity > item.product.currentStock" class="text-danger fw-bold ms-1">
-                      (! Low)
-                    </span>
+              <div *ngFor="let item of cart; let i = index" class="cart-item-row p-2.5 mb-2 rounded-2 bg-dark bg-opacity-50 border border-secondary border-opacity-25 shadow-sm">
+                <!-- Top Line: Item Name, Stock Info & Delete Icon -->
+                <div class="d-flex align-items-center justify-content-between mb-1.5">
+                  <div class="overflow-hidden me-2">
+                    <div class="fw-bold text-light small text-truncate" [title]="item.product.name">
+                      {{ item.product.name }}
+                    </div>
+                    <div class="text-muted text-xs d-flex align-items-center gap-1.5 mt-0.5">
+                      <span *ngIf="item.product.barcode" class="badge bg-dark border border-secondary border-opacity-30 text-xs py-0 px-1 text-secondary">
+                        <i class="bi bi-upc me-0.5"></i>{{ item.product.barcode }}
+                      </span>
+                      <span>Stock: {{ item.product.currentStock }} {{ item.product.unit || 'PCS' }}</span>
+                      <span *ngIf="item.quantity > item.product.currentStock" class="text-danger fw-bold">
+                        (! Low Stock)
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                <!-- Editable Rate (Shop Agreed Price) -->
-                <div class="d-flex flex-column align-items-end" style="width: 82px;">
-                  <small class="text-secondary text-xs" style="font-size: 0.68rem;">Rate ({{ defaultCurrency }})</small>
-                  <input type="number" class="form-control form-control-sm text-end p-0 px-1 border-secondary bg-dark text-warning fw-bold"
-                         style="height: 26px; font-size: 0.82rem;"
-                         [(ngModel)]="item.unitPrice"
-                         (ngModelChange)="onPriceChange(item)"
-                         min="0" step="0.5"
-                         title="Custom wholesale rate for this shop">
-                </div>
-
-                <!-- Quantity Controls -->
-                <div class="d-flex flex-column align-items-center" style="width: 74px;">
-                  <small class="text-secondary text-xs" style="font-size: 0.68rem;">Qty</small>
-                  <div class="d-flex align-items-center gap-0.5">
-                    <button class="btn btn-outline-secondary btn-xs p-0 px-1.5" style="height: 26px;" (click)="decreaseQty(item)">-</button>
-                    <input type="number" class="form-control form-control-sm text-center p-0 border-secondary bg-dark text-light fw-bold"
-                           style="width: 36px; height: 26px; font-size: 0.82rem;"
-                           [(ngModel)]="item.quantity"
-                           (ngModelChange)="onQtyChange(item)" min="1">
-                    <button class="btn btn-outline-secondary btn-xs p-0 px-1.5" style="height: 26px;" (click)="increaseQty(item)">+</button>
-                  </div>
-                </div>
-
-                <!-- Line Total -->
-                <div class="text-end" style="min-width: 65px;">
-                  <small class="text-secondary text-xs" style="font-size: 0.68rem;">Total</small>
-                  <div class="fw-bold text-success small">
-                    {{ defaultCurrency }} {{ item.totalPrice | number:'1.2-2' }}
-                  </div>
-                </div>
-
-                <!-- Delete Action -->
-                <div>
-                  <button class="btn btn-link btn-xs text-danger text-decoration-none p-0" (click)="removeFromCart(i)" title="Remove item">
-                    <i class="bi bi-x-circle fs-6"></i>
+                  <button class="btn btn-link btn-xs text-danger text-decoration-none p-1" (click)="removeFromCart(i)" title="Remove item from bill">
+                    <i class="bi bi-x-circle fs-5"></i>
                   </button>
+                </div>
+
+                <!-- Bottom Line: Rate, Quantity Controls, and Line Total (Side-by-Side without cramping) -->
+                <div class="d-flex align-items-center justify-content-between pt-1.5 border-top border-secondary border-opacity-15 gap-2">
+                  <!-- Rate Field -->
+                  <div class="d-flex align-items-center gap-1">
+                    <span class="text-secondary text-xs">Rate:</span>
+                    <input type="number" class="form-control form-control-sm text-end p-0 px-1 border-secondary bg-dark text-warning fw-bold"
+                           style="width: 74px; height: 26px; font-size: 0.82rem;"
+                           [(ngModel)]="item.unitPrice"
+                           (ngModelChange)="onPriceChange(item)"
+                           min="0" step="0.5"
+                           title="Wholesale price for this shop">
+                  </div>
+
+                  <!-- Qty Controls -->
+                  <div class="d-flex align-items-center gap-1">
+                    <span class="text-secondary text-xs">Qty:</span>
+                    <div class="d-flex align-items-center">
+                      <button class="btn btn-outline-secondary btn-xs p-0 px-1.5" style="height: 26px;" (click)="decreaseQty(item)">-</button>
+                      <input type="number" class="form-control form-control-sm text-center p-0 border-secondary bg-dark text-light fw-bold"
+                             style="width: 36px; height: 26px; font-size: 0.82rem;"
+                             [(ngModel)]="item.quantity"
+                             (ngModelChange)="onQtyChange(item)" min="1">
+                      <button class="btn btn-outline-secondary btn-xs p-0 px-1.5" style="height: 26px;" (click)="increaseQty(item)">+</button>
+                    </div>
+                  </div>
+
+                  <!-- Line Total -->
+                  <div class="text-end">
+                    <span class="text-secondary text-xs d-none d-sm-inline">Total: </span>
+                    <strong class="text-success small">
+                      {{ defaultCurrency }} {{ item.totalPrice | number:'1.2-2' }}
+                    </strong>
+                  </div>
                 </div>
               </div>
             </div>
@@ -850,6 +884,12 @@ export class BillingComponent implements OnInit {
   taxAmount: number = 0;
   paidAmount: number | null = null;
 
+  // Barcode / SKU Quick Add State
+  cartBarcode = '';
+  barcodeFeedback = '';
+  barcodeSuccess = false;
+  barcodeTimeout: any = null;
+
   isSubmitting = false;
 
   // Bill Modal State
@@ -968,6 +1008,44 @@ export class BillingComponent implements OnInit {
   }
 
   // --- Cart Operations ---
+
+  addByBarcode(): void {
+    if (!this.cartBarcode || !this.cartBarcode.trim()) return;
+    const query = this.cartBarcode.trim().toLowerCase();
+
+    // 1. Exact match by barcode
+    let product = this.products().find(p => p.barcode && p.barcode.trim().toLowerCase() === query);
+
+    // 2. Match by SKU
+    if (!product) {
+      product = this.products().find(p => p.sku && p.sku.trim().toLowerCase() === query);
+    }
+
+    // 3. Match by exact name
+    if (!product) {
+      product = this.products().find(p => p.name.trim().toLowerCase() === query);
+    }
+
+    // 4. Case-insensitive substring match
+    if (!product) {
+      product = this.products().find(p => p.name.toLowerCase().includes(query) || (p.sku && p.sku.toLowerCase().includes(query)));
+    }
+
+    if (product) {
+      this.addToCart(product);
+      this.barcodeFeedback = `✓ Added "${product.name}"`;
+      this.barcodeSuccess = true;
+      this.cartBarcode = '';
+    } else {
+      this.barcodeFeedback = `✗ Product not found for "${this.cartBarcode}"`;
+      this.barcodeSuccess = false;
+    }
+
+    if (this.barcodeTimeout) clearTimeout(this.barcodeTimeout);
+    this.barcodeTimeout = setTimeout(() => {
+      this.barcodeFeedback = '';
+    }, 3500);
+  }
 
   addToCart(product: Product, customPrice?: number, qty: number = 1): void {
     const existing = this.cart.find(item => item.product.id === product.id);
