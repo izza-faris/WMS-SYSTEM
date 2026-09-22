@@ -1,13 +1,14 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { WmsApiService } from '../../services/wms-api.service';
 import { Product, Warehouse, StockTransaction } from '../../models/wms.models';
 
 @Component({
   selector: 'app-stock-movement',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   template: `
     <div class="stock-movement-page animate__animated animate__fadeIn">
       <!-- Header Bar -->
@@ -37,6 +38,9 @@ import { Product, Warehouse, StockTransaction } from '../../models/wms.models';
           </div>
 
           <!-- Quick Action Buttons -->
+          <a routerLink="/app/billing" class="btn btn-outline-warning btn-sm px-3 fw-bold shadow-sm">
+            <i class="bi bi-receipt me-1"></i> POS Billing Counter
+          </a>
           <button (click)="openStockInModal()" class="btn btn-success btn-sm px-3 fw-semibold shadow-sm">
             <i class="bi bi-box-arrow-in-down me-1"></i> + Stock In
           </button>

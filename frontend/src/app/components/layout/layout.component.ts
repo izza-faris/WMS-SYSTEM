@@ -36,6 +36,11 @@ import { NotificationItem } from '../../models/wms.models';
             <span>Dashboard</span>
           </a>
 
+          <a routerLink="/app/billing" routerLinkActive="active" class="nav-link-custom text-success fw-bold">
+            <i class="bi bi-receipt-cutoff"></i>
+            <span>Billing & POS</span>
+          </a>
+
           <a routerLink="/app/products" routerLinkActive="active" class="nav-link-custom">
             <i class="bi bi-box-seam-fill"></i>
             <span>Products & Catalog</span>

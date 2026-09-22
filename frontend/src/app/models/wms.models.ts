@@ -262,3 +262,56 @@ export interface AuditLogItem {
   ipAddress?: string;
   createdAt: string;
 }
+
+export interface SaleInvoiceItem {
+  id?: number;
+  productId: number;
+  productName: string;
+  sku?: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export interface SaleInvoice {
+  id: number;
+  clientId: number;
+  warehouseId?: number;
+  invoiceNumber: string;
+  customerName: string;
+  customerPhone?: string;
+  paymentMethod: string;
+  itemCount: number;
+  totalQuantity: number;
+  subtotal: number;
+  discountAmount: number;
+  taxAmount: number;
+  grandTotal: number;
+  paidAmount: number;
+  changeAmount: number;
+  status: string;
+  notes?: string;
+  createdById?: number;
+  createdAt: string;
+  items?: SaleInvoiceItem[];
+}
+
+export interface CheckoutItemRequest {
+  productId: number;
+  quantity: number;
+  unitPrice?: number;
+}
+
+export interface CheckoutRequest {
+  warehouseId?: number;
+  customerName?: string;
+  customerPhone?: string;
+  paymentMethod?: string;
+  discountAmount?: number;
+  taxAmount?: number;
+  paidAmount?: number;
+  notes?: string;
+  items: CheckoutItemRequest[];
+}
+

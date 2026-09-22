@@ -16,6 +16,7 @@ import { ScannerComponent } from './components/scanner/scanner.component';
 import { ReportsComponent } from './components/reports/reports.component';
 import { UsersComponent } from './components/users/users.component';
 import { AuditLogsComponent } from './components/audit-logs/audit-logs.component';
+import { BillingComponent } from './components/billing/billing.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -38,6 +39,7 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: 'dashboard', component: DashboardComponent },
+      { path: 'billing', component: BillingComponent },
       { path: 'products', component: ProductsComponent },
       { path: 'branches', component: BranchesComponent },
       { path: 'warehouses', component: WarehousesComponent },

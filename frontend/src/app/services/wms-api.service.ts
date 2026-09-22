@@ -7,7 +7,8 @@ import {
   Branch, Warehouse, WarehouseTree, Zone, Rack, Shelf, Bin,
   Category, Product, InventoryBalance, FefoBatchRecommendation,
   StockTransaction, StockTransfer, StockAdjustment, DashboardMetrics,
-  ChartData, NotificationItem, AuditLogItem, PlatformStats, Client
+  ChartData, NotificationItem, AuditLogItem, PlatformStats, Client,
+  SaleInvoice, CheckoutRequest
 } from '../models/wms.models';
 
 @Injectable({
@@ -307,5 +308,20 @@ export class WmsApiService {
 
   createUser(user: any): Observable<ApiResponse<any>> {
     return this.http.post<ApiResponse<any>>(`${this.baseUrl}/users`, user);
+  }
+
+  // Billing & POS
+  checkoutSale(payload: CheckoutRequest): Observable<ApiResponse<SaleInvoice>> {
+    return this.http.post<ApiResponse<SaleInvoice>>(`${this.baseUrl}/billing/checkout`, payload);
+  }
+
+  getSaleInvoices(page = 0, size = 20, query?: string): Observable<ApiResponse<any>> {
+    let params = new HttpParams().set('page', page.toString()).set('size', size.toString());
+    if (query && query.trim()) params = params.set('query', query.trim());
+    return this.http.get<ApiResponse<any>>(`${this.baseUrl}/billing/invoices`, { params });
+  }
+
+  getSaleInvoice(id: number): Observable<ApiResponse<SaleInvoice>> {
+    return this.http.get<ApiResponse<SaleInvoice>>(`${this.baseUrl}/billing/invoices/${id}`);
   }
 }
