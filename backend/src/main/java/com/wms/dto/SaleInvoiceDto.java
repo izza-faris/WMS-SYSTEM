@@ -9,6 +9,8 @@ public class SaleInvoiceDto {
     private Long warehouseId;
     private String invoiceNumber;
     private String customerName;
+    private String shopBarcode;
+    private String shopBarcodeImage;
     private String customerPhone;
     private String paymentMethod;
     private Integer itemCount;
@@ -41,6 +43,12 @@ public class SaleInvoiceDto {
 
     public String getCustomerName() { return customerName; }
     public void setCustomerName(String customerName) { this.customerName = customerName; }
+
+    public String getShopBarcode() { return shopBarcode; }
+    public void setShopBarcode(String shopBarcode) { this.shopBarcode = shopBarcode; }
+
+    public String getShopBarcodeImage() { return shopBarcodeImage; }
+    public void setShopBarcodeImage(String shopBarcodeImage) { this.shopBarcodeImage = shopBarcodeImage; }
 
     public String getCustomerPhone() { return customerPhone; }
     public void setCustomerPhone(String customerPhone) { this.customerPhone = customerPhone; }

@@ -35,6 +35,7 @@ public class BillingService {
     private final InventoryRepository inventoryRepository;
     private final TenantSecurityService tenantSecurityService;
     private final AuditLogService auditLogService;
+    private final QrBarcodeService qrBarcodeService;
 
     public BillingService(SaleInvoiceRepository saleInvoiceRepository,
                           SaleInvoiceItemRepository saleInvoiceItemRepository,
@@ -43,7 +44,8 @@ public class BillingService {
                           WarehouseRepository warehouseRepository,
                           InventoryRepository inventoryRepository,
                           TenantSecurityService tenantSecurityService,
-                          AuditLogService auditLogService) {
+                          AuditLogService auditLogService,
+                          QrBarcodeService qrBarcodeService) {
         this.saleInvoiceRepository = saleInvoiceRepository;
         this.saleInvoiceItemRepository = saleInvoiceItemRepository;
         this.inventoryService = inventoryService;
@@ -52,6 +54,7 @@ public class BillingService {
         this.inventoryRepository = inventoryRepository;
         this.tenantSecurityService = tenantSecurityService;
         this.auditLogService = auditLogService;
+        this.qrBarcodeService = qrBarcodeService;
     }
 
     @Transactional
@@ -83,6 +86,16 @@ public class BillingService {
                 ? request.getCustomerName().trim()
                 : "Walk-in Customer";
 
+        String shopBarcode = request.getShopBarcode();
+        if (shopBarcode == null || shopBarcode.trim().isEmpty()) {
+            String nameClean = customerName.replaceAll("[^a-zA-Z0-9]", "").toUpperCase();
+            if (nameClean.length() > 6) nameClean = nameClean.substring(0, 6);
+            if (nameClean.isEmpty()) nameClean = "CUST";
+            shopBarcode = "SHOP-" + nameClean + "-" + String.format("%03d", (count % 1000));
+        } else {
+            shopBarcode = shopBarcode.trim();
+        }
+
         double subtotal = 0.0;
         int totalQty = 0;
 
@@ -92,6 +105,7 @@ public class BillingService {
         invoice.setWarehouseId(warehouseId);
         invoice.setInvoiceNumber(invoiceNumber);
         invoice.setCustomerName(customerName);
+        invoice.setShopBarcode(shopBarcode);
         invoice.setCustomerPhone(request.getCustomerPhone());
         invoice.setPaymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod().toUpperCase() : "CASH");
         invoice.setNotes(request.getNotes());
@@ -220,6 +234,13 @@ public class BillingService {
                             preview.setShopPhone(parts[1].trim());
                         } else if (c + 1 < row.getLastCellNum()) {
                             preview.setShopPhone(getCellValueAsString(row.getCell(c + 1)).trim());
+                        }
+                    } else if (valLower.startsWith("barcode:") || valLower.startsWith("shop barcode:") || valLower.startsWith("code:")) {
+                        String[] parts = val.split(":", 2);
+                        if (parts.length > 1 && !parts[1].trim().isEmpty()) {
+                            preview.setShopBarcode(parts[1].trim());
+                        } else if (c + 1 < row.getLastCellNum()) {
+                            preview.setShopBarcode(getCellValueAsString(row.getCell(c + 1)).trim());
                         }
                     } else if (valLower.startsWith("date:") || valLower.startsWith("order date:")) {
                         String[] parts = val.split(":", 2);
@@ -352,6 +373,13 @@ public class BillingService {
             preview.setTotalItems(items.size());
             preview.setTotalQuantity(totalUnits);
             preview.setEstimatedTotal(grandTotal);
+
+            if (preview.getShopBarcode() == null || preview.getShopBarcode().trim().isEmpty()) {
+                String clean = preview.getShopName() != null ? preview.getShopName().replaceAll("[^a-zA-Z0-9]", "").toUpperCase() : "SHOP";
+                if (clean.length() > 6) clean = clean.substring(0, 6);
+                if (clean.isEmpty()) clean = "SHOP";
+                preview.setShopBarcode("SHOP-" + clean + "-001");
+            }
 
         } catch (Exception e) {
             throw new BusinessRuleException("Failed to read Price Order Excel sheet: " + e.getMessage());
@@ -506,6 +534,10 @@ public class BillingService {
         dto.setWarehouseId(inv.getWarehouseId());
         dto.setInvoiceNumber(inv.getInvoiceNumber());
         dto.setCustomerName(inv.getCustomerName());
+        dto.setShopBarcode(inv.getShopBarcode());
+        if (inv.getShopBarcode() != null && !inv.getShopBarcode().trim().isEmpty()) {
+            dto.setShopBarcodeImage(qrBarcodeService.generateBarcodeBase64(inv.getShopBarcode().trim(), 240, 50));
+        }
         dto.setCustomerPhone(inv.getCustomerPhone());
         dto.setPaymentMethod(inv.getPaymentMethod());
         dto.setItemCount(inv.getItemCount());

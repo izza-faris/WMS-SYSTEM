@@ -280,6 +280,8 @@ export interface SaleInvoice {
   warehouseId?: number;
   invoiceNumber: string;
   customerName: string;
+  shopBarcode?: string;
+  shopBarcodeImage?: string;
   customerPhone?: string;
   paymentMethod: string;
   itemCount: number;
@@ -306,6 +308,7 @@ export interface CheckoutItemRequest {
 export interface CheckoutRequest {
   warehouseId?: number;
   customerName?: string;
+  shopBarcode?: string;
   customerPhone?: string;
   paymentMethod?: string;
   discountAmount?: number;
@@ -330,6 +333,7 @@ export interface PriceOrderItemPreview {
 
 export interface PriceOrderPreview {
   shopName: string;
+  shopBarcode?: string;
   shopPhone?: string;
   orderDate?: string;
   notes?: string;

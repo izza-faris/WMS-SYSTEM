@@ -5,6 +5,7 @@ import java.util.List;
 
 public class PriceOrderPreviewDto {
     private String shopName = "Wholesale Shop Customer";
+    private String shopBarcode;
     private String shopPhone;
     private String orderDate;
     private String notes;
@@ -18,6 +19,9 @@ public class PriceOrderPreviewDto {
 
     public String getShopName() { return shopName; }
     public void setShopName(String shopName) { this.shopName = shopName; }
+
+    public String getShopBarcode() { return shopBarcode; }
+    public void setShopBarcode(String shopBarcode) { this.shopBarcode = shopBarcode; }
 
     public String getShopPhone() { return shopPhone; }
     public void setShopPhone(String shopPhone) { this.shopPhone = shopPhone; }

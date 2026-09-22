@@ -9,6 +9,7 @@ public class CheckoutRequest {
     private Long warehouseId;
 
     private String customerName = "Walk-in Customer";
+    private String shopBarcode;
     private String customerPhone;
     private String paymentMethod = "CASH";
 
@@ -29,6 +30,9 @@ public class CheckoutRequest {
 
     public String getCustomerName() { return customerName; }
     public void setCustomerName(String customerName) { this.customerName = customerName; }
+
+    public String getShopBarcode() { return shopBarcode; }
+    public void setShopBarcode(String shopBarcode) { this.shopBarcode = shopBarcode; }
 
     public String getCustomerPhone() { return customerPhone; }
     public void setCustomerPhone(String customerPhone) { this.customerPhone = customerPhone; }

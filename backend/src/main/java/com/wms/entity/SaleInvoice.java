@@ -25,6 +25,9 @@ public class SaleInvoice {
     @Column(length = 150)
     private String customerName = "Walk-in Customer";
 
+    @Column(length = 60)
+    private String shopBarcode;
+
     @Column(length = 30)
     private String customerPhone;
 
@@ -118,6 +121,9 @@ public class SaleInvoice {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public String getShopBarcode() { return shopBarcode; }
+    public void setShopBarcode(String shopBarcode) { this.shopBarcode = shopBarcode; }
 
     public Long getCreatedById() { return createdById; }
     public void setCreatedById(Long createdById) { this.createdById = createdById; }
