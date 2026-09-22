@@ -7,15 +7,17 @@ import com.wms.entity.SaleInvoiceItem;
 import com.wms.entity.Warehouse;
 import com.wms.exception.BusinessRuleException;
 import com.wms.exception.ResourceNotFoundException;
-import com.wms.repository.ProductRepository;
-import com.wms.repository.SaleInvoiceItemRepository;
-import com.wms.repository.SaleInvoiceRepository;
-import com.wms.repository.WarehouseRepository;
+import com.wms.repository.*;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -30,6 +32,7 @@ public class BillingService {
     private final InventoryService inventoryService;
     private final ProductRepository productRepository;
     private final WarehouseRepository warehouseRepository;
+    private final InventoryRepository inventoryRepository;
     private final TenantSecurityService tenantSecurityService;
     private final AuditLogService auditLogService;
 
@@ -38,6 +41,7 @@ public class BillingService {
                           InventoryService inventoryService,
                           ProductRepository productRepository,
                           WarehouseRepository warehouseRepository,
+                          InventoryRepository inventoryRepository,
                           TenantSecurityService tenantSecurityService,
                           AuditLogService auditLogService) {
         this.saleInvoiceRepository = saleInvoiceRepository;
@@ -45,6 +49,7 @@ public class BillingService {
         this.inventoryService = inventoryService;
         this.productRepository = productRepository;
         this.warehouseRepository = warehouseRepository;
+        this.inventoryRepository = inventoryRepository;
         this.tenantSecurityService = tenantSecurityService;
         this.auditLogService = auditLogService;
     }
@@ -178,6 +183,320 @@ public class BillingService {
 
         List<SaleInvoiceItem> items = saleInvoiceItemRepository.findByInvoiceId(invoice.getId());
         return convertToDto(invoice, items);
+    }
+
+    public PriceOrderPreviewDto parsePriceOrderExcel(MultipartFile file) {
+        Long clientId = tenantSecurityService.requireCurrentClientId();
+        PriceOrderPreviewDto preview = new PriceOrderPreviewDto();
+        preview.setFileName(file.getOriginalFilename());
+
+        List<Product> clientProducts = productRepository.findByClientId(clientId);
+
+        try (InputStream is = file.getInputStream(); Workbook workbook = new XSSFWorkbook(is)) {
+            Sheet sheet = workbook.getSheetAt(0);
+
+            int headerRowIndex = -1;
+            int colName = -1, colSku = -1, colQty = -1, colPrice = -1, colUnit = -1;
+
+            // Search header row and metadata in rows 0..15
+            for (int r = 0; r <= Math.min(sheet.getLastRowNum(), 15); r++) {
+                Row row = sheet.getRow(r);
+                if (row == null) continue;
+
+                for (int c = 0; c < row.getLastCellNum(); c++) {
+                    String val = getCellValueAsString(row.getCell(c)).trim();
+                    String valLower = val.toLowerCase();
+
+                    if (valLower.startsWith("shop name:") || valLower.startsWith("customer:") || valLower.startsWith("store:")) {
+                        String[] parts = val.split(":", 2);
+                        if (parts.length > 1 && !parts[1].trim().isEmpty()) {
+                            preview.setShopName(parts[1].trim());
+                        } else if (c + 1 < row.getLastCellNum()) {
+                            preview.setShopName(getCellValueAsString(row.getCell(c + 1)).trim());
+                        }
+                    } else if (valLower.startsWith("phone:") || valLower.startsWith("mobile:") || valLower.startsWith("contact:")) {
+                        String[] parts = val.split(":", 2);
+                        if (parts.length > 1 && !parts[1].trim().isEmpty()) {
+                            preview.setShopPhone(parts[1].trim());
+                        } else if (c + 1 < row.getLastCellNum()) {
+                            preview.setShopPhone(getCellValueAsString(row.getCell(c + 1)).trim());
+                        }
+                    } else if (valLower.startsWith("date:") || valLower.startsWith("order date:")) {
+                        String[] parts = val.split(":", 2);
+                        if (parts.length > 1 && !parts[1].trim().isEmpty()) {
+                            preview.setOrderDate(parts[1].trim());
+                        } else if (c + 1 < row.getLastCellNum()) {
+                            preview.setOrderDate(getCellValueAsString(row.getCell(c + 1)).trim());
+                        }
+                    }
+                }
+
+                // Header column matches
+                int matches = 0;
+                for (int c = 0; c < row.getLastCellNum(); c++) {
+                    String h = getCellValueAsString(row.getCell(c)).trim().toLowerCase();
+                    if (h.contains("item") || h.contains("product") || h.contains("description") || h.contains("name")) {
+                        colName = c;
+                        matches++;
+                    } else if (h.contains("sku") || h.contains("code") || h.contains("barcode") || h.contains("part")) {
+                        colSku = c;
+                        matches++;
+                    } else if (h.contains("qty") || h.contains("quantity") || h.contains("count") || h.contains("units")) {
+                        colQty = c;
+                        matches++;
+                    } else if (h.contains("price") || h.contains("rate") || h.contains("cost") || h.contains("agreed")) {
+                        colPrice = c;
+                        matches++;
+                    } else if (h.contains("unit") || h.contains("uom")) {
+                        colUnit = c;
+                        matches++;
+                    }
+                }
+
+                if (colName != -1 && (colQty != -1 || colPrice != -1)) {
+                    headerRowIndex = r;
+                    break;
+                }
+            }
+
+            if (headerRowIndex == -1) {
+                colName = 0;
+                colSku = 1;
+                colQty = 2;
+                colPrice = 3;
+                headerRowIndex = 0;
+            }
+
+            List<PriceOrderItemPreviewDto> items = new ArrayList<>();
+            double grandTotal = 0.0;
+            int totalUnits = 0;
+
+            for (int r = headerRowIndex + 1; r <= sheet.getLastRowNum(); r++) {
+                Row row = sheet.getRow(r);
+                if (row == null) continue;
+
+                String name = colName != -1 ? getCellValueAsString(row.getCell(colName)).trim() : "";
+                String sku = colSku != -1 ? getCellValueAsString(row.getCell(colSku)).trim() : "";
+
+                if (name.isEmpty() && sku.isEmpty()) continue;
+                if (name.toLowerCase().startsWith("total") || name.toLowerCase().startsWith("subtotal")) continue;
+
+                int qty = 1;
+                if (colQty != -1) {
+                    try {
+                        double dQty = getCellValueAsNumeric(row.getCell(colQty));
+                        if (dQty > 0) qty = (int) Math.round(dQty);
+                    } catch (Exception ignored) {}
+                }
+
+                Double customPrice = null;
+                if (colPrice != -1) {
+                    try {
+                        double dPrice = getCellValueAsNumeric(row.getCell(colPrice));
+                        if (dPrice >= 0) customPrice = dPrice;
+                    } catch (Exception ignored) {}
+                }
+
+                Product matchedProduct = null;
+                if (!sku.isEmpty()) {
+                    matchedProduct = clientProducts.stream()
+                            .filter(p -> p.getSku() != null && p.getSku().equalsIgnoreCase(sku))
+                            .findFirst().orElse(null);
+                }
+                if (matchedProduct == null && !name.isEmpty()) {
+                    matchedProduct = clientProducts.stream()
+                            .filter(p -> p.getName() != null && p.getName().equalsIgnoreCase(name))
+                            .findFirst().orElse(null);
+                    if (matchedProduct == null) {
+                        matchedProduct = clientProducts.stream()
+                                .filter(p -> p.getName() != null && p.getName().toLowerCase().contains(name.toLowerCase()))
+                                .findFirst().orElse(null);
+                    }
+                }
+
+                PriceOrderItemPreviewDto itemDto = new PriceOrderItemPreviewDto();
+                if (matchedProduct != null) {
+                    itemDto.setProductId(matchedProduct.getId());
+                    itemDto.setProductName(matchedProduct.getName());
+                    itemDto.setSku(matchedProduct.getSku());
+                    itemDto.setUnit(matchedProduct.getUnit() != null ? matchedProduct.getUnit() : "PCS");
+                    itemDto.setMatched(true);
+                    if (customPrice == null) {
+                        customPrice = matchedProduct.getPrice() != null ? matchedProduct.getPrice() : 0.0;
+                    }
+                    Integer stock = inventoryRepository.getTotalStockForProduct(clientId, matchedProduct.getId());
+                    int availStock = stock != null ? stock : 0;
+                    itemDto.setAvailableStock(availStock);
+                    itemDto.setIsStockSufficient(availStock >= qty);
+                } else {
+                    itemDto.setProductName(!name.isEmpty() ? name : sku);
+                    itemDto.setSku(sku);
+                    itemDto.setUnit("PCS");
+                    itemDto.setMatched(false);
+                    itemDto.setAvailableStock(0);
+                    itemDto.setIsStockSufficient(false);
+                    if (customPrice == null) customPrice = 0.0;
+                }
+
+                itemDto.setQuantity(qty);
+                itemDto.setCustomPrice(customPrice);
+                double lineTotal = qty * customPrice;
+                itemDto.setLineTotal(lineTotal);
+
+                grandTotal += lineTotal;
+                totalUnits += qty;
+                items.add(itemDto);
+            }
+
+            preview.setItems(items);
+            preview.setTotalItems(items.size());
+            preview.setTotalQuantity(totalUnits);
+            preview.setEstimatedTotal(grandTotal);
+
+        } catch (Exception e) {
+            throw new BusinessRuleException("Failed to read Price Order Excel sheet: " + e.getMessage());
+        }
+
+        return preview;
+    }
+
+    public byte[] generatePriceOrderTemplate() {
+        Long clientId = tenantSecurityService.requireCurrentClientId();
+        List<Product> products = productRepository.findByClientId(clientId);
+
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Price Order");
+
+            Font titleFont = workbook.createFont();
+            titleFont.setBold(true);
+            titleFont.setFontHeightInPoints((short) 13);
+
+            CellStyle titleStyle = workbook.createCellStyle();
+            titleStyle.setFont(titleFont);
+
+            Font boldFont = workbook.createFont();
+            boldFont.setBold(true);
+
+            CellStyle metaLabelStyle = workbook.createCellStyle();
+            metaLabelStyle.setFont(boldFont);
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            headerStyle.setFont(boldFont);
+            headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            headerStyle.setBorderBottom(BorderStyle.THIN);
+
+            // Title & Description
+            Row titleRow = sheet.createRow(0);
+            Cell titleCell = titleRow.createCell(0);
+            titleCell.setCellValue("WHOLESALE SHOP PRICE ORDER");
+            titleCell.setCellStyle(titleStyle);
+
+            Row instRow = sheet.createRow(1);
+            instRow.createCell(0).setCellValue("Enter the shop name, ordered quantities, and custom wholesale agreed prices below. Upload directly into WMS for automated billing.");
+
+            // Metadata fields
+            Row shopRow = sheet.createRow(3);
+            Cell shopLbl = shopRow.createCell(0);
+            shopLbl.setCellValue("Shop Name:");
+            shopLbl.setCellStyle(metaLabelStyle);
+            shopRow.createCell(1).setCellValue("New Star Supermarket");
+
+            Cell phoneLbl = shopRow.createCell(2);
+            phoneLbl.setCellValue("Mobile #:");
+            phoneLbl.setCellStyle(metaLabelStyle);
+            shopRow.createCell(3).setCellValue("+91 98765 43210");
+
+            Row dateRow = sheet.createRow(4);
+            Cell dateLbl = dateRow.createCell(0);
+            dateLbl.setCellValue("Order Date:");
+            dateLbl.setCellStyle(metaLabelStyle);
+            dateRow.createCell(1).setCellValue(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+
+            // Table Headers
+            Row headerRow = sheet.createRow(6);
+            String[] headers = {"Item / Product Name", "SKU / Code", "Quantity", "Agreed Price (Rate)"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell c = headerRow.createCell(i);
+                c.setCellValue(headers[i]);
+                c.setCellStyle(headerStyle);
+            }
+
+            int rowIdx = 7;
+            if (!products.isEmpty()) {
+                int limit = Math.min(5, products.size());
+                for (int i = 0; i < limit; i++) {
+                    Product p = products.get(i);
+                    Row row = sheet.createRow(rowIdx++);
+                    row.createCell(0).setCellValue(p.getName());
+                    row.createCell(1).setCellValue(p.getSku() != null ? p.getSku() : "");
+                    row.createCell(2).setCellValue(10);
+                    row.createCell(3).setCellValue(p.getPrice() != null ? p.getPrice() : 100.0);
+                }
+            } else {
+                Row row1 = sheet.createRow(rowIdx++);
+                row1.createCell(0).setCellValue("Basmati Rice 5kg");
+                row1.createCell(1).setCellValue("RICE-5KG");
+                row1.createCell(2).setCellValue(20);
+                row1.createCell(3).setCellValue(350.0);
+
+                Row row2 = sheet.createRow(rowIdx++);
+                row2.createCell(0).setCellValue("Sunflower Cooking Oil 1L");
+                row2.createCell(1).setCellValue("OIL-1L");
+                row2.createCell(2).setCellValue(15);
+                row2.createCell(3).setCellValue(130.0);
+            }
+
+            for (int i = 0; i < 4; i++) {
+                sheet.autoSizeColumn(i);
+                sheet.setColumnWidth(i, Math.max(sheet.getColumnWidth(i), 5200));
+            }
+
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new BusinessRuleException("Failed to generate Price Order Excel template: " + e.getMessage());
+        }
+    }
+
+    private String getCellValueAsString(Cell cell) {
+        if (cell == null) return "";
+        return switch (cell.getCellType()) {
+            case STRING -> cell.getStringCellValue();
+            case NUMERIC -> {
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    yield cell.getLocalDateTimeCellValue().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                }
+                double d = cell.getNumericCellValue();
+                if (d == (long) d) yield String.valueOf((long) d);
+                yield String.valueOf(d);
+            }
+            case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
+            case FORMULA -> {
+                try {
+                    yield String.valueOf(cell.getNumericCellValue());
+                } catch (Exception e) {
+                    yield cell.getStringCellValue();
+                }
+            }
+            default -> "";
+        };
+    }
+
+    private double getCellValueAsNumeric(Cell cell) {
+        if (cell == null) return 0.0;
+        return switch (cell.getCellType()) {
+            case NUMERIC -> cell.getNumericCellValue();
+            case STRING -> {
+                try {
+                    yield Double.parseDouble(cell.getStringCellValue().trim().replaceAll("[^0-9.]", ""));
+                } catch (Exception e) {
+                    yield 0.0;
+                }
+            }
+            case FORMULA -> cell.getNumericCellValue();
+            default -> 0.0;
+        };
     }
 
     private SaleInvoiceDto convertToDto(SaleInvoice inv, List<SaleInvoiceItem> items) {

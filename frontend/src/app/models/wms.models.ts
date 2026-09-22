@@ -315,3 +315,29 @@ export interface CheckoutRequest {
   items: CheckoutItemRequest[];
 }
 
+export interface PriceOrderItemPreview {
+  productId?: number;
+  productName: string;
+  sku?: string;
+  unit: string;
+  quantity: number;
+  customPrice: number;
+  lineTotal: number;
+  availableStock: number;
+  isStockSufficient: boolean;
+  matched: boolean;
+}
+
+export interface PriceOrderPreview {
+  shopName: string;
+  shopPhone?: string;
+  orderDate?: string;
+  notes?: string;
+  totalItems: number;
+  totalQuantity: number;
+  estimatedTotal: number;
+  fileName?: string;
+  items: PriceOrderItemPreview[];
+}
+
+

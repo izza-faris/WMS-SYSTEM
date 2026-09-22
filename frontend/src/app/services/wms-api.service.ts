@@ -8,7 +8,7 @@ import {
   Category, Product, InventoryBalance, FefoBatchRecommendation,
   StockTransaction, StockTransfer, StockAdjustment, DashboardMetrics,
   ChartData, NotificationItem, AuditLogItem, PlatformStats, Client,
-  SaleInvoice, CheckoutRequest
+  SaleInvoice, CheckoutRequest, PriceOrderPreview
 } from '../models/wms.models';
 
 @Injectable({
@@ -323,5 +323,15 @@ export class WmsApiService {
 
   getSaleInvoice(id: number): Observable<ApiResponse<SaleInvoice>> {
     return this.http.get<ApiResponse<SaleInvoice>>(`${this.baseUrl}/billing/invoices/${id}`);
+  }
+
+  uploadPriceOrderExcel(file: File): Observable<ApiResponse<PriceOrderPreview>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<ApiResponse<PriceOrderPreview>>(`${this.baseUrl}/billing/upload-price-order`, formData);
+  }
+
+  getPriceOrderTemplateUrl(): string {
+    return `${this.baseUrl}/billing/price-order-template`;
   }
 }

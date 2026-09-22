@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { WmsApiService } from '../../services/wms-api.service';
 import { AuthService } from '../../services/auth.service';
-import { Product, Warehouse, Category, SaleInvoice, SaleInvoiceItem, CheckoutRequest } from '../../models/wms.models';
+import { Product, Warehouse, Category, SaleInvoice, SaleInvoiceItem, CheckoutRequest, PriceOrderPreview } from '../../models/wms.models';
 
 interface CartItem {
   product: Product;
@@ -24,18 +24,18 @@ interface CartItem {
         <div>
           <div class="d-flex align-items-center gap-2">
             <h2 class="fw-bold text-light mb-0">
-              <i class="bi bi-receipt-cutoff text-success me-2"></i>POS & Billing Counter
+              <i class="bi bi-receipt-cutoff text-success me-2"></i>POS & Wholesale Billing Counter
             </h2>
             <span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-30 px-2.5 py-1">
-              Live Auto-Stock Out
+              Shop-Wise Custom Pricing
             </span>
           </div>
           <p class="text-secondary small mb-0 mt-1">
-            Fast multi-item checkout, automated inventory deductions, and instant printable sales receipts
+            Fast multi-item checkout, shop-specific custom rates, Price Order Excel upload & automated stock-out
           </p>
         </div>
 
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center flex-wrap gap-2">
           <!-- View Toggle: POS Counter | Invoices History -->
           <div class="btn-group btn-group-sm bg-dark p-0.5 rounded-2 border border-secondary border-opacity-25">
             <button type="button" class="btn btn-sm px-3 fw-semibold"
@@ -51,6 +51,16 @@ interface CartItem {
               <i class="bi bi-clock-history me-1"></i> Invoices History ({{ invoices().length }})
             </button>
           </div>
+
+          <!-- Wholesale Price Order Excel Upload Button -->
+          <button (click)="openPriceOrderModal()" class="btn btn-outline-warning btn-sm px-3 fw-bold shadow-sm">
+            <i class="bi bi-file-earmark-excel me-1"></i> Upload Shop Price Order
+          </button>
+
+          <!-- Download Excel Template Link -->
+          <a [href]="templateUrl" class="btn btn-outline-secondary btn-sm px-2.5" title="Download sample Excel template for wholesale shops" download>
+            <i class="bi bi-download me-1"></i> Template
+          </a>
 
           <!-- Warehouse Selector -->
           <div *ngIf="warehouses().length > 1" class="d-flex align-items-center gap-1 bg-dark px-2 py-1 rounded border border-secondary border-opacity-25">
@@ -145,11 +155,11 @@ interface CartItem {
         <!-- RIGHT COLUMN: Live Bill Cart & Checkout (5 cols) -->
         <div class="col-lg-5">
           <div class="glass-panel p-3 h-100 d-flex flex-column">
-            <!-- Customer Info Header -->
+            <!-- Customer / Shop Info Header -->
             <div class="p-2.5 rounded-2 bg-dark bg-opacity-60 border border-secondary border-opacity-20 mb-3">
               <div class="d-flex align-items-center justify-content-between mb-2">
                 <span class="fw-bold text-light small">
-                  <i class="bi bi-person-circle text-info me-1"></i>Customer Details
+                  <i class="bi bi-shop text-info me-1"></i>Shop / Customer Details
                 </span>
                 <div class="form-check form-check-inline form-switch mb-0">
                   <input class="form-check-input" type="checkbox" id="walkInCheck" [(ngModel)]="isWalkIn" (change)="onWalkInToggle()">
@@ -160,7 +170,7 @@ interface CartItem {
               <div class="row g-2">
                 <div class="col-7">
                   <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary"
-                         [(ngModel)]="customerName" placeholder="Customer Name *" [disabled]="isWalkIn">
+                         [(ngModel)]="customerName" placeholder="Shop / Customer Name *" [disabled]="isWalkIn">
                 </div>
                 <div class="col-5">
                   <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary"
@@ -171,9 +181,12 @@ interface CartItem {
 
             <!-- Cart Table Items -->
             <div class="d-flex align-items-center justify-content-between mb-2">
-              <span class="fw-bold text-light small">
-                <i class="bi bi-bag-check text-success me-1"></i>Bill Items ({{ cart.length }})
-              </span>
+              <div>
+                <span class="fw-bold text-light small">
+                  <i class="bi bi-bag-check text-success me-1"></i>Bill Items ({{ cart.length }})
+                </span>
+                <small class="text-warning text-xs ms-2">&bull; Rates are editable per shop</small>
+              </div>
               <button *ngIf="cart.length > 0" (click)="clearCart()" class="btn btn-link btn-xs text-danger text-decoration-none p-0">
                 <i class="bi bi-trash3 me-0.5"></i>Clear Cart
               </button>
@@ -182,37 +195,58 @@ interface CartItem {
             <div class="cart-scroll flex-grow-1 overflow-y-auto mb-3 pe-1" style="max-height: 320px; min-height: 180px;">
               <div *ngIf="cart.length === 0" class="text-center py-5 text-muted border border-dashed border-secondary border-opacity-25 rounded-2">
                 <i class="bi bi-cart-x fs-2 d-block mb-1 text-secondary opacity-50"></i>
-                <span>Cart is empty. Click any product on the left to add.</span>
+                <span>Cart is empty. Click any product on the left or upload a Price Order.</span>
               </div>
 
+              <!-- Cart Row with Live Editable Price per Shop -->
               <div *ngFor="let item of cart; let i = index" class="cart-item-row p-2 mb-1.5 rounded-2 bg-dark bg-opacity-40 border border-secondary border-opacity-20 d-flex align-items-center justify-content-between gap-2">
-                <div class="flex-grow-1 overflow-hidden">
-                  <div class="fw-bold text-light small text-truncate">{{ item.product.name }}</div>
+                <!-- Item Name & Stock Warning -->
+                <div class="flex-grow-1 overflow-hidden" style="min-width: 100px;">
+                  <div class="fw-bold text-light small text-truncate" [title]="item.product.name">{{ item.product.name }}</div>
                   <div class="text-muted text-xs">
-                    {{ defaultCurrency }} {{ item.unitPrice | number:'1.2-2' }} &times; {{ item.quantity }} {{ item.product.unit || 'PCS' }}
+                    <span>Stock: {{ item.product.currentStock }} {{ item.product.unit || 'PCS' }}</span>
                     <span *ngIf="item.quantity > item.product.currentStock" class="text-danger fw-bold ms-1">
-                      (Exceeds stock: {{ item.product.currentStock }})
+                      (! Low)
                     </span>
                   </div>
                 </div>
 
+                <!-- Editable Rate (Shop Agreed Price) -->
+                <div class="d-flex flex-column align-items-end" style="width: 82px;">
+                  <small class="text-secondary text-xs" style="font-size: 0.68rem;">Rate ({{ defaultCurrency }})</small>
+                  <input type="number" class="form-control form-control-sm text-end p-0 px-1 border-secondary bg-dark text-warning fw-bold"
+                         style="height: 26px; font-size: 0.82rem;"
+                         [(ngModel)]="item.unitPrice"
+                         (ngModelChange)="onPriceChange(item)"
+                         min="0" step="0.5"
+                         title="Custom wholesale rate for this shop">
+                </div>
+
                 <!-- Quantity Controls -->
-                <div class="d-flex align-items-center gap-1">
-                  <button class="btn btn-outline-secondary btn-xs px-2 py-0.5" (click)="decreaseQty(item)">-</button>
-                  <input type="number" class="form-control form-control-sm text-center p-0 border-secondary bg-dark text-light"
-                         style="width: 44px; height: 26px;"
-                         [(ngModel)]="item.quantity"
-                         (ngModelChange)="onQtyChange(item)" min="1">
-                  <button class="btn btn-outline-secondary btn-xs px-2 py-0.5" (click)="increaseQty(item)">+</button>
+                <div class="d-flex flex-column align-items-center" style="width: 74px;">
+                  <small class="text-secondary text-xs" style="font-size: 0.68rem;">Qty</small>
+                  <div class="d-flex align-items-center gap-0.5">
+                    <button class="btn btn-outline-secondary btn-xs p-0 px-1.5" style="height: 26px;" (click)="decreaseQty(item)">-</button>
+                    <input type="number" class="form-control form-control-sm text-center p-0 border-secondary bg-dark text-light fw-bold"
+                           style="width: 36px; height: 26px; font-size: 0.82rem;"
+                           [(ngModel)]="item.quantity"
+                           (ngModelChange)="onQtyChange(item)" min="1">
+                    <button class="btn btn-outline-secondary btn-xs p-0 px-1.5" style="height: 26px;" (click)="increaseQty(item)">+</button>
+                  </div>
                 </div>
 
                 <!-- Line Total -->
-                <div class="text-end" style="min-width: 75px;">
-                  <div class="fw-bold text-warning small">
+                <div class="text-end" style="min-width: 65px;">
+                  <small class="text-secondary text-xs" style="font-size: 0.68rem;">Total</small>
+                  <div class="fw-bold text-success small">
                     {{ defaultCurrency }} {{ item.totalPrice | number:'1.2-2' }}
                   </div>
+                </div>
+
+                <!-- Delete Action -->
+                <div>
                   <button class="btn btn-link btn-xs text-danger text-decoration-none p-0" (click)="removeFromCart(i)" title="Remove item">
-                    <i class="bi bi-x-circle"></i>
+                    <i class="bi bi-x-circle fs-6"></i>
                   </button>
                 </div>
               </div>
@@ -337,7 +371,7 @@ interface CartItem {
                 <tr>
                   <th class="py-3">Invoice #</th>
                   <th class="py-3">Date & Time</th>
-                  <th class="py-3">Customer</th>
+                  <th class="py-3">Shop / Customer</th>
                   <th class="py-3 text-center">Items</th>
                   <th class="py-3">Payment</th>
                   <th class="py-3 text-end">Grand Total</th>
@@ -397,6 +431,117 @@ interface CartItem {
       </div>
 
       <!-- ============================================================= -->
+      <!-- MODAL: UPLOAD SHOP PRICE ORDER (EXCEL)                        -->
+      <!-- ============================================================= -->
+      <div *ngIf="showPoModal" class="modal-backdrop-custom animate__animated animate__fadeIn">
+        <div class="modal-dialog-custom glass-panel p-4 animate__animated animate__zoomIn" style="max-width: 780px;">
+          <!-- Modal Header -->
+          <div class="d-flex align-items-center justify-content-between pb-3 border-bottom border-secondary border-opacity-25 mb-3">
+            <h5 class="fw-bold text-warning mb-0">
+              <i class="bi bi-file-earmark-excel me-2"></i>Upload Shop Price Order (Excel)
+            </h5>
+            <button class="btn btn-sm text-secondary" (click)="closePriceOrderModal()"><i class="bi bi-x-lg"></i></button>
+          </div>
+
+          <!-- Step 1: Upload Dropzone if no preview yet -->
+          <div *ngIf="!poPreview" class="text-center py-4">
+            <div class="p-4 border border-dashed border-secondary border-opacity-40 rounded-3 bg-dark bg-opacity-40 mb-3">
+              <i class="bi bi-cloud-arrow-up text-warning display-4 d-block mb-2"></i>
+              <h6 class="fw-bold text-light mb-1">Select or Drag & Drop Shop Price Order Excel</h6>
+              <p class="text-secondary small mb-3">Supports .xlsx, .xls, and .csv files with custom agreed shop rates</p>
+
+              <input type="file" #fileInput (change)="onFileSelected($event)" accept=".xlsx, .xls, .csv" class="d-none">
+              <button (click)="fileInput.click()" [disabled]="isUploadingPo" class="btn btn-warning px-4 fw-bold shadow-sm">
+                <span *ngIf="isUploadingPo" class="spinner-border spinner-border-sm me-1"></span>
+                <i *ngIf="!isUploadingPo" class="bi bi-folder2-open me-1"></i> Browse Excel File
+              </button>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between text-secondary text-xs px-2">
+              <span>Need the standard layout?</span>
+              <a [href]="templateUrl" class="text-warning text-decoration-none fw-semibold" download>
+                <i class="bi bi-download me-1"></i>Download Sample Shop Excel Template
+              </a>
+            </div>
+          </div>
+
+          <!-- Step 2: Parsed Preview Table -->
+          <div *ngIf="poPreview" class="animate__animated animate__fadeIn">
+            <!-- Shop Info Header -->
+            <div class="p-3 rounded-2 bg-dark bg-opacity-70 border border-secondary border-opacity-30 mb-3">
+              <div class="row g-2 align-items-center">
+                <div class="col-md-5">
+                  <label class="form-label text-secondary text-xs mb-0.5 fw-semibold">Shop / Customer Name:</label>
+                  <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" [(ngModel)]="poPreview.shopName">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label text-secondary text-xs mb-0.5">Mobile #:</label>
+                  <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" [(ngModel)]="poPreview.shopPhone" placeholder="Optional">
+                </div>
+                <div class="col-md-3 text-md-end">
+                  <small class="text-secondary d-block">Estimated Total:</small>
+                  <strong class="text-success fs-5">{{ defaultCurrency }} {{ poPreview.estimatedTotal | number:'1.2-2' }}</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Items Preview Table -->
+            <div class="table-responsive rounded border border-secondary border-opacity-25 mb-3" style="max-height: 300px;">
+              <table class="table table-custom table-sm mb-0 align-middle">
+                <thead>
+                  <tr class="header-row">
+                    <th>#</th>
+                    <th>Product Name</th>
+                    <th>SKU</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-end">Agreed Price</th>
+                    <th class="text-end">Total</th>
+                    <th class="text-center">Stock</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of poPreview.items; let idx = index">
+                    <td class="text-muted">{{ idx + 1 }}</td>
+                    <td class="fw-bold text-light">
+                      {{ item.productName }}
+                      <span *ngIf="!item.matched" class="badge bg-warning text-dark text-xs ms-1">Not in Catalog</span>
+                    </td>
+                    <td class="text-secondary small">{{ item.sku || '—' }}</td>
+                    <td class="text-center fw-bold text-light">{{ item.quantity }} <small>{{ item.unit || 'PCS' }}</small></td>
+                    <td class="text-end fw-bold text-warning">{{ defaultCurrency }} {{ item.customPrice | number:'1.2-2' }}</td>
+                    <td class="text-end fw-bold text-light">{{ defaultCurrency }} {{ item.lineTotal | number:'1.2-2' }}</td>
+                    <td class="text-center">
+                      <span *ngIf="item.matched" class="badge text-xs"
+                            [ngClass]="item.isStockSufficient ? 'bg-success bg-opacity-20 text-success' : 'bg-danger bg-opacity-20 text-danger'">
+                        {{ item.availableStock }} {{ item.unit }}
+                      </span>
+                      <span *ngIf="!item.matched" class="badge bg-secondary text-xs">Unknown</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex align-items-center justify-content-between pt-2 border-top border-secondary border-opacity-25">
+              <button class="btn btn-outline-secondary btn-sm" (click)="poPreview = null">
+                <i class="bi bi-arrow-left me-1"></i> Choose Another File
+              </button>
+
+              <div class="d-flex gap-2">
+                <button class="btn btn-primary btn-sm px-3 fw-semibold" (click)="loadPoIntoCart()">
+                  <i class="bi bi-cart-plus me-1"></i> Load into Bill Cart
+                </button>
+                <button class="btn btn-success btn-sm px-3 fw-bold shadow" (click)="directCheckoutFromPo()">
+                  <i class="bi bi-check2-circle me-1"></i> Direct Complete & Print Bill
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================= -->
       <!-- MODAL: PRINTABLE BILL / INVOICE PREVIEW (A4 & THERMAL)        -->
       <!-- ============================================================= -->
       <div *ngIf="showBillModal && currentBill" class="modal-backdrop-custom animate__animated animate__fadeIn">
@@ -441,14 +586,14 @@ interface CartItem {
                   {{ currentUser()?.companyName || 'AeroWMS Store' }}
                 </h3>
                 <p class="bill-brand-subtitle mb-0">
-                  Inventory & Retail Warehouse Management
+                  Wholesale & Retail Warehouse Distribution
                 </p>
                 <div class="text-xs bill-meta-text">
                   Phone: {{ currentUser()?.phone || '+91 98765 43210' }} &bull; Email: {{ currentUser()?.email || 'store@aerowms.com' }}
                 </div>
               </div>
 
-              <!-- Bill Metadata (2-col or stacked) -->
+              <!-- Bill Metadata (2-col) -->
               <div class="d-flex justify-content-between align-items-start small mb-3 pb-2 border-bottom border-dark border-opacity-10 bill-meta-section">
                 <div>
                   <div><strong>Bill No:</strong> <span class="font-monospace text-success fw-bold">{{ currentBill.invoiceNumber }}</span></div>
@@ -456,7 +601,7 @@ interface CartItem {
                   <div><strong>Cashier:</strong> {{ currentUser()?.fullName || 'Cashier 01' }}</div>
                 </div>
                 <div class="text-end">
-                  <div><strong>Customer:</strong> {{ currentBill.customerName }}</div>
+                  <div><strong>Shop / Customer:</strong> <span class="fw-bold">{{ currentBill.customerName }}</span></div>
                   <div *ngIf="currentBill.customerPhone"><strong>Mobile:</strong> {{ currentBill.customerPhone }}</div>
                   <div><strong>Payment:</strong> <span class="badge bg-secondary text-uppercase">{{ currentBill.paymentMethod }}</span></div>
                 </div>
@@ -520,7 +665,7 @@ interface CartItem {
                 <div class="font-monospace text-xs tracking-wider mb-1" style="letter-spacing: 0.15em;">
                   *{{ currentBill.invoiceNumber }}*
                 </div>
-                <div class="fw-bold text-xs mb-1">THANK YOU FOR YOUR PURCHASE!</div>
+                <div class="fw-bold text-xs mb-1">THANK YOU FOR YOUR BUSINESS!</div>
                 <small class="text-muted text-xs d-block">Goods once sold can be exchanged within 7 days with this receipt.</small>
               </div>
             </div>
@@ -580,6 +725,15 @@ interface CartItem {
       align-items: center;
       justify-content: center;
       padding: 1rem;
+    }
+    .modal-dialog-custom {
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: #111827;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
     }
     .modal-dialog-bill {
       width: 100%;
@@ -684,11 +838,12 @@ export class BillingComponent implements OnInit {
   historySearch = '';
 
   defaultCurrency = '₹';
+  templateUrl = '';
 
   // Cart & Customer Form State
   cart: CartItem[] = [];
-  isWalkIn = true;
-  customerName = 'Walk-in Customer';
+  isWalkIn = false;
+  customerName = 'Shop A';
   customerPhone = '';
   paymentMethod = 'CASH';
   discountAmount: number = 0;
@@ -697,9 +852,14 @@ export class BillingComponent implements OnInit {
 
   isSubmitting = false;
 
-  // Modal State
+  // Bill Modal State
   showBillModal = false;
   currentBill: SaleInvoice | null = null;
+
+  // Price Order Upload State
+  showPoModal = false;
+  isUploadingPo = false;
+  poPreview: PriceOrderPreview | null = null;
 
   constructor(
     private wmsApi: WmsApiService,
@@ -709,6 +869,7 @@ export class BillingComponent implements OnInit {
   currentUser = computed(() => this.authService.currentUser());
 
   ngOnInit(): void {
+    this.templateUrl = this.wmsApi.getPriceOrderTemplateUrl();
     this.loadProducts();
     this.loadCategories();
     this.wmsApi.ensureDefaultWarehouse().subscribe(wh => {
@@ -808,20 +969,30 @@ export class BillingComponent implements OnInit {
 
   // --- Cart Operations ---
 
-  addToCart(product: Product): void {
+  addToCart(product: Product, customPrice?: number, qty: number = 1): void {
     const existing = this.cart.find(item => item.product.id === product.id);
     if (existing) {
-      existing.quantity += 1;
+      existing.quantity += qty;
+      if (customPrice !== undefined && customPrice !== null) {
+        existing.unitPrice = customPrice;
+      }
       existing.totalPrice = existing.quantity * existing.unitPrice;
     } else {
-      const price = product.price || 0;
+      const price = customPrice !== undefined && customPrice !== null ? customPrice : (product.price || 0);
       this.cart.push({
         product,
-        quantity: 1,
+        quantity: qty,
         unitPrice: price,
-        totalPrice: price
+        totalPrice: qty * price
       });
     }
+  }
+
+  onPriceChange(item: CartItem): void {
+    if (item.unitPrice === null || item.unitPrice === undefined || item.unitPrice < 0) {
+      item.unitPrice = 0;
+    }
+    item.totalPrice = item.quantity * item.unitPrice;
   }
 
   increaseQty(item: CartItem): void {
@@ -890,12 +1061,12 @@ export class BillingComponent implements OnInit {
 
   submitCheckout(): void {
     if (this.cart.length === 0) {
-      alert('Your cart is empty! Please add products before checking out.');
+      alert('Your cart is empty! Please add products or upload a Price Order before checking out.');
       return;
     }
 
     if (!this.customerName || !this.customerName.trim()) {
-      alert('Please enter customer name (or toggle Walk-in).');
+      alert('Please enter shop / customer name.');
       return;
     }
 
@@ -921,7 +1092,6 @@ export class BillingComponent implements OnInit {
         if (res.success && res.data) {
           this.currentBill = res.data;
           this.showBillModal = true;
-          // Clear cart and reload stock in background
           this.clearCart();
           this.loadProducts();
           this.loadInvoices();
@@ -930,6 +1100,112 @@ export class BillingComponent implements OnInit {
       error: (err) => {
         this.isSubmitting = false;
         alert(err.error?.message || 'Failed to complete sale checkout. Please check available stock levels.');
+      }
+    });
+  }
+
+  // --- Price Order Modal & Upload Actions ---
+
+  openPriceOrderModal(): void {
+    this.poPreview = null;
+    this.showPoModal = true;
+  }
+
+  closePriceOrderModal(): void {
+    this.showPoModal = false;
+    this.poPreview = null;
+  }
+
+  onFileSelected(event: any): void {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    this.isUploadingPo = true;
+    this.wmsApi.uploadPriceOrderExcel(file).subscribe({
+      next: (res) => {
+        this.isUploadingPo = false;
+        if (res.success && res.data) {
+          this.poPreview = res.data;
+        }
+      },
+      error: (err) => {
+        this.isUploadingPo = false;
+        alert(err.error?.message || 'Failed to parse Price Order Excel file. Please ensure columns match standard format.');
+      }
+    });
+  }
+
+  loadPoIntoCart(): void {
+    if (!this.poPreview || !this.poPreview.items.length) return;
+
+    if (this.poPreview.shopName) {
+      this.customerName = this.poPreview.shopName;
+      this.isWalkIn = false;
+    }
+    if (this.poPreview.shopPhone) {
+      this.customerPhone = this.poPreview.shopPhone;
+    }
+
+    // Add each matched item into cart with its custom price
+    for (const poItem of this.poPreview.items) {
+      let product = this.products().find(p => p.id === poItem.productId);
+      if (!product && poItem.sku) {
+        product = this.products().find(p => p.sku && p.sku.toLowerCase() === poItem.sku?.toLowerCase());
+      }
+      if (!product) {
+        product = this.products().find(p => p.name.toLowerCase() === poItem.productName.toLowerCase());
+      }
+
+      if (product) {
+        this.addToCart(product, poItem.customPrice, poItem.quantity);
+      }
+    }
+
+    this.closePriceOrderModal();
+    alert(`Loaded ${this.poPreview.items.length} items from "${this.customerName}" Price Order into cart! You can review or adjust prices and quantities.`);
+  }
+
+  directCheckoutFromPo(): void {
+    if (!this.poPreview || !this.poPreview.items.length) return;
+
+    // Check if all items matched
+    const unmatched = this.poPreview.items.filter(i => !i.matched);
+    if (unmatched.length > 0) {
+      alert(`Warning: ${unmatched.length} item(s) from the Price Order do not match any product in your store catalog. Please load into cart first to review.`);
+      return;
+    }
+
+    const payload: CheckoutRequest = {
+      warehouseId: this.selectedWarehouseId || undefined,
+      customerName: this.poPreview.shopName || 'Wholesale Shop',
+      customerPhone: this.poPreview.shopPhone || undefined,
+      paymentMethod: this.paymentMethod,
+      discountAmount: 0,
+      taxAmount: 0,
+      paidAmount: this.poPreview.estimatedTotal,
+      items: this.poPreview.items.map(i => ({
+        productId: i.productId!,
+        quantity: i.quantity,
+        unitPrice: i.customPrice
+      }))
+    };
+
+    this.isSubmitting = true;
+    this.wmsApi.checkoutSale(payload).subscribe({
+      next: (res) => {
+        this.isSubmitting = false;
+        this.closePriceOrderModal();
+        if (res.success && res.data) {
+          this.currentBill = res.data;
+          this.showBillModal = true;
+          this.clearCart();
+          this.loadProducts();
+          this.loadInvoices();
+        }
+      },
+      error: (err) => {
+        this.isSubmitting = false;
+        alert(err.error?.message || 'Failed to complete direct checkout from Price Order.');
       }
     });
   }
