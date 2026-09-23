@@ -13,6 +13,7 @@ public class CheckoutItemRequest {
     private Integer quantity;
 
     private Double unitPrice;
+    private String barcode;
 
     public CheckoutItemRequest() {}
 
@@ -20,6 +21,13 @@ public class CheckoutItemRequest {
         this.productId = productId;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
+    }
+
+    public CheckoutItemRequest(Long productId, Integer quantity, Double unitPrice, String barcode) {
+        this.productId = productId;
+        this.quantity = quantity;
+        this.unitPrice = unitPrice;
+        this.barcode = barcode;
     }
 
     public Long getProductId() { return productId; }
@@ -30,4 +38,7 @@ public class CheckoutItemRequest {
 
     public Double getUnitPrice() { return unitPrice; }
     public void setUnitPrice(Double unitPrice) { this.unitPrice = unitPrice; }
+
+    public String getBarcode() { return barcode; }
+    public void setBarcode(String barcode) { this.barcode = barcode; }
 }

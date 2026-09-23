@@ -9,6 +9,7 @@ public class SaleInvoiceItemDto {
     private Integer quantity;
     private Double unitPrice;
     private Double totalPrice;
+    private String barcode;
 
     public SaleInvoiceItemDto() {}
 
@@ -35,4 +36,7 @@ public class SaleInvoiceItemDto {
 
     public Double getTotalPrice() { return totalPrice; }
     public void setTotalPrice(Double totalPrice) { this.totalPrice = totalPrice; }
+
+    public String getBarcode() { return barcode; }
+    public void setBarcode(String barcode) { this.barcode = barcode; }
 }

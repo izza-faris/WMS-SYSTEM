@@ -36,6 +36,9 @@ public class SaleInvoiceItem {
     @Column(nullable = false)
     private Double totalPrice = 0.0;
 
+    @Column(length = 60)
+    private String barcode;
+
     public SaleInvoiceItem() {}
 
     public SaleInvoiceItem(Long invoiceId, Long productId, String productName, String sku, String unit, Integer quantity, Double unitPrice, Double totalPrice) {
@@ -47,6 +50,18 @@ public class SaleInvoiceItem {
         this.quantity = quantity;
         this.unitPrice = unitPrice;
         this.totalPrice = totalPrice;
+    }
+
+    public SaleInvoiceItem(Long invoiceId, Long productId, String productName, String sku, String unit, Integer quantity, Double unitPrice, Double totalPrice, String barcode) {
+        this.invoiceId = invoiceId;
+        this.productId = productId;
+        this.productName = productName;
+        this.sku = sku;
+        this.unit = unit;
+        this.quantity = quantity;
+        this.unitPrice = unitPrice;
+        this.totalPrice = totalPrice;
+        this.barcode = barcode;
     }
 
     public Long getId() { return id; }
@@ -75,4 +90,7 @@ public class SaleInvoiceItem {
 
     public Double getTotalPrice() { return totalPrice; }
     public void setTotalPrice(Double totalPrice) { this.totalPrice = totalPrice; }
+
+    public String getBarcode() { return barcode; }
+    public void setBarcode(String barcode) { this.barcode = barcode; }
 }

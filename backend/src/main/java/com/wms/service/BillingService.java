@@ -142,6 +142,9 @@ public class BillingService {
                     unitPrice,
                     lineTotal
             );
+            if (itemReq.getBarcode() != null && !itemReq.getBarcode().trim().isEmpty()) {
+                invoiceItem.setBarcode(itemReq.getBarcode().trim());
+            }
             savedItems.add(saleInvoiceItemRepository.save(invoiceItem));
         }
 
@@ -553,6 +556,7 @@ public class BillingService {
                 itemDto.setQuantity(i.getQuantity());
                 itemDto.setUnitPrice(i.getUnitPrice());
                 itemDto.setTotalPrice(i.getTotalPrice());
+                itemDto.setBarcode(i.getBarcode());
                 return itemDto;
             }).collect(Collectors.toList()));
         }

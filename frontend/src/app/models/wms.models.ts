@@ -268,6 +268,7 @@ export interface SaleInvoiceItem {
   productId: number;
   productName: string;
   sku?: string;
+  barcode?: string;
   unit: string;
   quantity: number;
   unitPrice: number;
@@ -303,6 +304,7 @@ export interface CheckoutItemRequest {
   productId: number;
   quantity: number;
   unitPrice?: number;
+  barcode?: string;
 }
 
 export interface CheckoutRequest {

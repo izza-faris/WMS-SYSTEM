@@ -11,6 +11,7 @@ interface CartItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  barcode?: string;
 }
 
 @Component({
@@ -202,17 +203,29 @@ interface CartItem {
 
               <!-- Cart Row with Live Editable Price per Shop -->
               <div *ngFor="let item of cart; let i = index" class="cart-item-row p-2.5 mb-2 rounded-2 bg-dark bg-opacity-50 border border-secondary border-opacity-25 shadow-sm">
-                <!-- Top Line: Item Name, Stock Info & Delete Icon -->
-                <div class="d-flex align-items-center justify-content-between mb-1.5">
-                  <div class="overflow-hidden me-2">
+                <!-- Top Line: Item Name, Stock Info, Barcode Input & Delete Icon -->
+                <div class="d-flex align-items-start justify-content-between mb-1.5">
+                  <div class="flex-grow-1 overflow-hidden me-2">
                     <div class="fw-bold text-light small text-truncate" [title]="item.product.name">
                       {{ item.product.name }}
                     </div>
-                    <div class="text-muted text-xs d-flex align-items-center gap-1.5 mt-0.5">
-                      <span *ngIf="item.product.barcode" class="badge bg-dark border border-secondary border-opacity-30 text-xs py-0 px-1 text-secondary">
+                    <div class="text-muted text-xs d-flex align-items-center gap-2 mt-1 flex-wrap">
+                      <span *ngIf="item.product.barcode" class="badge bg-dark border border-secondary border-opacity-30 text-xs py-0 px-1 text-secondary" title="Catalog Barcode">
                         <i class="bi bi-upc me-0.5"></i>{{ item.product.barcode }}
                       </span>
                       <span>Stock: {{ item.product.currentStock }} {{ item.product.unit || 'PCS' }}</span>
+
+                      <!-- Barcode Input Box (Side-by-side with stock as marked in green) -->
+                      <div class="d-inline-flex align-items-center gap-1 ms-1">
+                        <span class="text-warning" style="font-size: 0.7rem;"><i class="bi bi-upc"></i></span>
+                        <input type="text"
+                               class="form-control form-control-sm bg-dark text-warning border-secondary p-0 px-1.5 font-monospace fw-bold"
+                               style="width: 105px; height: 23px; font-size: 0.74rem;"
+                               [(ngModel)]="item.barcode"
+                               placeholder="Barcode..."
+                               title="Type or scan barcode for this item">
+                      </div>
+
                       <span *ngIf="item.quantity > item.product.currentStock" class="text-danger fw-bold">
                         (! Low Stock)
                       </span>
@@ -632,7 +645,12 @@ interface CartItem {
                     <td>{{ idx + 1 }}</td>
                     <td>
                       <div class="fw-bold bill-item-name">{{ item.productName }}</div>
-                      <small *ngIf="item.sku" class="text-muted d-block text-xs">SKU: {{ item.sku }}</small>
+                      <div class="d-flex align-items-center gap-1.5 text-muted text-xs">
+                        <small *ngIf="item.sku">SKU: {{ item.sku }}</small>
+                        <small *ngIf="item.barcode" class="badge bg-light border text-dark font-monospace py-0 px-1">
+                          <i class="bi bi-upc me-0.5"></i>{{ item.barcode }}
+                        </small>
+                      </div>
                     </td>
                     <td class="text-center fw-bold">{{ item.quantity }} <small>{{ item.unit || 'PCS' }}</small></td>
                     <td class="text-end">{{ item.unitPrice | number:'1.2-2' }}</td>
@@ -992,7 +1010,8 @@ export class BillingComponent implements OnInit {
         product,
         quantity: qty,
         unitPrice: price,
-        totalPrice: qty * price
+        totalPrice: qty * price,
+        barcode: product.barcode || ''
       });
     }
   }
@@ -1090,7 +1109,8 @@ export class BillingComponent implements OnInit {
       items: this.cart.map(item => ({
         productId: item.product.id,
         quantity: item.quantity,
-        unitPrice: item.unitPrice
+        unitPrice: item.unitPrice,
+        barcode: item.barcode ? item.barcode.trim() : undefined
       }))
     };
 
