@@ -228,20 +228,35 @@ interface CartItem {
               </div>
             </div>
 
-            <!-- Cart Table Items -->
-            <div class="d-flex align-items-center justify-content-between mb-2">
-              <div>
+            <!-- Cart Table Items Header -->
+            <div class="d-flex align-items-center justify-content-between mb-2 gap-2 flex-wrap">
+              <div class="d-flex align-items-center flex-wrap gap-1">
                 <span class="fw-bold text-light small">
                   <i class="bi bi-bag-check text-success me-1"></i>Bill Items ({{ cart.length }})
                 </span>
-                <span *ngIf="cartActiveItemCount > 0" class="badge bg-success bg-opacity-25 text-success ms-1 text-xs">
+                <span *ngIf="cartActiveItemCount > 0" class="badge bg-success bg-opacity-25 text-success text-xs">
                   {{ cartActiveItemCount }} active
                 </span>
-                <small class="text-warning text-xs ms-1.5">&bull; Rates editable</small>
+                <small class="text-warning text-xs ms-1">&bull; Rates editable</small>
               </div>
-              <button *ngIf="cart.length > 0" (click)="clearCart()" class="btn btn-link btn-xs text-danger text-decoration-none p-0">
-                <i class="bi bi-trash3 me-0.5"></i>Clear Cart
-              </button>
+
+              <!-- Right: Currency Selector Dropdown & Clear Cart Button -->
+              <div class="d-flex align-items-center gap-2">
+                <div class="d-inline-flex align-items-center" title="Select Currency / Country Payment">
+                  <select class="form-select form-select-sm currency-select font-monospace fw-bold py-0 ps-2 pe-4"
+                          style="min-width: 76px; height: 26px; font-size: 0.82rem; cursor: pointer; border-radius: 6px;"
+                          [(ngModel)]="defaultCurrency"
+                          (ngModelChange)="onCurrencyChange($event)">
+                    <option *ngFor="let c of availableCurrencies" [value]="c">
+                      {{ c }}
+                    </option>
+                  </select>
+                </div>
+
+                <button *ngIf="cart.length > 0" (click)="clearCart()" class="btn btn-link btn-xs text-danger text-decoration-none p-0 d-inline-flex align-items-center" title="Clear all items from bill">
+                  <i class="bi bi-trash3 me-0.5"></i>Clear Cart
+                </button>
+              </div>
             </div>
 
             <div class="cart-scroll flex-grow-1 overflow-y-auto mb-3 pe-1" style="max-height: 380px; min-height: 200px;">
@@ -1036,9 +1051,20 @@ interface CartItem {
       font-size: 0.88rem;
       border-bottom: 1px solid #e5e7eb;
     }
-    .bill-table {
-      width: 100%;
-      border-collapse: collapse;
+    .currency-select {
+      background-color: #111827 !important;
+      color: #38bdf8 !important;
+      border: 1px solid rgba(56, 189, 248, 0.45) !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+    .currency-select:focus {
+      border-color: #38bdf8 !important;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25) !important;
+    }
+    .currency-select option {
+      background-color: #1f2937 !important;
+      color: #f9fafb !important;
+      padding: 6px 10px;
     }
 
     /* Print Specific Media Styles */
@@ -1082,7 +1108,24 @@ export class BillingComponent implements OnInit {
   selectedCategory = 'ALL';
   historySearch = '';
 
-  defaultCurrency = '₹';
+  defaultCurrency = 'Rs.';
+  availableCurrencies: string[] = [
+    'Rs.',
+    '$',
+    '₹',
+    '€',
+    '£',
+    'AED',
+    'SAR',
+    'QAR',
+    'KWD',
+    'BHD',
+    'OMR',
+    'RM',
+    'S$',
+    'C$',
+    'A$'
+  ];
   templateUrl = '';
 
   // Cart & Customer Form State
@@ -1130,6 +1173,10 @@ export class BillingComponent implements OnInit {
   currentUser = computed(() => this.authService.currentUser());
 
   ngOnInit(): void {
+    const savedCurrency = localStorage.getItem('wms_billing_currency');
+    if (savedCurrency) {
+      this.defaultCurrency = savedCurrency;
+    }
     this.templateUrl = this.wmsApi.getPriceOrderTemplateUrl();
     this.loadProducts();
     this.loadCategories();
@@ -1162,7 +1209,10 @@ export class BillingComponent implements OnInit {
     this.wmsApi.getAllProductsList().subscribe(res => {
       if (res.success && res.data) {
         this.products.set(res.data);
-        if (res.data.length > 0 && res.data[0].currency) {
+        const savedCurrency = localStorage.getItem('wms_billing_currency');
+        if (savedCurrency) {
+          this.defaultCurrency = savedCurrency;
+        } else if (res.data.length > 0 && res.data[0].currency) {
           this.defaultCurrency = res.data[0].currency;
         }
       }
@@ -1221,7 +1271,16 @@ export class BillingComponent implements OnInit {
   }
 
   getCurrency(p?: Product): string {
-    return p?.currency || this.defaultCurrency || '₹';
+    return this.defaultCurrency;
+  }
+
+  onCurrencyChange(newCurrency: string): void {
+    this.defaultCurrency = newCurrency;
+    try {
+      localStorage.setItem('wms_billing_currency', newCurrency);
+    } catch (e) {
+      console.warn('Could not save currency to localStorage', e);
+    }
   }
 
   getCartItemQty(productId: number): number {
