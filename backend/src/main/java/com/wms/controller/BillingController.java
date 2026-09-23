@@ -78,4 +78,10 @@ public class BillingController {
         SaleInvoiceDto dto = billingService.getCustomerLastOrder(customerName);
         return ResponseEntity.ok(ApiResponse.ok(dto));
     }
+
+    @GetMapping("/customer-profiles")
+    @PreAuthorize("hasAnyRole('CLIENT_ADMIN', 'BRANCH_MANAGER', 'WAREHOUSE_STAFF')")
+    public ResponseEntity<ApiResponse<java.util.List<com.wms.dto.CustomerProfileDto>>> getCustomerProfiles() {
+        return ResponseEntity.ok(ApiResponse.ok(billingService.getCustomerProfiles()));
+    }
 }

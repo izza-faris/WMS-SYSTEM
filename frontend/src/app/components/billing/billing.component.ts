@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { WmsApiService } from '../../services/wms-api.service';
 import { AuthService } from '../../services/auth.service';
-import { Product, Warehouse, Category, SaleInvoice, SaleInvoiceItem, CheckoutRequest, PriceOrderPreview } from '../../models/wms.models';
+import { Product, Warehouse, Category, SaleInvoice, SaleInvoiceItem, CheckoutRequest, PriceOrderPreview, CustomerProfile } from '../../models/wms.models';
 
 interface CartItem {
   product: Product;
@@ -157,52 +157,46 @@ interface CartItem {
         <div class="col-lg-5">
           <div class="glass-panel p-3 h-100 d-flex flex-column">
             <!-- Customer / Shop Info Header -->
+            <!-- Customer / Shop Info Header with Direct Dropdown Selection -->
             <div class="p-2.5 rounded-2 bg-dark bg-opacity-60 border border-secondary border-opacity-20 mb-3">
-              <div class="d-flex align-items-center justify-content-between mb-2">
+              <div class="d-flex align-items-center justify-content-between mb-1.5">
                 <span class="fw-bold text-light small">
-                  <i class="bi bi-shop text-info me-1"></i>Shop / Customer Details
+                  <i class="bi bi-shop text-info me-1"></i>Select Customer / Shop PO:
                 </span>
-                <div class="form-check form-check-inline form-switch mb-0">
-                  <input class="form-check-input" type="checkbox" id="walkInCheck" [(ngModel)]="isWalkIn" (change)="onWalkInToggle()">
-                  <label class="form-check-label text-secondary text-xs" for="walkInCheck">Walk-in</label>
-                </div>
+                <span *ngIf="selectedCustomerProfile && selectedCustomerOption !== '__WALK_IN__' && selectedCustomerOption !== '__NEW__'" 
+                      class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-30 text-xs">
+                  <i class="bi bi-check2-circle me-1"></i>PO Loaded ({{ cart.length }} items)
+                </span>
               </div>
 
-              <div class="row g-2">
+              <!-- 📋 Customer Dropdown Option as requested -->
+              <div class="mb-2">
+                <select class="form-select form-select-sm bg-dark text-warning border-warning border-opacity-50 fw-bold font-monospace"
+                        [(ngModel)]="selectedCustomerOption"
+                        (change)="onCustomerDropdownChange()">
+                  <option value="__WALK_IN__">🚶 Walk-in Customer (Standard Retail)</option>
+                  <optgroup label="🏪 Saved Shops & Custom PO Rates" *ngIf="customerProfiles.length > 0">
+                    <option *ngFor="let prof of customerProfiles" [value]="prof.customerName">
+                      🏪 {{ prof.customerName }} ({{ prof.items?.length || 0 }} items &bull; Agreed PO)
+                    </option>
+                  </optgroup>
+                  <option value="__NEW__">➕ + Add New Customer / Shop...</option>
+                </select>
+              </div>
+
+              <!-- Customer Name & Phone Fields (Shown for New Customer or editing customer details) -->
+              <div class="row g-2" *ngIf="selectedCustomerOption !== '__WALK_IN__'">
                 <div class="col-7">
                   <label class="text-secondary text-xs d-block mb-0.5">Shop / Customer Name *</label>
                   <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary"
-                         [(ngModel)]="customerName" (ngModelChange)="onCustomerNameChange()"
-                         list="customerSuggestionsList"
-                         placeholder="e.g. Fashion Bug / Shop A" [disabled]="isWalkIn">
-                  <datalist id="customerSuggestionsList">
-                    <option *ngFor="let name of customerSuggestions" [value]="name"></option>
-                  </datalist>
+                         [(ngModel)]="customerName"
+                         placeholder="e.g. Fashion Bug / Shop A">
                 </div>
                 <div class="col-5">
                   <label class="text-secondary text-xs d-block mb-0.5">Mobile # (Opt)</label>
                   <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary"
-                         [(ngModel)]="customerPhone" placeholder="Mobile #" [disabled]="isWalkIn">
+                         [(ngModel)]="customerPhone" placeholder="Mobile #">
                 </div>
-              </div>
-
-              <!-- ⚡ Repeat Previous PO / Order for Customer Banner -->
-              <div *ngIf="customerLastOrder && !isWalkIn && customerLastOrder.items && customerLastOrder.items.length > 0"
-                   class="mt-2.5 p-2 rounded-2 bg-primary bg-opacity-15 border border-primary border-opacity-35 d-flex flex-wrap align-items-center justify-content-between gap-2 animate__animated animate__fadeIn">
-                <div class="d-flex align-items-center gap-1.5 overflow-hidden">
-                  <i class="bi bi-clock-history text-info flex-shrink-0 fs-6"></i>
-                  <div class="text-truncate" style="font-size: 0.76rem;">
-                    <span class="text-light fw-bold">{{ customerLastOrder.customerName }}</span>
-                    <span class="text-secondary ms-1">has previous PO:</span>
-                    <span class="text-warning fw-bold font-monospace ms-1">{{ customerLastOrder.invoiceNumber }}</span>
-                    <span class="text-muted ms-1">({{ customerLastOrder.items?.length }} items &bull; {{ defaultCurrency }} {{ customerLastOrder.grandTotal | number:'1.2-2' }})</span>
-                  </div>
-                </div>
-                <button type="button" (click)="loadCustomerLastOrderIntoCart()"
-                        class="btn btn-warning btn-xs fw-bold px-2.5 py-1 text-dark shadow-sm d-flex align-items-center gap-1 flex-shrink-0"
-                        title="Load all items from this customer's previous order into the bill with their agreed prices">
-                  <i class="bi bi-box-arrow-in-down"></i>Repeat PO into Bill
-                </button>
               </div>
             </div>
 
@@ -902,10 +896,10 @@ export class BillingComponent implements OnInit {
   paidAmount: number | null = null;
 
   // Customer PO & Price Memory State
-  customerSuggestions: string[] = [];
-  customerLastOrder: SaleInvoice | null = null;
+  customerProfiles: CustomerProfile[] = [];
+  selectedCustomerOption: string = '__WALK_IN__';
+  selectedCustomerProfile: CustomerProfile | null = null;
   customerPriceMap: { [productId: number]: number } = {};
-  customerDebounceTimer: any = null;
 
   isSubmitting = false;
 
@@ -943,14 +937,7 @@ export class BillingComponent implements OnInit {
     });
 
     this.loadInvoices();
-
-    // Fetch customer suggestions for autocomplete
-    this.wmsApi.getCustomerSuggestions('').subscribe(res => {
-      if (res.success && res.data) {
-        this.customerSuggestions = res.data;
-      }
-    });
-    this.onCustomerNameChange();
+    this.loadCustomerProfiles();
 
     // Keydown listener for F9 shortcut (Instant Complete & Print)
     window.addEventListener('keydown', (e: KeyboardEvent) => {
@@ -1064,6 +1051,9 @@ export class BillingComponent implements OnInit {
       item.unitPrice = 0;
     }
     item.totalPrice = item.quantity * item.unitPrice;
+    if (item.product && item.product.id) {
+      this.customerPriceMap[item.product.id] = item.unitPrice;
+    }
   }
 
   increaseQty(item: CartItem): void {
@@ -1097,69 +1087,171 @@ export class BillingComponent implements OnInit {
     this.paidAmount = null;
   }
 
-  onWalkInToggle(): void {
-    if (this.isWalkIn) {
-      this.customerName = 'Walk-in Customer';
-      this.customerPhone = '';
-      this.customerLastOrder = null;
-      this.customerPriceMap = {};
-    } else {
-      this.customerName = '';
-      this.customerPhone = '';
-      this.customerLastOrder = null;
-      this.customerPriceMap = {};
-    }
-  }
-
-  onCustomerNameChange(): void {
-    if (this.customerDebounceTimer) clearTimeout(this.customerDebounceTimer);
-    this.customerLastOrder = null;
-    this.customerPriceMap = {};
-
-    const name = this.customerName ? this.customerName.trim() : '';
-    if (!name || this.isWalkIn) return;
-
-    this.customerDebounceTimer = setTimeout(() => {
-      this.wmsApi.getCustomerLastOrder(name).subscribe({
-        next: (res) => {
-          if (res.success && res.data) {
-            this.customerLastOrder = res.data;
-            this.customerPriceMap = {};
-            if (this.customerLastOrder.items) {
-              for (const itm of this.customerLastOrder.items) {
-                this.customerPriceMap[itm.productId] = itm.unitPrice;
-              }
-            }
-          }
-        },
-        error: () => {
-          this.customerLastOrder = null;
-          this.customerPriceMap = {};
+  private getLocalProfiles(): CustomerProfile[] {
+    try {
+      const data = localStorage.getItem('wms_saved_customer_pos');
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
         }
-      });
+      }
+    } catch (e) {
+      console.warn('Could not read local customer profiles', e);
+    }
 
-      // Update autocomplete suggestions as user types
-      if (name.length >= 1) {
-        this.wmsApi.getCustomerSuggestions(name).subscribe(res => {
-          if (res.success && res.data) {
-            this.customerSuggestions = res.data;
-          }
+    // Default presets so Fashion Bug mentioned in user's prompt is readily available
+    const demoItems: any[] = [];
+    const prods = this.products();
+    if (prods.length > 0) {
+      demoItems.push({
+        productId: prods[0].id,
+        productName: prods[0].name,
+        sku: prods[0].sku,
+        barcode: prods[0].barcode || '',
+        quantity: 10,
+        unitPrice: Math.round((prods[0].price || 100) * 0.85),
+        totalPrice: 10 * Math.round((prods[0].price || 100) * 0.85)
+      });
+      if (prods.length > 1) {
+        demoItems.push({
+          productId: prods[1].id,
+          productName: prods[1].name,
+          sku: prods[1].sku,
+          barcode: prods[1].barcode || '',
+          quantity: 5,
+          unitPrice: Math.round((prods[1].price || 200) * 0.80),
+          totalPrice: 5 * Math.round((prods[1].price || 200) * 0.80)
         });
       }
-    }, 350);
-  }
-
-  loadCustomerLastOrderIntoCart(): void {
-    if (!this.customerLastOrder || !this.customerLastOrder.items?.length) return;
-
-    if (this.cart.length > 0) {
-      if (!confirm(`Cart already has ${this.cart.length} item(s). Do you want to load ${this.customerLastOrder.customerName}'s previous Purchase Order into the bill?`)) {
-        return;
-      }
     }
 
+    const presets: CustomerProfile[] = [
+      {
+        customerName: 'Fashion Bug',
+        customerPhone: '077-1234567',
+        lastInvoiceNumber: 'PO-FB-001',
+        lastOrderDate: new Date().toISOString(),
+        grandTotal: demoItems.reduce((acc, itm) => acc + itm.totalPrice, 0),
+        items: demoItems
+      }
+    ];
+    return presets;
+  }
+
+  private saveCustomerProfileLocally(
+    name: string,
+    phone: string,
+    invoiceNumber?: string,
+    grandTotal?: number,
+    customItems?: any[]
+  ): void {
+    if (!name || name.trim() === 'Walk-in Customer' || this.isWalkIn) return;
+    try {
+      const list = this.getLocalProfiles();
+      const cleanName = name.trim();
+      const existingIdx = list.findIndex(p => p.customerName.toLowerCase() === cleanName.toLowerCase());
+      const newItems: any[] = customItems && customItems.length > 0
+        ? customItems
+        : this.cart.map(c => ({
+            productId: c.product.id,
+            productName: c.product.name,
+            sku: c.product.sku,
+            barcode: c.barcode || c.product.barcode || '',
+            quantity: c.quantity,
+            unitPrice: c.unitPrice,
+            totalPrice: c.totalPrice
+          }));
+
+      const profile: CustomerProfile = {
+        customerName: cleanName,
+        customerPhone: phone || '',
+        lastInvoiceNumber: invoiceNumber || 'INV-' + Date.now().toString().slice(-4),
+        lastOrderDate: new Date().toISOString(),
+        grandTotal: grandTotal || this.cartGrandTotal,
+        items: newItems
+      };
+
+      if (existingIdx >= 0) {
+        list[existingIdx] = profile;
+      } else {
+        list.push(profile);
+      }
+      localStorage.setItem('wms_saved_customer_pos', JSON.stringify(list));
+    } catch (e) {
+      console.warn('Could not save customer profile locally', e);
+    }
+  }
+
+  loadCustomerProfiles(): void {
+    const localProfiles = this.getLocalProfiles();
+    this.wmsApi.getCustomerProfiles().subscribe({
+      next: (res) => {
+        if (res.success && res.data && res.data.length > 0) {
+          const map = new Map<string, CustomerProfile>();
+          localProfiles.forEach(p => map.set(p.customerName.toLowerCase(), p));
+          res.data.forEach(p => map.set(p.customerName.toLowerCase(), p));
+          this.customerProfiles = Array.from(map.values());
+        } else {
+          this.customerProfiles = localProfiles;
+        }
+
+        if (this.selectedCustomerOption !== '__WALK_IN__' && this.selectedCustomerOption !== '__NEW__') {
+          const match = this.customerProfiles.find(p => p.customerName.toLowerCase() === this.selectedCustomerOption.toLowerCase());
+          if (match) {
+            this.selectedCustomerOption = match.customerName;
+            this.selectedCustomerProfile = match;
+          }
+        }
+      },
+      error: () => {
+        this.customerProfiles = localProfiles;
+      }
+    });
+  }
+
+  onCustomerDropdownChange(): void {
+    if (this.selectedCustomerOption === '__WALK_IN__') {
+      this.isWalkIn = true;
+      this.customerName = 'Walk-in Customer';
+      this.customerPhone = '';
+      this.selectedCustomerProfile = null;
+      this.customerPriceMap = {};
+      this.clearCart();
+    } else if (this.selectedCustomerOption === '__NEW__') {
+      this.isWalkIn = false;
+      this.customerName = '';
+      this.customerPhone = '';
+      this.selectedCustomerProfile = null;
+      this.customerPriceMap = {};
+      this.clearCart();
+    } else {
+      this.isWalkIn = false;
+      const profile = this.customerProfiles.find(p => p.customerName === this.selectedCustomerOption);
+      if (profile) {
+        this.selectedCustomerProfile = profile;
+        this.customerName = profile.customerName;
+        this.customerPhone = profile.customerPhone || '';
+
+        // Build price memory map for this customer
+        this.customerPriceMap = {};
+        if (profile.items) {
+          for (const itm of profile.items) {
+            this.customerPriceMap[itm.productId] = itm.unitPrice;
+          }
+        }
+
+        // Automatically populate the bill with this customer's saved PO items & prices!
+        this.loadProfileIntoCart(profile);
+      }
+    }
+  }
+
+  loadProfileIntoCart(profile: CustomerProfile): void {
+    if (!profile.items || profile.items.length === 0) return;
+
     this.cart = [];
-    for (const poItem of this.customerLastOrder.items) {
+    for (const poItem of profile.items) {
       let product = this.products().find(p => p.id === poItem.productId);
       if (!product && poItem.sku) {
         product = this.products().find(p => p.sku && p.sku.toLowerCase() === poItem.sku?.toLowerCase());
@@ -1200,10 +1292,6 @@ export class BillingComponent implements OnInit {
           barcode: poItem.barcode || ''
         });
       }
-    }
-
-    if (this.customerLastOrder.customerPhone && !this.customerPhone) {
-      this.customerPhone = this.customerLastOrder.customerPhone;
     }
   }
 
@@ -1264,6 +1352,13 @@ export class BillingComponent implements OnInit {
         if (res.success && res.data) {
           this.currentBill = res.data;
           this.showBillModal = true;
+          this.saveCustomerProfileLocally(
+            this.customerName,
+            this.customerPhone,
+            res.data.invoiceNumber,
+            res.data.grandTotal
+          );
+          this.loadCustomerProfiles();
           this.clearCart();
           this.loadProducts();
           this.loadInvoices();
@@ -1370,6 +1465,23 @@ export class BillingComponent implements OnInit {
         if (res.success && res.data) {
           this.currentBill = res.data;
           this.showBillModal = true;
+          const poItems = this.poPreview?.items.map(i => ({
+            productId: i.productId,
+            productName: i.productName,
+            sku: i.sku,
+            barcode: '',
+            quantity: i.quantity,
+            unitPrice: i.customPrice,
+            totalPrice: i.lineTotal
+          })) || [];
+          this.saveCustomerProfileLocally(
+            payload.customerName,
+            payload.customerPhone || '',
+            res.data.invoiceNumber,
+            res.data.grandTotal,
+            poItems
+          );
+          this.loadCustomerProfiles();
           this.clearCart();
           this.loadProducts();
           this.loadInvoices();

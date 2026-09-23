@@ -584,4 +584,44 @@ public class BillingService {
         List<SaleInvoiceItem> items = saleInvoiceItemRepository.findByInvoiceId(latest.getId());
         return convertToDto(latest, items);
     }
+
+    public List<CustomerProfileDto> getCustomerProfiles() {
+        Long clientId = tenantSecurityService.requireCurrentClientId();
+        List<String> customerNames = saleInvoiceRepository.findAllDistinctCustomerNames(clientId);
+        List<CustomerProfileDto> profiles = new ArrayList<>();
+
+        for (String name : customerNames) {
+            if (name == null || name.trim().isEmpty() || name.equalsIgnoreCase("Walk-in Customer")) {
+                continue;
+            }
+            List<SaleInvoice> latestInvoices = saleInvoiceRepository.findLatestByCustomerName(clientId, name.trim(), PageRequest.of(0, 1));
+            if (!latestInvoices.isEmpty()) {
+                SaleInvoice latest = latestInvoices.get(0);
+                List<SaleInvoiceItem> items = saleInvoiceItemRepository.findByInvoiceId(latest.getId());
+
+                CustomerProfileDto profile = new CustomerProfileDto();
+                profile.setCustomerName(latest.getCustomerName());
+                profile.setCustomerPhone(latest.getCustomerPhone());
+                profile.setLastInvoiceNumber(latest.getInvoiceNumber());
+                profile.setLastOrderDate(latest.getCreatedAt());
+                profile.setGrandTotal(latest.getGrandTotal());
+                profile.setItems(items.stream().map(i -> {
+                    SaleInvoiceItemDto itemDto = new SaleInvoiceItemDto();
+                    itemDto.setId(i.getId());
+                    itemDto.setProductId(i.getProductId());
+                    itemDto.setProductName(i.getProductName());
+                    itemDto.setSku(i.getSku());
+                    itemDto.setUnit(i.getUnit());
+                    itemDto.setQuantity(i.getQuantity());
+                    itemDto.setUnitPrice(i.getUnitPrice());
+                    itemDto.setTotalPrice(i.getTotalPrice());
+                    itemDto.setBarcode(i.getBarcode());
+                    return itemDto;
+                }).collect(Collectors.toList()));
+
+                profiles.add(profile);
+            }
+        }
+        return profiles;
+    }
 }

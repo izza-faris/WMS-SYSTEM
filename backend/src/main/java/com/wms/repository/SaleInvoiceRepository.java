@@ -26,6 +26,9 @@ public interface SaleInvoiceRepository extends JpaRepository<SaleInvoice, Long> 
     @Query("SELECT DISTINCT s.customerName FROM SaleInvoice s WHERE s.clientId = :clientId AND s.customerName IS NOT NULL AND LOWER(s.customerName) LIKE LOWER(CONCAT('%', :query, '%')) ORDER BY s.customerName ASC")
     List<String> findDistinctCustomerNames(@Param("clientId") Long clientId, @Param("query") String query, Pageable pageable);
 
+    @Query("SELECT DISTINCT s.customerName FROM SaleInvoice s WHERE s.clientId = :clientId AND s.customerName IS NOT NULL AND TRIM(s.customerName) <> '' ORDER BY s.customerName ASC")
+    List<String> findAllDistinctCustomerNames(@Param("clientId") Long clientId);
+
     @Query("SELECT s FROM SaleInvoice s WHERE s.clientId = :clientId AND LOWER(TRIM(s.customerName)) = LOWER(TRIM(:customerName)) ORDER BY s.createdAt DESC")
     List<SaleInvoice> findLatestByCustomerName(@Param("clientId") Long clientId, @Param("customerName") String customerName, Pageable pageable);
 

@@ -8,7 +8,7 @@ import {
   Category, Product, InventoryBalance, FefoBatchRecommendation,
   StockTransaction, StockTransfer, StockAdjustment, DashboardMetrics,
   ChartData, NotificationItem, AuditLogItem, PlatformStats, Client,
-  SaleInvoice, CheckoutRequest, PriceOrderPreview
+  SaleInvoice, CheckoutRequest, PriceOrderPreview, CustomerProfile
 } from '../models/wms.models';
 
 @Injectable({
@@ -343,5 +343,9 @@ export class WmsApiService {
   getCustomerLastOrder(customerName: string): Observable<ApiResponse<SaleInvoice>> {
     const params = new HttpParams().set('customerName', customerName);
     return this.http.get<ApiResponse<SaleInvoice>>(`${this.baseUrl}/billing/customer-last-order`, { params });
+  }
+
+  getCustomerProfiles(): Observable<ApiResponse<CustomerProfile[]>> {
+    return this.http.get<ApiResponse<CustomerProfile[]>>(`${this.baseUrl}/billing/customer-profiles`);
   }
 }

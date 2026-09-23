@@ -346,4 +346,13 @@ export interface PriceOrderPreview {
   items: PriceOrderItemPreview[];
 }
 
+export interface CustomerProfile {
+  customerName: string;
+  customerPhone?: string;
+  lastInvoiceNumber?: string;
+  lastOrderDate?: string;
+  grandTotal?: number;
+  items: SaleInvoiceItem[];
+}
+
 
