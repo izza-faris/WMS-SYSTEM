@@ -9,7 +9,7 @@ import { Product, Warehouse, Category, SaleInvoice, SaleInvoiceItem, CheckoutReq
 
 interface CartItem {
   product: Product;
-  quantity: number;
+  quantity?: number | null;
   unitPrice: number;
   totalPrice: number;
   barcode?: string;
@@ -234,6 +234,9 @@ interface CartItem {
                 <span class="fw-bold text-light small">
                   <i class="bi bi-bag-check text-success me-1"></i>Bill Items ({{ cart.length }})
                 </span>
+                <span *ngIf="cartActiveItemCount > 0" class="badge bg-success bg-opacity-25 text-success ms-1 text-xs">
+                  {{ cartActiveItemCount }} active
+                </span>
                 <small class="text-warning text-xs ms-1.5">&bull; Rates editable</small>
               </div>
               <button *ngIf="cart.length > 0" (click)="clearCart()" class="btn btn-link btn-xs text-danger text-decoration-none p-0">
@@ -248,7 +251,8 @@ interface CartItem {
               </div>
 
               <!-- Cart Row with Live Editable Price per Shop -->
-              <div *ngFor="let item of cart; let i = index" class="cart-item-row p-2.5 mb-2 rounded-2 bg-dark bg-opacity-50 border border-secondary border-opacity-25 shadow-sm">
+              <div *ngFor="let item of cart; let i = index" class="cart-item-row p-2.5 mb-2 rounded-2 bg-dark bg-opacity-50 border border-secondary border-opacity-25 shadow-sm"
+                   [class.border-success]="item.quantity && item.quantity > 0">
                 <!-- Top Line: Item Name, Stock Info, Barcode Input & Delete Icon -->
                 <div class="d-flex align-items-start justify-content-between mb-1.5">
                   <div class="flex-grow-1 overflow-hidden me-2">
@@ -265,15 +269,18 @@ interface CartItem {
                       <div class="d-inline-flex align-items-center gap-1 ms-1">
                         <span class="text-warning" style="font-size: 0.7rem;"><i class="bi bi-upc"></i></span>
                         <input type="text"
-                               class="form-control form-control-sm bg-dark text-warning border-secondary p-0 px-1.5 font-monospace fw-bold"
-                               style="width: 105px; height: 23px; font-size: 0.74rem;"
-                               [(ngModel)]="item.barcode"
-                               placeholder="Barcode..."
-                               title="Type or scan barcode for this item">
+                                class="form-control form-control-sm bg-dark text-warning border-secondary p-0 px-1.5 font-monospace fw-bold"
+                                style="width: 105px; height: 23px; font-size: 0.74rem;"
+                                [(ngModel)]="item.barcode"
+                                placeholder="Barcode..."
+                                title="Type or scan barcode for this item">
                       </div>
 
-                      <span *ngIf="item.quantity > item.product.currentStock" class="text-danger fw-bold">
+                      <span *ngIf="item.quantity && item.quantity > item.product.currentStock" class="text-danger fw-bold text-xs">
                         (! Low Stock)
+                      </span>
+                      <span *ngIf="!item.quantity || item.quantity <= 0" class="badge bg-warning bg-opacity-15 text-warning border border-warning border-opacity-30 text-xs py-0 px-1">
+                        Type Qty
                       </span>
                     </div>
                   </div>
@@ -302,9 +309,11 @@ interface CartItem {
                     <div class="d-flex align-items-center">
                       <button class="btn btn-outline-secondary btn-xs p-0 px-1.5" style="height: 26px;" (click)="decreaseQty(item)">-</button>
                       <input type="number" class="form-control form-control-sm text-center p-0 border-secondary bg-dark text-light fw-bold"
-                             style="width: 36px; height: 26px; font-size: 0.82rem;"
+                             style="width: 52px; height: 26px; font-size: 0.85rem;"
                              [(ngModel)]="item.quantity"
-                             (ngModelChange)="onQtyChange(item)" min="1">
+                             (ngModelChange)="onQtyChange(item)"
+                             placeholder="Qty"
+                             title="Type pieces/quantity to bill">
                       <button class="btn btn-outline-secondary btn-xs p-0 px-1.5" style="height: 26px;" (click)="increaseQty(item)">+</button>
                     </div>
                   </div>
@@ -312,8 +321,9 @@ interface CartItem {
                   <!-- Line Total -->
                   <div class="text-end">
                     <span class="text-secondary text-xs d-none d-sm-inline">Total: </span>
-                    <strong class="text-success small">
-                      {{ defaultCurrency }} {{ item.totalPrice | number:'1.2-2' }}
+                    <strong class="small" [ngClass]="(item.quantity && item.quantity > 0) ? 'text-success fw-bold' : 'text-secondary'">
+                      <span *ngIf="item.quantity && item.quantity > 0">{{ defaultCurrency }} {{ item.totalPrice | number:'1.2-2' }}</span>
+                      <span *ngIf="!item.quantity || item.quantity <= 0">—</span>
                     </strong>
                   </div>
                 </div>
@@ -323,7 +333,7 @@ interface CartItem {
             <!-- Financial Summary & Checkout -->
             <div class="p-3 rounded-2 bg-dark bg-opacity-70 border border-secondary border-opacity-30 mt-auto">
               <div class="d-flex justify-content-between small text-secondary mb-1">
-                <span>Subtotal ({{ cartTotalQuantity }} items):</span>
+                <span>Subtotal ({{ cartTotalQuantity }} pcs &bull; {{ cartActiveItemCount }} items):</span>
                 <span class="text-light fw-bold">{{ defaultCurrency }} {{ cartSubtotal | number:'1.2-2' }}</span>
               </div>
 
@@ -691,7 +701,9 @@ interface CartItem {
                           <input type="number" class="form-control form-control-sm text-center bg-dark text-light border-secondary p-0 font-monospace fw-bold"
                                  style="width: 65px; height: 26px; font-size: 0.8rem; margin: auto;"
                                  [(ngModel)]="item.quantity"
-                                 (ngModelChange)="onPoItemQtyChange(item)" min="1">
+                                 (ngModelChange)="onPoItemQtyChange(item)"
+                                 placeholder="Qty"
+                                 title="Type pieces/quantity">
                         </td>
                         <!-- Editable Rate -->
                         <td class="text-end">
@@ -701,8 +713,9 @@ interface CartItem {
                                  (ngModelChange)="onPoItemPriceChange(item)" min="0" step="0.5">
                         </td>
                         <!-- Line Total -->
-                        <td class="text-end fw-bold text-light font-monospace text-xs">
-                          {{ defaultCurrency }} {{ item.lineTotal | number:'1.2-2' }}
+                        <td class="text-end fw-bold font-monospace text-xs" [ngClass]="(item.quantity && item.quantity > 0) ? 'text-light' : 'text-secondary'">
+                          <span *ngIf="item.quantity && item.quantity > 0">{{ defaultCurrency }} {{ item.lineTotal | number:'1.2-2' }}</span>
+                          <span *ngIf="!item.quantity || item.quantity <= 0">—</span>
                         </td>
                         <!-- Remove button -->
                         <td class="text-center">
@@ -1218,7 +1231,7 @@ export class BillingComponent implements OnInit {
 
   // --- Cart Operations ---
 
-  addToCart(product: Product, customPrice?: number, qty: number = 1): void {
+  addToCart(product: Product, customPrice?: number, qty: number | null = 1): void {
     // If no explicit price provided, check customer price memory (last agreed price for this customer)
     if ((customPrice === undefined || customPrice === null) && this.customerPriceMap[product.id] !== undefined) {
       customPrice = this.customerPriceMap[product.id];
@@ -1226,18 +1239,20 @@ export class BillingComponent implements OnInit {
 
     const existing = this.cart.find(item => item.product.id === product.id);
     if (existing) {
-      existing.quantity += qty;
+      if (qty !== null && qty !== undefined && Number(qty) > 0) {
+        existing.quantity = (existing.quantity || 0) + Number(qty);
+      }
       if (customPrice !== undefined && customPrice !== null) {
         existing.unitPrice = customPrice;
       }
-      existing.totalPrice = existing.quantity * existing.unitPrice;
+      existing.totalPrice = (existing.quantity || 0) * existing.unitPrice;
     } else {
       const price = customPrice !== undefined && customPrice !== null ? customPrice : (product.price || 0);
       this.cart.push({
         product,
         quantity: qty,
         unitPrice: price,
-        totalPrice: qty * price,
+        totalPrice: (qty || 0) * price,
         barcode: product.barcode || ''
       });
     }
@@ -1247,30 +1262,43 @@ export class BillingComponent implements OnInit {
     if (item.unitPrice === null || item.unitPrice === undefined || item.unitPrice < 0) {
       item.unitPrice = 0;
     }
-    item.totalPrice = item.quantity * item.unitPrice;
+    item.totalPrice = (item.quantity && Number(item.quantity) > 0) ? Number(item.quantity) * item.unitPrice : 0;
     if (item.product && item.product.id) {
       this.customerPriceMap[item.product.id] = item.unitPrice;
     }
   }
 
   increaseQty(item: CartItem): void {
-    item.quantity += 1;
+    const current = (item.quantity && Number(item.quantity) > 0) ? Number(item.quantity) : 0;
+    item.quantity = current + 1;
     item.totalPrice = item.quantity * item.unitPrice;
   }
 
   decreaseQty(item: CartItem): void {
-    if (item.quantity > 1) {
-      item.quantity -= 1;
+    const current = (item.quantity && Number(item.quantity) > 0) ? Number(item.quantity) : 0;
+    if (current > 1) {
+      item.quantity = current - 1;
       item.totalPrice = item.quantity * item.unitPrice;
     } else {
-      const idx = this.cart.indexOf(item);
-      if (idx !== -1) this.cart.splice(idx, 1);
+      item.quantity = null;
+      item.totalPrice = 0;
     }
   }
 
   onQtyChange(item: CartItem): void {
-    if (!item.quantity || item.quantity < 1) item.quantity = 1;
-    item.totalPrice = item.quantity * item.unitPrice;
+    if (item.quantity === null || item.quantity === undefined || (item.quantity as any) === '') {
+      item.quantity = null;
+      item.totalPrice = 0;
+      return;
+    }
+    const val = Number(item.quantity);
+    if (isNaN(val) || val <= 0) {
+      item.quantity = null;
+      item.totalPrice = 0;
+    } else {
+      item.quantity = val;
+      item.totalPrice = val * item.unitPrice;
+    }
   }
 
   removeFromCart(index: number): void {
@@ -1286,60 +1314,60 @@ export class BillingComponent implements OnInit {
 
   getSandyaPoItems(): any[] {
     return [
-      { productId: -101, sku: 'HMC 36', productName: 'Bundle Small Woolies & Classical Set Woolies (8 Designs)', quantity: 48, unitPrice: 65.00, totalPrice: 3120.00, barcode: 'HMC 36', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -102, sku: 'WB 10', productName: 'Thick Blacky Wooly & Designer Color Woolies (13 Designs)', quantity: 36, unitPrice: 95.00, totalPrice: 3420.00, barcode: 'WB 10', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -103, sku: 'BP 62', productName: 'Blacky on Color Bundle Teen Woolies (16 Designs)', quantity: 36, unitPrice: 120.00, totalPrice: 4320.00, barcode: 'BP 62', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -104, sku: 'NB 72', productName: 'Thin & Thick Bundle Wooly Designers (10 Designs)', quantity: 36, unitPrice: 125.00, totalPrice: 4500.00, barcode: 'NB 72', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -105, sku: 'RC 32', productName: 'Rabbit Fur Scrunchy Wooly (4 Designs)', quantity: 36, unitPrice: 95.00, totalPrice: 3420.00, barcode: 'RC 32', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -106, sku: 'FW 03', productName: 'Telephone Wire Designer Woolies & Fur Thin Double Kid Wooly (12 Designs)', quantity: 36, unitPrice: 105.00, totalPrice: 3780.00, barcode: 'FW 03', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -107, sku: 'PB 31', productName: 'Small Trancy Clips & Wooly Set Combo Pcs (4 Designs)', quantity: 36, unitPrice: 160.00, totalPrice: 5760.00, barcode: 'PB 31', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -108, sku: 'FN 01', productName: '6 pcs Kiddy Fancy Wooly Long Card (7 Designs)', quantity: 36, unitPrice: 140.00, totalPrice: 5040.00, barcode: 'FN 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -109, sku: 'FC 04', productName: '3 Pcs Designer Kiddy Clip Set (10 Designs)', quantity: 36, unitPrice: 120.00, totalPrice: 4320.00, barcode: 'FC 04', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -110, sku: 'FC 08', productName: 'Steel Mini 2pcs peg & Glass Peg with Wooly Set (10 Designs)', quantity: 36, unitPrice: 125.00, totalPrice: 4500.00, barcode: 'FC 08', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -111, sku: 'FC 09', productName: 'Kiddy 6pcs clip on Small 3pcs Set Peg (8 Designs)', quantity: 36, unitPrice: 180.00, totalPrice: 6480.00, barcode: 'FC 09', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -112, sku: 'FC 13', productName: 'Shiny Stone Pegs & premier Set Hair Clips (6 Designs)', quantity: 36, unitPrice: 195.00, totalPrice: 7020.00, barcode: 'FC 13', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -113, sku: 'BLC 11', productName: 'Premier B\'Fly Clips & Bow Clip Exclusive (7 Designs)', quantity: 36, unitPrice: 230.00, totalPrice: 8280.00, barcode: 'BLC 11', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -114, sku: 'BS 09', productName: 'Acrylic Designer Clips & Steel Pegs 3pcs (13 Designs)', quantity: 36, unitPrice: 195.00, totalPrice: 7020.00, barcode: 'BS 09', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -115, sku: 'PHB 01', productName: 'Premier Set Hair Clips with Sunflower Pegs (13 Designs)', quantity: 36, unitPrice: 190.00, totalPrice: 6840.00, barcode: 'PHB 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -116, sku: 'MBE 10', productName: 'Clip & Wooly Mix with Kiddy double peggy Set (14 Designs)', quantity: 36, unitPrice: 220.00, totalPrice: 7920.00, barcode: 'MBE 10', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -117, sku: 'NB 67', productName: 'Combo Set Designer Kiddy Clips (10 Designs)', quantity: 36, unitPrice: 140.00, totalPrice: 5040.00, barcode: 'NB 67', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -118, sku: 'BLC 09', productName: 'Acrylic Combo Set & Glossy Set Clips (6 Designs)', quantity: 36, unitPrice: 170.00, totalPrice: 6120.00, barcode: 'BLC 09', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -119, sku: 'MCF 02', productName: 'Jojo Siwa Medium Clips Premier Designs (5 Designs)', quantity: 36, unitPrice: 220.00, totalPrice: 7920.00, barcode: 'MCF 02', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -120, sku: 'MB 68', productName: 'Fur ball Designer Clips (8 Designs)', quantity: 36, unitPrice: 105.00, totalPrice: 3780.00, barcode: 'MB 68', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -121, sku: 'HW 02', productName: 'Kiddy Colorful Clips Tic & Glossy (15 Designs)', quantity: 36, unitPrice: 150.00, totalPrice: 5400.00, barcode: 'HW 02', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -122, sku: 'LHP 05', productName: 'Long Hair Mini Peg & Clip Set (10 Designs)', quantity: 36, unitPrice: 170.00, totalPrice: 6120.00, barcode: 'LHP 05', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -123, sku: 'JS 10', productName: 'Classic Jojo Siwa Clips (5 Designs)', quantity: 36, unitPrice: 180.00, totalPrice: 6480.00, barcode: 'JS 10', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -124, sku: 'JS 11', productName: 'Kiddy Hair Clip Large & mini Designers Set (8 Designers)', quantity: 36, unitPrice: 150.00, totalPrice: 5400.00, barcode: 'JS 11', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -125, sku: 'NB 74', productName: '3 Pcs Flowery Set Pegs & Water Color Large Designer Pegs (10 Designs)', quantity: 24, unitPrice: 165.00, totalPrice: 3960.00, barcode: 'NB 74', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -126, sku: 'MKY 03', productName: 'Medium Matt Pegs (6 Designs)', quantity: 36, unitPrice: 110.00, totalPrice: 3960.00, barcode: 'MKY 03', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -127, sku: 'LHB 04', productName: '6 pcs Small Pastel Shade Pegs (6 Designs)', quantity: 36, unitPrice: 140.00, totalPrice: 5040.00, barcode: 'LHB 04', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -128, sku: 'HW 06', productName: 'Basic Fur & 8 to 10cm Pegs & Sunflower Designer Pegs (11 Designs)', quantity: 36, unitPrice: 110.00, totalPrice: 3960.00, barcode: 'HW 06', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -129, sku: 'HW 03', productName: 'Shady Color Matt & Gloss Pegs (8 Designs)', quantity: 24, unitPrice: 130.00, totalPrice: 3120.00, barcode: 'HW 03', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -130, sku: 'FN 01', productName: 'Water Color 8cm Designer Pegs (8 Designs)', quantity: 36, unitPrice: 150.00, totalPrice: 5400.00, barcode: 'FN 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -131, sku: 'NBE 04', productName: 'Water Color Kids Accessory Hair Peg (5 Designs)', quantity: 36, unitPrice: 120.00, totalPrice: 4320.00, barcode: 'NBE 04', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -132, sku: 'BSR 01', productName: '6 Pcs Pegs Set Designers (4 Designs)', quantity: 36, unitPrice: 295.00, totalPrice: 10620.00, barcode: 'BSR 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -133, sku: 'MCP 01', productName: 'Shades With Tiny Color Pegs Set (4 Designs)', quantity: 36, unitPrice: 180.00, totalPrice: 6480.00, barcode: 'MCP 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -134, sku: 'NB 73', productName: 'Glass Thin Designer Hair Bands (8 Designs)', quantity: 36, unitPrice: 95.00, totalPrice: 3420.00, barcode: 'NB 73', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -135, sku: 'LHB 02', productName: 'Glossy Thin Full Flex Hair Band with Accessory (5 Designs)', quantity: 36, unitPrice: 120.00, totalPrice: 4320.00, barcode: 'LHB 02', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -136, sku: 'KC 18', productName: 'Black Plastic Designer Bands (8 Designs)', quantity: 36, unitPrice: 50.00, totalPrice: 1800.00, barcode: 'KC 18', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -137, sku: 'MB 99', productName: 'Charm Mickey Bands Kids & Teens (9 Designs)', quantity: 36, unitPrice: 180.00, totalPrice: 6480.00, barcode: 'MB 99', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -138, sku: 'MB 98', productName: 'Kiddy Set Bracelet (4 Designs)', quantity: 36, unitPrice: 150.00, totalPrice: 5400.00, barcode: 'MB 98', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -139, sku: 'VC 02', productName: 'Exclusive Van Cliff Design Half Bangles with Stone Work (12 Designs)', quantity: 36, unitPrice: 260.00, totalPrice: 9360.00, barcode: 'VC 02', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -140, sku: 'SLD 15', productName: 'Exclusive Designer Key Tags (5 Designs)', quantity: 36, unitPrice: 250.00, totalPrice: 9000.00, barcode: 'SLD 15', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -141, sku: 'BS 12', productName: 'Shiny Stone Pearl Key Tags (5 Designs)', quantity: 36, unitPrice: 205.00, totalPrice: 7380.00, barcode: 'BS 12', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -142, sku: 'LCK 01', productName: 'Crystal & Metal Designer Key Tags (8 Designs)', quantity: 36, unitPrice: 140.00, totalPrice: 5040.00, barcode: 'LCK 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -143, sku: 'BLC 05', productName: 'Kids Small Necklace Set with Earing (6 Designs)', quantity: 36, unitPrice: 175.00, totalPrice: 6300.00, barcode: 'BLC 05', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -144, sku: 'VC 03', productName: 'Premier Necklace Designers (5 Designs)', quantity: 36, unitPrice: 520.00, totalPrice: 18720.00, barcode: 'VC 03', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -145, sku: 'VC 07', productName: 'Full Pearl & Half Pearl with Gold Necklace with Earing (12 Designs)', quantity: 36, unitPrice: 230.00, totalPrice: 8280.00, barcode: 'VC 07', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -146, sku: 'NB 01', productName: 'Kids Gold Necklace & Colorful Pearl Ball Necklace (8 Designs)', quantity: 36, unitPrice: 330.00, totalPrice: 11880.00, barcode: 'NB 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -147, sku: 'BSR 03', productName: 'Kids Ring Designer 6 Pcs Set Card (4 Designs)', quantity: 36, unitPrice: 240.00, totalPrice: 8640.00, barcode: 'BSR 03', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -148, sku: 'BSR 06', productName: 'Saree Broochers Big Exclusive (11 Designs)', quantity: 36, unitPrice: 340.00, totalPrice: 12240.00, barcode: 'BSR 06', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true }
+      { productId: -101, sku: 'HMC 36', productName: 'Bundle Small Woolies & Classical Set Woolies (8 Designs)', quantity: null, unitPrice: 65.00, totalPrice: 0.0, barcode: 'HMC 36', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -102, sku: 'WB 10', productName: 'Thick Blacky Wooly & Designer Color Woolies (13 Designs)', quantity: null, unitPrice: 95.00, totalPrice: 0.0, barcode: 'WB 10', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -103, sku: 'BP 62', productName: 'Blacky on Color Bundle Teen Woolies (16 Designs)', quantity: null, unitPrice: 120.00, totalPrice: 0.0, barcode: 'BP 62', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -104, sku: 'NB 72', productName: 'Thin & Thick Bundle Wooly Designers (10 Designs)', quantity: null, unitPrice: 125.00, totalPrice: 0.0, barcode: 'NB 72', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -105, sku: 'RC 32', productName: 'Rabbit Fur Scrunchy Wooly (4 Designs)', quantity: null, unitPrice: 95.00, totalPrice: 0.0, barcode: 'RC 32', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -106, sku: 'FW 03', productName: 'Telephone Wire Designer Woolies & Fur Thin Double Kid Wooly (12 Designs)', quantity: null, unitPrice: 105.00, totalPrice: 0.0, barcode: 'FW 03', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -107, sku: 'PB 31', productName: 'Small Trancy Clips & Wooly Set Combo Pcs (4 Designs)', quantity: null, unitPrice: 160.00, totalPrice: 0.0, barcode: 'PB 31', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -108, sku: 'FN 01', productName: '6 pcs Kiddy Fancy Wooly Long Card (7 Designs)', quantity: null, unitPrice: 140.00, totalPrice: 0.0, barcode: 'FN 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -109, sku: 'FC 04', productName: '3 Pcs Designer Kiddy Clip Set (10 Designs)', quantity: null, unitPrice: 120.00, totalPrice: 0.0, barcode: 'FC 04', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -110, sku: 'FC 08', productName: 'Steel Mini 2pcs peg & Glass Peg with Wooly Set (10 Designs)', quantity: null, unitPrice: 125.00, totalPrice: 0.0, barcode: 'FC 08', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -111, sku: 'FC 09', productName: 'Kiddy 6pcs clip on Small 3pcs Set Peg (8 Designs)', quantity: null, unitPrice: 180.00, totalPrice: 0.0, barcode: 'FC 09', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -112, sku: 'FC 13', productName: 'Shiny Stone Pegs & premier Set Hair Clips (6 Designs)', quantity: null, unitPrice: 195.00, totalPrice: 0.0, barcode: 'FC 13', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -113, sku: 'BLC 11', productName: 'Premier B\'Fly Clips & Bow Clip Exclusive (7 Designs)', quantity: null, unitPrice: 230.00, totalPrice: 0.0, barcode: 'BLC 11', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -114, sku: 'BS 09', productName: 'Acrylic Designer Clips & Steel Pegs 3pcs (13 Designs)', quantity: null, unitPrice: 195.00, totalPrice: 0.0, barcode: 'BS 09', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -115, sku: 'PHB 01', productName: 'Premier Set Hair Clips with Sunflower Pegs (13 Designs)', quantity: null, unitPrice: 190.00, totalPrice: 0.0, barcode: 'PHB 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -116, sku: 'MBE 10', productName: 'Clip & Wooly Mix with Kiddy double peggy Set (14 Designs)', quantity: null, unitPrice: 220.00, totalPrice: 0.0, barcode: 'MBE 10', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -117, sku: 'NB 67', productName: 'Combo Set Designer Kiddy Clips (10 Designs)', quantity: null, unitPrice: 140.00, totalPrice: 0.0, barcode: 'NB 67', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -118, sku: 'BLC 09', productName: 'Acrylic Combo Set & Glossy Set Clips (6 Designs)', quantity: null, unitPrice: 170.00, totalPrice: 0.0, barcode: 'BLC 09', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -119, sku: 'MCF 02', productName: 'Jojo Siwa Medium Clips Premier Designs (5 Designs)', quantity: null, unitPrice: 220.00, totalPrice: 0.0, barcode: 'MCF 02', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -120, sku: 'MB 68', productName: 'Fur ball Designer Clips (8 Designs)', quantity: null, unitPrice: 105.00, totalPrice: 0.0, barcode: 'MB 68', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -121, sku: 'HW 02', productName: 'Kiddy Colorful Clips Tic & Glossy (15 Designs)', quantity: null, unitPrice: 150.00, totalPrice: 0.0, barcode: 'HW 02', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -122, sku: 'LHP 05', productName: 'Long Hair Mini Peg & Clip Set (10 Designs)', quantity: null, unitPrice: 170.00, totalPrice: 0.0, barcode: 'LHP 05', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -123, sku: 'JS 10', productName: 'Classic Jojo Siwa Clips (5 Designs)', quantity: null, unitPrice: 180.00, totalPrice: 0.0, barcode: 'JS 10', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -124, sku: 'JS 11', productName: 'Kiddy Hair Clip Large & mini Designers Set (8 Designers)', quantity: null, unitPrice: 150.00, totalPrice: 0.0, barcode: 'JS 11', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -125, sku: 'NB 74', productName: '3 Pcs Flowery Set Pegs & Water Color Large Designer Pegs (10 Designs)', quantity: null, unitPrice: 165.00, totalPrice: 0.0, barcode: 'NB 74', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -126, sku: 'MKY 03', productName: 'Medium Matt Pegs (6 Designs)', quantity: null, unitPrice: 110.00, totalPrice: 0.0, barcode: 'MKY 03', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -127, sku: 'LHB 04', productName: '6 pcs Small Pastel Shade Pegs (6 Designs)', quantity: null, unitPrice: 140.00, totalPrice: 0.0, barcode: 'LHB 04', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -128, sku: 'HW 06', productName: 'Basic Fur & 8 to 10cm Pegs & Sunflower Designer Pegs (11 Designs)', quantity: null, unitPrice: 110.00, totalPrice: 0.0, barcode: 'HW 06', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -129, sku: 'HW 03', productName: 'Shady Color Matt & Gloss Pegs (8 Designs)', quantity: null, unitPrice: 130.00, totalPrice: 0.0, barcode: 'HW 03', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -130, sku: 'FN 01', productName: 'Water Color 8cm Designer Pegs (8 Designs)', quantity: null, unitPrice: 150.00, totalPrice: 0.0, barcode: 'FN 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -131, sku: 'NBE 04', productName: 'Water Color Kids Accessory Hair Peg (5 Designs)', quantity: null, unitPrice: 120.00, totalPrice: 0.0, barcode: 'NBE 04', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -132, sku: 'BSR 01', productName: '6 Pcs Pegs Set Designers (4 Designs)', quantity: null, unitPrice: 295.00, totalPrice: 0.0, barcode: 'BSR 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -133, sku: 'MCP 01', productName: 'Shades With Tiny Color Pegs Set (4 Designs)', quantity: null, unitPrice: 180.00, totalPrice: 0.0, barcode: 'MCP 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -134, sku: 'NB 73', productName: 'Glass Thin Designer Hair Bands (8 Designs)', quantity: null, unitPrice: 95.00, totalPrice: 0.0, barcode: 'NB 73', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -135, sku: 'LHB 02', productName: 'Glossy Thin Full Flex Hair Band with Accessory (5 Designs)', quantity: null, unitPrice: 120.00, totalPrice: 0.0, barcode: 'LHB 02', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -136, sku: 'KC 18', productName: 'Black Plastic Designer Bands (8 Designs)', quantity: null, unitPrice: 50.00, totalPrice: 0.0, barcode: 'KC 18', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -137, sku: 'MB 99', productName: 'Charm Mickey Bands Kids & Teens (9 Designs)', quantity: null, unitPrice: 180.00, totalPrice: 0.0, barcode: 'MB 99', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -138, sku: 'MB 98', productName: 'Kiddy Set Bracelet (4 Designs)', quantity: null, unitPrice: 150.00, totalPrice: 0.0, barcode: 'MB 98', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -139, sku: 'VC 02', productName: 'Exclusive Van Cliff Design Half Bangles with Stone Work (12 Designs)', quantity: null, unitPrice: 260.00, totalPrice: 0.0, barcode: 'VC 02', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -140, sku: 'SLD 15', productName: 'Exclusive Designer Key Tags (5 Designs)', quantity: null, unitPrice: 250.00, totalPrice: 0.0, barcode: 'SLD 15', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -141, sku: 'BS 12', productName: 'Shiny Stone Pearl Key Tags (5 Designs)', quantity: null, unitPrice: 205.00, totalPrice: 0.0, barcode: 'BS 12', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -142, sku: 'LCK 01', productName: 'Crystal & Metal Designer Key Tags (8 Designs)', quantity: null, unitPrice: 140.00, totalPrice: 0.0, barcode: 'LCK 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -143, sku: 'BLC 05', productName: 'Kids Small Necklace Set with Earing (6 Designs)', quantity: null, unitPrice: 175.00, totalPrice: 0.0, barcode: 'BLC 05', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -144, sku: 'VC 03', productName: 'Premier Necklace Designers (5 Designs)', quantity: null, unitPrice: 520.00, totalPrice: 0.0, barcode: 'VC 03', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -145, sku: 'VC 07', productName: 'Full Pearl & Half Pearl with Gold Necklace with Earing (12 Designs)', quantity: null, unitPrice: 230.00, totalPrice: 0.0, barcode: 'VC 07', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -146, sku: 'NB 01', productName: 'Kids Gold Necklace & Colorful Pearl Ball Necklace (8 Designs)', quantity: null, unitPrice: 330.00, totalPrice: 0.0, barcode: 'NB 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -147, sku: 'BSR 03', productName: 'Kids Ring Designer 6 Pcs Set Card (4 Designs)', quantity: null, unitPrice: 240.00, totalPrice: 0.0, barcode: 'BSR 03', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
+      { productId: -148, sku: 'BSR 06', productName: 'Saree Broochers Big Exclusive (11 Designs)', quantity: null, unitPrice: 340.00, totalPrice: 0.0, barcode: 'BSR 06', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true }
     ];
   }
 
   private getLocalProfiles(): CustomerProfile[] {
     const sandyaItems = this.getSandyaPoItems();
-    const sandyaTotal = sandyaItems.reduce((acc, itm) => acc + itm.totalPrice, 0);
+    const sandyaTotal = sandyaItems.reduce((acc, itm) => acc + (itm.totalPrice || 0), 0);
 
     const sandyaProfile: CustomerProfile = {
       customerName: 'Sandya Textile (Ratnapura)',
@@ -1355,9 +1383,13 @@ export class BillingComponent implements OnInit {
       if (data) {
         const parsed = JSON.parse(data);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          if (!parsed.some(p => p.customerName.toLowerCase().includes('sandya'))) {
+          const sandyaIdx = parsed.findIndex(p => p.customerName.toLowerCase().includes('sandya'));
+          if (sandyaIdx >= 0) {
+            parsed[sandyaIdx] = sandyaProfile;
+          } else {
             parsed.unshift(sandyaProfile);
           }
+          localStorage.setItem('wms_saved_customer_pos', JSON.stringify(parsed));
           return parsed;
         }
       }
@@ -1500,13 +1532,17 @@ export class BillingComponent implements OnInit {
         product = this.products().find(p => p.name.toLowerCase() === poItem.productName.toLowerCase());
       }
 
+      const itemQty = (poItem.quantity !== null && poItem.quantity !== undefined && Number(poItem.quantity) > 0) ? Number(poItem.quantity) : null;
+      const itemTotal = (itemQty !== null) ? itemQty * poItem.unitPrice : 0;
+      const itemBarcode = poItem.barcode || (product ? product.barcode : '') || '';
+
       if (product) {
         this.cart.push({
           product,
-          quantity: poItem.quantity,
+          quantity: itemQty,
           unitPrice: poItem.unitPrice,
-          totalPrice: poItem.quantity * poItem.unitPrice,
-          barcode: poItem.barcode || product.barcode || ''
+          totalPrice: itemTotal,
+          barcode: itemBarcode
         });
       } else {
         const stubProduct: Product = {
@@ -1514,7 +1550,7 @@ export class BillingComponent implements OnInit {
           clientId: 0,
           name: poItem.productName,
           sku: poItem.sku || 'SKU',
-          barcode: poItem.barcode,
+          barcode: itemBarcode,
           unit: poItem.unit || 'PCS',
           price: poItem.unitPrice,
           currentStock: 999,
@@ -1526,10 +1562,10 @@ export class BillingComponent implements OnInit {
         };
         this.cart.push({
           product: stubProduct,
-          quantity: poItem.quantity,
+          quantity: itemQty,
           unitPrice: poItem.unitPrice,
-          totalPrice: poItem.quantity * poItem.unitPrice,
-          barcode: poItem.barcode || ''
+          totalPrice: itemTotal,
+          barcode: itemBarcode
         });
       }
     }
@@ -1538,11 +1574,15 @@ export class BillingComponent implements OnInit {
   // --- Calculations ---
 
   get cartTotalQuantity(): number {
-    return this.cart.reduce((sum, item) => sum + item.quantity, 0);
+    return this.cart.reduce((sum, item) => sum + ((item.quantity && Number(item.quantity) > 0) ? Number(item.quantity) : 0), 0);
+  }
+
+  get cartActiveItemCount(): number {
+    return this.cart.filter(item => item.quantity && Number(item.quantity) > 0).length;
   }
 
   get cartSubtotal(): number {
-    return this.cart.reduce((sum, item) => sum + item.totalPrice, 0);
+    return this.cart.reduce((sum, item) => sum + ((item.quantity && Number(item.quantity) > 0) ? (Number(item.quantity) * item.unitPrice) : 0), 0);
   }
 
   get cartGrandTotal(): number {
@@ -1564,6 +1604,12 @@ export class BillingComponent implements OnInit {
       return;
     }
 
+    const validItems = this.cart.filter(item => item.quantity && Number(item.quantity) > 0);
+    if (validItems.length === 0) {
+      alert('Please enter quantities (pieces) for the items you want to bill before checkout.');
+      return;
+    }
+
     if (!this.customerName || !this.customerName.trim()) {
       alert('Please enter shop / customer name.');
       return;
@@ -1577,9 +1623,9 @@ export class BillingComponent implements OnInit {
       discountAmount: this.discountAmount || 0,
       taxAmount: this.taxAmount || 0,
       paidAmount: this.paidAmount || this.cartGrandTotal,
-      items: this.cart.map(item => ({
+      items: validItems.map(item => ({
         productId: item.product.id,
-        quantity: item.quantity,
+        quantity: Number(item.quantity),
         unitPrice: item.unitPrice,
         barcode: item.barcode ? item.barcode.trim() : undefined
       }))
@@ -1970,8 +2016,9 @@ export class BillingComponent implements OnInit {
     let units = 0;
     let total = 0;
     for (const item of this.poPreview.items) {
-      item.lineTotal = (item.quantity || 1) * (item.customPrice || 0);
-      units += item.quantity || 1;
+      const q = (item.quantity && Number(item.quantity) > 0) ? Number(item.quantity) : 0;
+      item.lineTotal = q * (item.customPrice || 0);
+      units += q;
       total += item.lineTotal;
     }
     this.poPreview.totalItems = this.poPreview.items.length;
@@ -1980,7 +2027,19 @@ export class BillingComponent implements OnInit {
   }
 
   onPoItemQtyChange(item: any): void {
-    if (!item.quantity || item.quantity < 1) item.quantity = 1;
+    if (item.quantity === null || item.quantity === undefined || (item.quantity as any) === '') {
+      item.quantity = null;
+      item.lineTotal = 0;
+    } else {
+      const q = Number(item.quantity);
+      if (isNaN(q) || q <= 0) {
+        item.quantity = null;
+        item.lineTotal = 0;
+      } else {
+        item.quantity = q;
+        item.lineTotal = q * (item.customPrice || 0);
+      }
+    }
     this.recalculatePoTotals();
   }
 
@@ -2008,7 +2067,7 @@ export class BillingComponent implements OnInit {
         item.customPrice = prod.price || 0;
       }
       item.availableStock = prod.currentStock || 0;
-      item.isStockSufficient = (prod.currentStock || 0) >= item.quantity;
+      item.isStockSufficient = item.quantity ? (prod.currentStock || 0) >= item.quantity : true;
       item.matched = true;
       this.recalculatePoTotals();
     }
@@ -2022,18 +2081,18 @@ export class BillingComponent implements OnInit {
     if (!this.poPreview.items) this.poPreview.items = [];
     const existing = this.poPreview.items.find(i => i.productId === prod.id);
     if (existing) {
-      existing.quantity += 1;
+      existing.quantity = (existing.quantity || 0) + 1;
     } else {
       this.poPreview.items.push({
         productId: prod.id,
         productName: prod.name,
         sku: prod.sku,
         unit: prod.unit || 'PCS',
-        quantity: 1,
+        quantity: null,
         customPrice: prod.price || 0,
-        lineTotal: prod.price || 0,
+        lineTotal: 0,
         availableStock: prod.currentStock || 0,
-        isStockSufficient: (prod.currentStock || 0) >= 1,
+        isStockSufficient: true,
         matched: true
       });
     }
@@ -2063,10 +2122,11 @@ export class BillingComponent implements OnInit {
         product = this.products().find(p => p.name.toLowerCase() === poItem.productName.toLowerCase());
       }
 
+      const itemQty = (poItem.quantity !== null && poItem.quantity !== undefined && Number(poItem.quantity) > 0) ? Number(poItem.quantity) : null;
       const itemBarcode = poItem.sku || (product ? product.barcode : '') || '';
 
       if (product) {
-        this.addToCart(product, poItem.customPrice, poItem.quantity);
+        this.addToCart(product, poItem.customPrice, itemQty);
         this.customerPriceMap[product.id] = poItem.customPrice;
         const cItem = this.cart.find(c => c.product.id === product!.id);
         if (cItem) {
@@ -2090,9 +2150,9 @@ export class BillingComponent implements OnInit {
         };
         this.cart.push({
           product: stubProduct,
-          quantity: poItem.quantity,
+          quantity: itemQty,
           unitPrice: poItem.customPrice,
-          totalPrice: poItem.quantity * poItem.customPrice,
+          totalPrice: itemQty ? itemQty * poItem.customPrice : 0,
           barcode: itemBarcode
         });
       }
@@ -2100,7 +2160,7 @@ export class BillingComponent implements OnInit {
 
     this.activeTab = 'POS';
     this.closePriceOrderModal();
-    this.autoConvertToast = `✅ Customer PO Auto-Converted to Bill! ${this.cart.length} items loaded for "${this.customerName}" (Total: ${this.defaultCurrency} ${this.cartGrandTotal.toFixed(2)})`;
+    this.autoConvertToast = `✅ Customer PO Loaded! ${this.cart.length} items loaded for "${this.customerName}". You can now type the quantities (pieces) to bill.`;
 
     if (this.customerName && !this.isWalkIn) {
       this.saveCustomerProfileLocally(
@@ -2117,8 +2177,14 @@ export class BillingComponent implements OnInit {
   directCheckoutFromPo(): void {
     if (!this.poPreview || !this.poPreview.items.length) return;
 
+    const validItems = this.poPreview.items.filter(i => i.quantity && Number(i.quantity) > 0);
+    if (validItems.length === 0) {
+      alert('Please enter quantity (pieces) for at least one item before checkout.');
+      return;
+    }
+
     // Check if all items matched
-    const unmatched = this.poPreview.items.filter(i => !i.matched);
+    const unmatched = validItems.filter(i => !i.matched);
     if (unmatched.length > 0) {
       alert(`Warning: ${unmatched.length} item(s) from the Price Order do not match any product in your store catalog. Please load into cart first to review.`);
       return;
@@ -2132,9 +2198,9 @@ export class BillingComponent implements OnInit {
       discountAmount: 0,
       taxAmount: 0,
       paidAmount: this.poPreview.estimatedTotal,
-      items: this.poPreview.items.map(i => ({
+      items: validItems.map(i => ({
         productId: i.productId!,
-        quantity: i.quantity,
+        quantity: Number(i.quantity),
         unitPrice: i.customPrice
       }))
     };

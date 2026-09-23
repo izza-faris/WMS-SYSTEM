@@ -453,8 +453,8 @@ public class BillingService {
         List<PriceOrderItemPreviewDto> items = getSandyaPoItemsList(clientId);
         preview.setItems(items);
         preview.setTotalItems(items.size());
-        int units = items.stream().mapToInt(PriceOrderItemPreviewDto::getQuantity).sum();
-        double total = items.stream().mapToDouble(PriceOrderItemPreviewDto::getLineTotal).sum();
+        int units = items.stream().mapToInt(i -> i.getQuantity() != null ? i.getQuantity() : 0).sum();
+        double total = items.stream().mapToDouble(i -> i.getLineTotal() != null ? i.getLineTotal() : 0.0).sum();
         preview.setTotalQuantity(units);
         preview.setEstimatedTotal(total);
 
@@ -559,8 +559,8 @@ public class BillingService {
             preview.setShopName("Sandya Textile (Ratnapura)");
             preview.setShopPhone("045-2223344");
             items = getSandyaPoItemsList(clientId);
-            grandTotal = items.stream().mapToDouble(PriceOrderItemPreviewDto::getLineTotal).sum();
-            totalUnits = items.stream().mapToInt(PriceOrderItemPreviewDto::getQuantity).sum();
+            grandTotal = items.stream().mapToDouble(i -> i.getLineTotal() != null ? i.getLineTotal() : 0.0).sum();
+            totalUnits = items.stream().mapToInt(i -> i.getQuantity() != null ? i.getQuantity() : 0).sum();
         }
 
         preview.setItems(items);
@@ -655,9 +655,9 @@ public class BillingService {
                 item.setIsStockSufficient(true);
                 item.setMatched(true);
             }
-            item.setQuantity(qty);
+            item.setQuantity(null);
             item.setCustomPrice(price);
-            item.setLineTotal(qty * price);
+            item.setLineTotal(0.0);
             items.add(item);
         }
         return items;
