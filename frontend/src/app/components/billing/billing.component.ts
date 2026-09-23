@@ -1684,9 +1684,12 @@ export class BillingComponent implements OnInit {
       paidAmount: this.paidAmount || this.cartGrandTotal,
       items: validItems.map(item => ({
         productId: item.product.id,
+        productName: item.product.name,
+        sku: item.product.sku,
+        unit: item.product.unit || 'PCS',
         quantity: Number(item.quantity),
         unitPrice: item.unitPrice,
-        barcode: item.barcode ? item.barcode.trim() : undefined
+        barcode: item.barcode ? item.barcode.trim() : (item.product.barcode ? item.product.barcode.trim() : undefined)
       }))
     };
 
@@ -2242,13 +2245,6 @@ export class BillingComponent implements OnInit {
       return;
     }
 
-    // Check if all items matched
-    const unmatched = validItems.filter(i => !i.matched);
-    if (unmatched.length > 0) {
-      alert(`Warning: ${unmatched.length} item(s) from the Price Order do not match any product in your store catalog. Please load into cart first to review.`);
-      return;
-    }
-
     const payload: CheckoutRequest = {
       warehouseId: this.selectedWarehouseId || undefined,
       customerName: this.poPreview.shopName || 'Wholesale Shop',
@@ -2258,9 +2254,13 @@ export class BillingComponent implements OnInit {
       taxAmount: 0,
       paidAmount: this.poPreview.estimatedTotal,
       items: validItems.map(i => ({
-        productId: i.productId!,
+        productId: (i.productId && i.productId > 0) ? i.productId : 0,
+        productName: i.productName,
+        sku: i.sku,
+        unit: i.unit || 'PCS',
         quantity: Number(i.quantity),
-        unitPrice: i.customPrice
+        unitPrice: i.customPrice,
+        barcode: i.sku || undefined
       }))
     };
 

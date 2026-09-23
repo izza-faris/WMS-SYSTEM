@@ -301,7 +301,10 @@ export interface SaleInvoice {
 }
 
 export interface CheckoutItemRequest {
-  productId: number;
+  productId?: number;
+  productName?: string;
+  sku?: string;
+  unit?: string;
   quantity: number;
   unitPrice?: number;
   barcode?: string;

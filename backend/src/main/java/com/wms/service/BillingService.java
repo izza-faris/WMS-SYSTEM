@@ -60,6 +60,36 @@ public class BillingService {
         this.qrBarcodeService = qrBarcodeService;
     }
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(BillingService.class);
+
+    @jakarta.annotation.PostConstruct
+    public void cleanupAutoCreatedWholesaleProducts() {
+        try {
+            List<Product> allProds = productRepository.findAll();
+            List<Product> toDelete = new ArrayList<>();
+            for (Product p : allProds) {
+                if (p.getName() != null && (p.getName().startsWith("Wholesale Item ITEM-") || p.getName().startsWith("ITEM-") ||
+                    (p.getBrand() == null && p.getCategoryId() == null && p.getMaxStockLevel() == 10000 && p.getMinStockLevel() == 2 && p.getReorderLevel() == 5))) {
+                    toDelete.add(p);
+                }
+            }
+            if (!toDelete.isEmpty()) {
+                log.info("Cleaning up {} auto-created wholesale products from product catalog", toDelete.size());
+                for (Product p : toDelete) {
+                    try {
+                        List<Inventory> invs = inventoryRepository.findByClientIdAndProductId(p.getClientId(), p.getId());
+                        if (invs != null && !invs.isEmpty()) {
+                            inventoryRepository.deleteAll(invs);
+                        }
+                    } catch (Exception ignored) {}
+                    productRepository.delete(p);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not cleanup auto-created wholesale products: {}", e.getMessage());
+        }
+    }
+
     @Transactional
     public SaleInvoiceDto checkout(CheckoutRequest request) {
         Long clientId = tenantSecurityService.requireCurrentClientId();
@@ -125,61 +155,42 @@ public class BillingService {
                         .or(() -> productRepository.findByClientIdAndSku(clientId, searchCode))
                         .orElse(null);
             }
-            if (product == null) {
-                // Auto-create product record for PO / wholesale item
-                product = new Product();
-                product.setClientId(clientId);
-                String skuName = (itemReq.getBarcode() != null && !itemReq.getBarcode().trim().isEmpty())
-                        ? itemReq.getBarcode().trim()
-                        : "ITEM-" + (System.currentTimeMillis() % 100000);
-                product.setName(skuName.startsWith("ITEM-") ? "Wholesale Item " + skuName : skuName);
-                product.setSku(skuName);
-                product.setBarcode(itemReq.getBarcode() != null ? itemReq.getBarcode().trim() : null);
-                product.setPrice(itemReq.getUnitPrice() != null ? itemReq.getUnitPrice() : 0.0);
-                product.setUnit("PCS");
-                product.setReorderLevel(5);
-                product.setMinStockLevel(2);
-                product.setMaxStockLevel(10000);
-                product.setExpiryTrackingEnabled(false);
-                product.setIsActive(true);
-                product = productRepository.save(product);
-            }
 
-            // Ensure warehouse inventory exists for this product so stockOut does not fail
-            Inventory inv = inventoryRepository.findByClientIdAndWarehouseIdAndBinIdAndProductIdAndBatchId(
-                    clientId, warehouseId, null, product.getId(), null
-            ).orElse(null);
-            if (inv == null) {
-                inv = new Inventory(clientId, warehouseId, null, product.getId(), null, Math.max(itemReq.getQuantity() + 100, 1000));
-                inventoryRepository.save(inv);
-            } else if (inv.getQuantity() < itemReq.getQuantity()) {
-                inv.setQuantity(inv.getQuantity() + itemReq.getQuantity() + 100);
-                inventoryRepository.save(inv);
-            }
-
-            double unitPrice = itemReq.getUnitPrice() != null ? itemReq.getUnitPrice() : (product.getPrice() != null ? product.getPrice() : 0.0);
+            // CRITICAL: DO NOT auto-create products in productRepository!
+            // When PO / wholesale images are uploaded, their items are for the sales invoice / bill only.
+            // They must NOT pollute or be added to the permanent store product catalog.
+            Long itemProductId = (product != null) ? product.getId() : (itemReq.getProductId() != null ? itemReq.getProductId() : 0L);
+            String itemName = (product != null) ? product.getName() : (itemReq.getProductName() != null && !itemReq.getProductName().trim().isEmpty() ? itemReq.getProductName().trim() : "Wholesale Item");
+            String itemSku = (product != null) ? product.getSku() : (itemReq.getSku() != null && !itemReq.getSku().trim().isEmpty() ? itemReq.getSku().trim() : (itemReq.getBarcode() != null ? itemReq.getBarcode().trim() : "PO-ITEM"));
+            String itemUnit = (product != null && product.getUnit() != null) ? product.getUnit() : (itemReq.getUnit() != null && !itemReq.getUnit().trim().isEmpty() ? itemReq.getUnit().trim() : "PCS");
+            double unitPrice = itemReq.getUnitPrice() != null ? itemReq.getUnitPrice() : ((product != null && product.getPrice() != null) ? product.getPrice() : 0.0);
             double lineTotal = unitPrice * itemReq.getQuantity();
 
             subtotal += lineTotal;
             totalQty += itemReq.getQuantity();
 
-            // Auto-deduct from inventory via InventoryService
-            StockOutRequest stockOutReq = new StockOutRequest();
-            stockOutReq.setProductId(product.getId());
-            stockOutReq.setWarehouseId(warehouseId);
-            stockOutReq.setQuantity(itemReq.getQuantity());
-            stockOutReq.setReferenceNumber(invoiceNumber);
-            stockOutReq.setNotes("POS Sale to " + customerName + " [" + invoiceNumber + "]");
+            // Only deduct inventory if this product actually exists in the store catalog
+            if (product != null) {
+                try {
+                    StockOutRequest stockOutReq = new StockOutRequest();
+                    stockOutReq.setProductId(product.getId());
+                    stockOutReq.setWarehouseId(warehouseId);
+                    stockOutReq.setQuantity(itemReq.getQuantity());
+                    stockOutReq.setReferenceNumber(invoiceNumber);
+                    stockOutReq.setNotes("POS Sale to " + customerName + " [" + invoiceNumber + "]");
+                    inventoryService.stockOut(stockOutReq);
+                } catch (Exception e) {
+                    log.warn("Could not deduct stock for existing product {}: {}", product.getId(), e.getMessage());
+                }
+            }
 
-            inventoryService.stockOut(stockOutReq);
-
-            // Record invoice item
+            // Record invoice item directly on the bill for printing and invoice history
             SaleInvoiceItem invoiceItem = new SaleInvoiceItem(
                     invoice.getId(),
-                    product.getId(),
-                    product.getName(),
-                    product.getSku(),
-                    product.getUnit() != null ? product.getUnit() : "PCS",
+                    itemProductId,
+                    itemName,
+                    itemSku,
+                    itemUnit,
                     itemReq.getQuantity(),
                     unitPrice,
                     lineTotal

@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotNull;
 
 public class CheckoutItemRequest {
 
-    @NotNull(message = "Product ID is required")
     private Long productId;
 
     @NotNull(message = "Quantity is required")
@@ -14,6 +13,9 @@ public class CheckoutItemRequest {
 
     private Double unitPrice;
     private String barcode;
+    private String productName;
+    private String sku;
+    private String unit;
 
     public CheckoutItemRequest() {}
 
@@ -41,4 +43,13 @@ public class CheckoutItemRequest {
 
     public String getBarcode() { return barcode; }
     public void setBarcode(String barcode) { this.barcode = barcode; }
+
+    public String getProductName() { return productName; }
+    public void setProductName(String productName) { this.productName = productName; }
+
+    public String getSku() { return sku; }
+    public void setSku(String sku) { this.sku = sku; }
+
+    public String getUnit() { return unit; }
+    public void setUnit(String unit) { this.unit = unit; }
 }
