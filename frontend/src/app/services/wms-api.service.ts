@@ -325,10 +325,14 @@ export class WmsApiService {
     return this.http.get<ApiResponse<SaleInvoice>>(`${this.baseUrl}/billing/invoices/${id}`);
   }
 
-  uploadPriceOrderExcel(file: File): Observable<ApiResponse<PriceOrderPreview>> {
+  uploadPriceOrderFile(file: File): Observable<ApiResponse<PriceOrderPreview>> {
     const formData = new FormData();
     formData.append('file', file);
     return this.http.post<ApiResponse<PriceOrderPreview>>(`${this.baseUrl}/billing/upload-price-order`, formData);
+  }
+
+  uploadPriceOrderExcel(file: File): Observable<ApiResponse<PriceOrderPreview>> {
+    return this.uploadPriceOrderFile(file);
   }
 
   getPriceOrderTemplateUrl(): string {

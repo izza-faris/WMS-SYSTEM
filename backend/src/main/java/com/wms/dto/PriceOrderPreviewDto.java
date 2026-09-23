@@ -13,6 +13,8 @@ public class PriceOrderPreviewDto {
     private Integer totalQuantity = 0;
     private Double estimatedTotal = 0.0;
     private String fileName;
+    private String fileType;
+    private String rawText;
     private List<PriceOrderItemPreviewDto> items = new ArrayList<>();
 
     public PriceOrderPreviewDto() {}
@@ -43,6 +45,12 @@ public class PriceOrderPreviewDto {
 
     public String getFileName() { return fileName; }
     public void setFileName(String fileName) { this.fileName = fileName; }
+
+    public String getFileType() { return fileType; }
+    public void setFileType(String fileType) { this.fileType = fileType; }
+
+    public String getRawText() { return rawText; }
+    public void setRawText(String rawText) { this.rawText = rawText; }
 
     public List<PriceOrderItemPreviewDto> getItems() { return items; }
     public void setItems(List<PriceOrderItemPreviewDto> items) { this.items = items; }

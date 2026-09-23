@@ -343,6 +343,9 @@ export interface PriceOrderPreview {
   totalQuantity: number;
   estimatedTotal: number;
   fileName?: string;
+  fileType?: string;
+  imagePreviewUrl?: string;
+  rawText?: string;
   items: PriceOrderItemPreview[];
 }
 

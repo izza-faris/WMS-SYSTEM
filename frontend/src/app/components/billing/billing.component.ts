@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { WmsApiService } from '../../services/wms-api.service';
 import { AuthService } from '../../services/auth.service';
 import { Product, Warehouse, Category, SaleInvoice, SaleInvoiceItem, CheckoutRequest, PriceOrderPreview, CustomerProfile } from '../../models/wms.models';
@@ -53,13 +54,16 @@ interface CartItem {
             </button>
           </div>
 
-          <!-- Wholesale Price Order Excel Upload Button -->
-          <button (click)="openPriceOrderModal()" class="btn btn-outline-warning btn-sm px-3 fw-bold shadow-sm">
-            <i class="bi bi-file-earmark-excel me-1"></i> Upload Shop Price Order
+          <!-- Wholesale Price Order & PO Upload Button (Camera / Image / PDF / Excel) -->
+          <button (click)="openPriceOrderModal()" class="btn btn-outline-warning btn-sm px-3 fw-bold shadow-sm d-flex align-items-center gap-1.5" title="Take photo or upload customer purchase order image, PDF or Excel">
+            <i class="bi bi-camera-fill text-warning"></i>
+            <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
+            <span>Scan / Upload PO</span>
+            <span class="badge bg-warning text-dark text-xs px-1.5 py-0.5 ms-1">Image &bull; PDF &bull; Excel</span>
           </button>
 
           <!-- Download Excel Template Link -->
-          <a [href]="templateUrl" class="btn btn-outline-secondary btn-sm px-2.5" title="Download sample Excel template for wholesale shops" download>
+          <a [href]="templateUrl" class="btn btn-outline-secondary btn-sm px-2.5 d-none d-md-inline-flex align-items-center" title="Download sample Excel template for wholesale shops" download>
             <i class="bi bi-download me-1"></i> Template
           </a>
 
@@ -473,111 +477,270 @@ interface CartItem {
       <!-- ============================================================= -->
       <!-- MODAL: UPLOAD SHOP PRICE ORDER (EXCEL)                        -->
       <!-- ============================================================= -->
+      <!-- ============================================================= -->
+      <!-- MODAL: SCAN / UPLOAD CUSTOMER PURCHASE ORDER (CAMERA/IMG/PDF/XLS) -->
+      <!-- ============================================================= -->
       <div *ngIf="showPoModal" class="modal-backdrop-custom animate__animated animate__fadeIn">
-        <div class="modal-dialog-custom glass-panel p-4 animate__animated animate__zoomIn" style="max-width: 780px;">
+        <div class="modal-dialog-custom glass-panel p-3 p-md-4 animate__animated animate__zoomIn" style="max-width: 1050px; width: 95%; max-height: 92vh; overflow-y: auto;">
           <!-- Modal Header -->
-          <div class="d-flex align-items-center justify-content-between pb-3 border-bottom border-secondary border-opacity-25 mb-3">
-            <h5 class="fw-bold text-warning mb-0">
-              <i class="bi bi-file-earmark-excel me-2"></i>Upload Shop Price Order (Excel)
-            </h5>
-            <button class="btn btn-sm text-secondary" (click)="closePriceOrderModal()"><i class="bi bi-x-lg"></i></button>
+          <div class="d-flex align-items-center justify-content-between pb-2.5 border-bottom border-secondary border-opacity-25 mb-3">
+            <div>
+              <h5 class="fw-bold text-warning mb-0 d-flex align-items-center gap-2">
+                <i class="bi bi-camera-fill text-warning fs-5"></i>
+                <span>Scan or Upload Customer Purchase Order</span>
+              </h5>
+              <div class="text-secondary small mt-0.5">Mobile Camera Snap &bull; WhatsApp Photos &bull; PDF Documents &bull; Excel Sheets</div>
+            </div>
+            <button class="btn btn-sm text-secondary" (click)="closePriceOrderModal()"><i class="bi bi-x-lg fs-5"></i></button>
           </div>
 
-          <!-- Step 1: Upload Dropzone if no preview yet -->
-          <div *ngIf="!poPreview" class="text-center py-4">
-            <div class="p-4 border border-dashed border-secondary border-opacity-40 rounded-3 bg-dark bg-opacity-40 mb-3">
-              <i class="bi bi-cloud-arrow-up text-warning display-4 d-block mb-2"></i>
-              <h6 class="fw-bold text-light mb-1">Select or Drag & Drop Shop Price Order Excel</h6>
-              <p class="text-secondary small mb-3">Supports .xlsx, .xls, and .csv files with custom agreed shop rates</p>
+          <!-- Step 1: Upload / Camera Options if no preview yet -->
+          <div *ngIf="!poPreview" class="py-2">
+            <div class="row g-3 my-1">
+              <!-- Option 1: Mobile Camera Snap -->
+              <div class="col-12 col-md-4">
+                <input type="file" #cameraInput (change)="onFileSelected($event)" accept="image/*" capture="environment" class="d-none">
+                <div class="h-100 p-3.5 rounded-3 bg-dark bg-opacity-70 border border-warning border-opacity-40 text-center cursor-pointer hover-lift d-flex flex-column justify-content-between" (click)="cameraInput.click()">
+                  <div>
+                    <div class="rounded-circle bg-warning bg-opacity-15 d-inline-flex p-3 mb-2 text-warning">
+                      <i class="bi bi-camera-fill fs-2"></i>
+                    </div>
+                    <h6 class="fw-bold text-warning mb-1">Take Photo with Camera</h6>
+                    <p class="text-secondary text-xs mb-0">Use mobile phone back camera to snap paper PO bill or handwritten list</p>
+                  </div>
+                  <button class="btn btn-warning btn-sm w-100 fw-bold mt-3 shadow-sm">
+                    <i class="bi bi-camera me-1"></i>Snap Photo
+                  </button>
+                </div>
+              </div>
 
-              <input type="file" #fileInput (change)="onFileSelected($event)" accept=".xlsx, .xls, .csv" class="d-none">
-              <button (click)="fileInput.click()" [disabled]="isUploadingPo" class="btn btn-warning px-4 fw-bold shadow-sm">
-                <span *ngIf="isUploadingPo" class="spinner-border spinner-border-sm me-1"></span>
-                <i *ngIf="!isUploadingPo" class="bi bi-folder2-open me-1"></i> Browse Excel File
-              </button>
+              <!-- Option 2: Gallery Image / Screenshot -->
+              <div class="col-12 col-md-4">
+                <input type="file" #imageInput (change)="onFileSelected($event)" accept="image/*" class="d-none">
+                <div class="h-100 p-3.5 rounded-3 bg-dark bg-opacity-70 border border-info border-opacity-40 text-center cursor-pointer hover-lift d-flex flex-column justify-content-between" (click)="imageInput.click()">
+                  <div>
+                    <div class="rounded-circle bg-info bg-opacity-15 d-inline-flex p-3 mb-2 text-info">
+                      <i class="bi bi-image fs-2"></i>
+                    </div>
+                    <h6 class="fw-bold text-info mb-1">Upload Photo / Screenshot</h6>
+                    <p class="text-secondary text-xs mb-0">Select JPG, PNG, WebP order images from phone gallery or WhatsApp</p>
+                  </div>
+                  <button class="btn btn-outline-info btn-sm w-100 fw-bold mt-3">
+                    <i class="bi bi-folder2-open me-1"></i>Choose Image
+                  </button>
+                </div>
+              </div>
+
+              <!-- Option 3: PDF / Excel Document -->
+              <div class="col-12 col-md-4">
+                <input type="file" #docInput (change)="onFileSelected($event)" accept=".pdf,.xlsx,.xls,.csv" class="d-none">
+                <div class="h-100 p-3.5 rounded-3 bg-dark bg-opacity-70 border border-success border-opacity-40 text-center cursor-pointer hover-lift d-flex flex-column justify-content-between" (click)="docInput.click()">
+                  <div>
+                    <div class="rounded-circle bg-success bg-opacity-15 d-inline-flex p-3 mb-2 text-success">
+                      <i class="bi bi-file-earmark-pdf-fill fs-2"></i>
+                    </div>
+                    <h6 class="fw-bold text-success mb-1">Upload PDF or Excel</h6>
+                    <p class="text-secondary text-xs mb-0">Upload invoice PDF or wholesale Excel order spreadsheet</p>
+                  </div>
+                  <button class="btn btn-outline-success btn-sm w-100 fw-bold mt-3">
+                    <i class="bi bi-file-earmark-arrow-up me-1"></i>Choose Document
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div class="d-flex align-items-center justify-content-between text-secondary text-xs px-2">
-              <span>Need the standard layout?</span>
+            <!-- OCR / Uploading Progress indicator -->
+            <div *ngIf="isOcrProcessing || isUploadingPo" class="p-3 my-3 rounded-2 bg-dark bg-opacity-80 border border-warning border-opacity-35 text-center animate__animated animate__fadeIn">
+              <div class="d-flex align-items-center justify-content-between small text-warning mb-1.5 font-monospace">
+                <span><span class="spinner-border spinner-border-sm me-2"></span>{{ ocrProgressMessage || 'Reading document & extracting items...' }}</span>
+                <span class="fw-bold">{{ ocrProgressPercent }}%</span>
+              </div>
+              <div class="progress" style="height: 6px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" [style.width.%]="ocrProgressPercent || 50"></div>
+              </div>
+              <small class="text-secondary text-xs mt-1.5 d-block">AI scanning customer name, items, quantities and agreed wholesale rates...</small>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between text-secondary text-xs px-2 mt-3 pt-2 border-top border-secondary border-opacity-20">
+              <span>Have an Excel template?</span>
               <a [href]="templateUrl" class="text-warning text-decoration-none fw-semibold" download>
                 <i class="bi bi-download me-1"></i>Download Sample Shop Excel Template
               </a>
             </div>
           </div>
 
-          <!-- Step 2: Parsed Preview Table -->
+          <!-- Step 2: Parsed Preview Split Screen -->
           <div *ngIf="poPreview" class="animate__animated animate__fadeIn">
-            <!-- Shop Info Header -->
-            <div class="p-3 rounded-2 bg-dark bg-opacity-70 border border-secondary border-opacity-30 mb-3">
+            <!-- Shop Info Header Bar -->
+            <div class="p-2.5 rounded-2 bg-dark bg-opacity-70 border border-secondary border-opacity-30 mb-3">
               <div class="row g-2 align-items-center">
-                <div class="col-md-5">
+                <div class="col-12 col-md-5">
                   <label class="form-label text-secondary text-xs mb-0.5 fw-semibold">Shop / Customer Name:</label>
-                  <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" [(ngModel)]="poPreview.shopName">
+                  <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary fw-bold" [(ngModel)]="poPreview.shopName" placeholder="e.g. Fashion Bug / Shop A">
                 </div>
-                <div class="col-md-3">
-                  <label class="form-label text-secondary text-xs mb-0.5">Mobile #:</label>
-                  <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" [(ngModel)]="poPreview.shopPhone" placeholder="Optional">
+                <div class="col-6 col-md-3">
+                  <label class="form-label text-secondary text-xs mb-0.5">Mobile # (Opt):</label>
+                  <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" [(ngModel)]="poPreview.shopPhone" placeholder="Mobile #">
                 </div>
-                <div class="col-md-4 text-md-end">
-                  <small class="text-secondary d-block">Estimated Total:</small>
-                  <strong class="text-success fs-5">{{ defaultCurrency }} {{ poPreview.estimatedTotal | number:'1.2-2' }}</strong>
+                <div class="col-6 col-md-4 text-md-end">
+                  <span class="badge text-xs px-2 py-1 me-2" [ngClass]="poFileType === 'IMAGE' ? 'bg-info bg-opacity-20 text-info border border-info border-opacity-30' : (poFileType === 'PDF' ? 'bg-danger bg-opacity-20 text-danger border border-danger border-opacity-30' : 'bg-success bg-opacity-20 text-success border border-success border-opacity-30')">
+                    <i class="bi" [ngClass]="poFileType === 'IMAGE' ? 'bi-camera' : (poFileType === 'PDF' ? 'bi-file-earmark-pdf' : 'bi-file-earmark-excel')"></i>
+                    {{ poFileType }} {{ poFileType === 'IMAGE' ? 'Scan' : 'Order' }}
+                  </span>
+                  <div class="d-inline-block text-start">
+                    <small class="text-secondary d-block text-xs">Estimated Total:</small>
+                    <strong class="text-success fs-6 font-monospace">{{ defaultCurrency }} {{ poPreview.estimatedTotal | number:'1.2-2' }}</strong>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Items Preview Table -->
-            <div class="table-responsive rounded border border-secondary border-opacity-25 mb-3" style="max-height: 300px;">
-              <table class="table table-custom table-sm mb-0 align-middle">
-                <thead>
-                  <tr class="header-row">
-                    <th>#</th>
-                    <th>Product Name</th>
-                    <th>SKU</th>
-                    <th class="text-center">Qty</th>
-                    <th class="text-end">Agreed Price</th>
-                    <th class="text-end">Total</th>
-                    <th class="text-center">Stock</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let item of poPreview.items; let idx = index">
-                    <td class="text-muted">{{ idx + 1 }}</td>
-                    <td class="fw-bold text-light">
-                      {{ item.productName }}
-                      <span *ngIf="!item.matched" class="badge bg-warning text-dark text-xs ms-1">Not in Catalog</span>
-                    </td>
-                    <td class="text-secondary small">{{ item.sku || '—' }}</td>
-                    <td class="text-center fw-bold text-light">{{ item.quantity }} <small>{{ item.unit || 'PCS' }}</small></td>
-                    <td class="text-end fw-bold text-warning">{{ defaultCurrency }} {{ item.customPrice | number:'1.2-2' }}</td>
-                    <td class="text-end fw-bold text-light">{{ defaultCurrency }} {{ item.lineTotal | number:'1.2-2' }}</td>
-                    <td class="text-center">
-                      <span *ngIf="item.matched" class="badge text-xs"
-                            [ngClass]="item.isStockSufficient ? 'bg-success bg-opacity-20 text-success' : 'bg-danger bg-opacity-20 text-danger'">
-                        {{ item.availableStock }} {{ item.unit }}
-                      </span>
-                      <span *ngIf="!item.matched" class="badge bg-secondary text-xs">Unknown</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <!-- Body: Document Visual Viewer on Left (col-lg-5) & Extracted Items on Right (col-lg-7) -->
+            <div class="row g-3">
+              <!-- Visual Document Pane -->
+              <div class="col-12 col-lg-5" *ngIf="poImagePreviewUrl || poFileType === 'IMAGE' || poFileType === 'PDF'">
+                <div class="p-2.5 rounded-2 bg-dark bg-opacity-60 border border-secondary border-opacity-30 h-100 d-flex flex-column">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary text-xs fw-semibold">
+                      <i class="bi bi-file-earmark-image text-info me-1"></i>Original Customer Document
+                    </span>
+                    <button *ngIf="poImagePreviewUrl && poFileType === 'IMAGE'" class="btn btn-xs btn-outline-info px-2 py-0.5" (click)="zoomImageModal = true" title="Zoom full screen">
+                      <i class="bi bi-arrows-fullscreen me-1"></i>Enlarge
+                    </button>
+                  </div>
 
-            <!-- Action Buttons -->
-            <div class="d-flex align-items-center justify-content-between pt-2 border-top border-secondary border-opacity-25">
-              <button class="btn btn-outline-secondary btn-sm" (click)="poPreview = null">
-                <i class="bi bi-arrow-left me-1"></i> Choose Another File
-              </button>
+                  <div class="flex-grow-1 text-center bg-black bg-opacity-50 rounded d-flex align-items-center justify-content-center p-1.5 overflow-hidden border border-secondary border-opacity-20" style="max-height: 400px; min-height: 220px;">
+                    <img *ngIf="poFileType === 'IMAGE' && poImagePreviewUrl" [src]="poImagePreviewUrl" class="img-fluid rounded" style="max-height: 380px; object-fit: contain; cursor: zoom-in;" (click)="zoomImageModal = true" title="Click to enlarge image">
+                    <iframe *ngIf="poFileType === 'PDF' && poSafePdfUrl" [src]="poSafePdfUrl" width="100%" height="380px" class="border-0 rounded"></iframe>
+                    <div *ngIf="poFileType === 'EXCEL'" class="py-4 text-center text-success">
+                      <i class="bi bi-file-earmark-excel fs-1 d-block mb-1"></i>
+                      <span class="small font-monospace">{{ poPreview.fileName || 'Spreadsheet uploaded' }}</span>
+                    </div>
+                  </div>
+                  <small class="text-secondary text-xs text-center mt-1.5 opacity-75">
+                    Tap photo to zoom &bull; Check agreed rates with original document
+                  </small>
+                </div>
+              </div>
 
-              <div class="d-flex gap-2">
-                <button class="btn btn-primary btn-sm px-3 fw-semibold" (click)="loadPoIntoCart()">
-                  <i class="bi bi-cart-plus me-1"></i> Load into Bill Cart
-                </button>
-                <button class="btn btn-success btn-sm px-3 fw-bold shadow" (click)="directCheckoutFromPo()">
-                  <i class="bi bi-check2-circle me-1"></i> Direct Complete & Print Bill
-                </button>
+              <!-- Extracted Items Table Pane -->
+              <div [ngClass]="(poImagePreviewUrl || poFileType === 'IMAGE' || poFileType === 'PDF') ? 'col-12 col-lg-7' : 'col-12'">
+                <!-- Items Table -->
+                <div class="table-responsive rounded border border-secondary border-opacity-25 mb-2.5" style="max-height: 290px;">
+                  <table class="table table-custom table-sm mb-0 align-middle">
+                    <thead>
+                      <tr class="header-row">
+                        <th style="width: 28px;">#</th>
+                        <th>Product Name / SKU</th>
+                        <th class="text-center" style="width: 90px;">Qty</th>
+                        <th class="text-end" style="width: 100px;">Rate</th>
+                        <th class="text-end" style="width: 100px;">Total</th>
+                        <th class="text-center" style="width: 32px;"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngIf="!poPreview.items || poPreview.items.length === 0">
+                        <td colspan="6" class="text-center py-4 text-muted small">
+                          No items recognized yet. Select a product below or adjust photo.
+                        </td>
+                      </tr>
+                      <tr *ngFor="let item of poPreview.items; let idx = index">
+                        <td class="text-muted text-xs">{{ idx + 1 }}</td>
+                        <td>
+                          <!-- If matched product -->
+                          <div *ngIf="item.matched">
+                            <span class="fw-bold text-light text-sm d-block">{{ item.productName }}</span>
+                            <small class="text-secondary font-monospace text-xs">{{ item.sku || 'SKU' }} &bull; Stock: {{ item.availableStock }} {{ item.unit }}</small>
+                          </div>
+                          <!-- If not matched, allow quick match to catalog -->
+                          <div *ngIf="!item.matched">
+                            <span class="text-warning fw-semibold text-xs d-block mb-1">{{ item.productName }}</span>
+                            <select class="form-select form-select-xs bg-dark text-warning border-warning border-opacity-50 py-0"
+                                    (change)="onPoProductSelect(item, $any($event.target).value)">
+                              <option value="">⚠️ Match to Store Product...</option>
+                              <option *ngFor="let p of products()" [value]="p.id">{{ p.name }} ({{ p.sku || '—' }})</option>
+                            </select>
+                          </div>
+                        </td>
+                        <!-- Editable Qty -->
+                        <td class="text-center">
+                          <input type="number" class="form-control form-control-sm text-center bg-dark text-light border-secondary p-0 font-monospace fw-bold"
+                                 style="width: 65px; height: 26px; font-size: 0.8rem; margin: auto;"
+                                 [(ngModel)]="item.quantity"
+                                 (ngModelChange)="onPoItemQtyChange(item)" min="1">
+                        </td>
+                        <!-- Editable Rate -->
+                        <td class="text-end">
+                          <input type="number" class="form-control form-control-sm text-end bg-dark text-warning border-secondary p-0 px-1 font-monospace fw-bold"
+                                 style="width: 85px; height: 26px; font-size: 0.8rem; margin-left: auto;"
+                                 [(ngModel)]="item.customPrice"
+                                 (ngModelChange)="onPoItemPriceChange(item)" min="0" step="0.5">
+                        </td>
+                        <!-- Line Total -->
+                        <td class="text-end fw-bold text-light font-monospace text-xs">
+                          {{ defaultCurrency }} {{ item.lineTotal | number:'1.2-2' }}
+                        </td>
+                        <!-- Remove button -->
+                        <td class="text-center">
+                          <button class="btn btn-link btn-xs text-danger p-0" (click)="removePoItem(idx)" title="Remove item">
+                            <i class="bi bi-trash3"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Quick Add Product from Catalog -->
+                <div class="p-1.5 mb-3 rounded bg-dark bg-opacity-60 border border-secondary border-opacity-25 d-flex gap-1.5 align-items-center">
+                  <select class="form-select form-select-sm bg-dark text-light border-secondary text-xs" [(ngModel)]="poSearchProductToAdd">
+                    <option [ngValue]="null">+ Add another product from store catalog...</option>
+                    <option *ngFor="let p of products()" [value]="p.id">
+                      {{ p.name }} ({{ p.sku || 'No SKU' }}) - Stock: {{ p.currentStock }} - Rate: {{ defaultCurrency }} {{ p.price }}
+                    </option>
+                  </select>
+                  <button class="btn btn-warning btn-sm text-xs fw-bold flex-shrink-0 px-2.5" [disabled]="!poSearchProductToAdd" (click)="addPoItemFromCatalog()">
+                    <i class="bi bi-plus-lg me-0.5"></i>Add
+                  </button>
+                </div>
+
+                <!-- Summary Badges -->
+                <div class="d-flex align-items-center justify-content-between p-2 rounded bg-dark bg-opacity-40 border border-secondary border-opacity-20 mb-3 text-xs">
+                  <span class="text-secondary">Items: <strong class="text-light">{{ poPreview.totalItems || poPreview.items.length }}</strong></span>
+                  <span class="text-secondary">Units: <strong class="text-light">{{ poPreview.totalQuantity }}</strong></span>
+                  <span class="text-secondary">Estimated Total: <strong class="text-success fs-6 font-monospace">{{ defaultCurrency }} {{ poPreview.estimatedTotal | number:'1.2-2' }}</strong></span>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-2 border-top border-secondary border-opacity-25">
+                  <button class="btn btn-outline-secondary btn-sm" (click)="poPreview = null; poImagePreviewUrl = null;">
+                    <i class="bi bi-arrow-left me-1"></i> Choose Another File
+                  </button>
+
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm" [disabled]="!poPreview.items || poPreview.items.length === 0" (click)="loadPoIntoCart()">
+                      <i class="bi bi-cart-plus me-1"></i> Load into Bill Cart
+                    </button>
+                    <button class="btn btn-success btn-sm px-3 fw-bold shadow" [disabled]="!poPreview.items || poPreview.items.length === 0" (click)="directCheckoutFromPo()">
+                      <i class="bi bi-check2-circle me-1"></i> Direct Complete & Print
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- ============================================================= -->
+      <!-- MODAL: FULLSCREEN PHOTO ZOOM                                  -->
+      <!-- ============================================================= -->
+      <div *ngIf="zoomImageModal && poImagePreviewUrl" class="modal-backdrop-custom d-flex align-items-center justify-content-center p-3 animate__animated animate__fadeIn" (click)="zoomImageModal = false" style="z-index: 1060; background: rgba(0,0,0,0.85);">
+        <div class="position-relative bg-dark p-2 rounded-3 border border-secondary shadow-lg text-center" style="max-width: 96vw; max-height: 96vh; overflow: auto;" (click)="$event.stopPropagation()">
+          <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2 shadow" (click)="zoomImageModal = false">
+            <i class="bi bi-x-lg"></i>
+          </button>
+          <img [src]="poImagePreviewUrl" class="img-fluid rounded" style="max-height: 88vh; object-fit: contain;">
         </div>
       </div>
 
@@ -907,14 +1070,23 @@ export class BillingComponent implements OnInit {
   showBillModal = false;
   currentBill: SaleInvoice | null = null;
 
-  // Price Order Upload State
+  // Price Order Upload & Scanner State
   showPoModal = false;
   isUploadingPo = false;
   poPreview: PriceOrderPreview | null = null;
+  poImagePreviewUrl: string | null = null;
+  poSafePdfUrl: SafeResourceUrl | null = null;
+  poFileType: 'IMAGE' | 'PDF' | 'EXCEL' = 'IMAGE';
+  ocrProgressMessage = '';
+  ocrProgressPercent = 0;
+  isOcrProcessing = false;
+  zoomImageModal = false;
+  poSearchProductToAdd: number | null = null;
 
   constructor(
     private wmsApi: WmsApiService,
-    private authService: AuthService
+    private authService: AuthService,
+    private sanitizer: DomSanitizer
   ) {}
 
   currentUser = computed(() => this.authService.currentUser());
@@ -1375,31 +1547,353 @@ export class BillingComponent implements OnInit {
 
   openPriceOrderModal(): void {
     this.poPreview = null;
+    this.poImagePreviewUrl = null;
+    this.poSafePdfUrl = null;
+    this.isOcrProcessing = false;
+    this.ocrProgressMessage = '';
+    this.ocrProgressPercent = 0;
+    this.poSearchProductToAdd = null;
     this.showPoModal = true;
   }
 
   closePriceOrderModal(): void {
     this.showPoModal = false;
     this.poPreview = null;
+    this.poImagePreviewUrl = null;
+    this.poSafePdfUrl = null;
+    this.isOcrProcessing = false;
+    this.zoomImageModal = false;
   }
 
   onFileSelected(event: any): void {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    this.isUploadingPo = true;
-    this.wmsApi.uploadPriceOrderExcel(file).subscribe({
-      next: (res) => {
-        this.isUploadingPo = false;
-        if (res.success && res.data) {
-          this.poPreview = res.data;
+    const fileNameLower = file.name.toLowerCase();
+    const isImage = file.type.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.webp'].some(ext => fileNameLower.endsWith(ext));
+    const isPdf = file.type === 'application/pdf' || fileNameLower.endsWith('.pdf');
+
+    if (isImage) {
+      this.poFileType = 'IMAGE';
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.poImagePreviewUrl = e.target.result;
+        this.processImageOcr(file, this.poImagePreviewUrl!);
+      };
+      reader.readAsDataURL(file);
+    } else if (isPdf) {
+      this.poFileType = 'PDF';
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.poImagePreviewUrl = e.target.result;
+        this.poSafePdfUrl = this.sanitizer.bypassSecurityTrustResourceUrl(e.target.result);
+      };
+      reader.readAsDataURL(file);
+
+      this.isUploadingPo = true;
+      this.wmsApi.uploadPriceOrderFile(file).subscribe({
+        next: (res) => {
+          this.isUploadingPo = false;
+          if (res.success && res.data) {
+            this.poPreview = res.data;
+            this.poPreview.fileType = 'PDF';
+            this.poPreview.imagePreviewUrl = this.poImagePreviewUrl || undefined;
+            if (!this.poPreview.items) this.poPreview.items = [];
+            this.recalculatePoTotals();
+          }
+        },
+        error: () => {
+          this.isUploadingPo = false;
+          this.createEmptyPoPreview(file.name.replace(/\.pdf$/i, ''), 'PDF');
         }
-      },
-      error: (err) => {
-        this.isUploadingPo = false;
-        alert(err.error?.message || 'Failed to parse Price Order Excel file. Please ensure columns match standard format.');
+      });
+    } else {
+      // Excel (.xlsx, .xls, .csv)
+      this.poFileType = 'EXCEL';
+      this.isUploadingPo = true;
+      this.wmsApi.uploadPriceOrderFile(file).subscribe({
+        next: (res) => {
+          this.isUploadingPo = false;
+          if (res.success && res.data) {
+            this.poPreview = res.data;
+            this.poPreview.fileType = 'EXCEL';
+            if (!this.poPreview.items) this.poPreview.items = [];
+            this.recalculatePoTotals();
+          }
+        },
+        error: (err) => {
+          this.isUploadingPo = false;
+          alert(err.error?.message || 'Failed to parse Price Order Excel file. Please ensure columns match standard format.');
+        }
+      });
+    }
+  }
+
+  createEmptyPoPreview(shopName: string, fileType: string): void {
+    this.poPreview = {
+      shopName: shopName || 'Wholesale Customer',
+      shopPhone: '',
+      totalItems: 0,
+      totalQuantity: 0,
+      estimatedTotal: 0,
+      fileType: fileType,
+      fileName: shopName,
+      imagePreviewUrl: this.poImagePreviewUrl || undefined,
+      items: []
+    };
+  }
+
+  processImageOcr(file: File, dataUrl: string): void {
+    this.isOcrProcessing = true;
+    this.ocrProgressPercent = 15;
+    this.ocrProgressMessage = 'Loading document camera scanner...';
+
+    const cleanShopName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+    this.createEmptyPoPreview(cleanShopName, 'IMAGE');
+
+    this.ensureTesseractLoaded().then(() => {
+      this.ocrProgressPercent = 35;
+      this.ocrProgressMessage = 'Reading text & prices from photo...';
+
+      if (typeof (window as any).Tesseract !== 'undefined') {
+        (window as any).Tesseract.recognize(dataUrl, 'eng', {
+          logger: (m: any) => {
+            if (m.status === 'recognizing text') {
+              this.ocrProgressPercent = Math.round(35 + (m.progress || 0) * 55);
+              this.ocrProgressMessage = `Scanning PO Image (${this.ocrProgressPercent}%)...`;
+            }
+          }
+        }).then((result: any) => {
+          this.isOcrProcessing = false;
+          this.ocrProgressPercent = 100;
+          this.ocrProgressMessage = 'Scan complete!';
+          const text = result?.data?.text || '';
+          this.parseOcrTextIntoPo(text, cleanShopName);
+        }).catch((err: any) => {
+          console.warn('OCR processing error', err);
+          this.isOcrProcessing = false;
+        });
+      } else {
+        this.isOcrProcessing = false;
       }
+    }).catch(() => {
+      this.isOcrProcessing = false;
     });
+  }
+
+  private ensureTesseractLoaded(): Promise<void> {
+    return new Promise((resolve) => {
+      if ((window as any).Tesseract) {
+        resolve();
+        return;
+      }
+      const existing = document.getElementById('tesseract-script');
+      if (existing) {
+        resolve();
+        return;
+      }
+      const script = document.createElement('script');
+      script.id = 'tesseract-script';
+      script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      script.onload = () => resolve();
+      script.onerror = () => resolve();
+      document.head.appendChild(script);
+    });
+  }
+
+  parseOcrTextIntoPo(text: string, fallbackShopName: string): void {
+    if (!text || !text.trim()) return;
+
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+    let detectedShopName = fallbackShopName;
+    let detectedPhone = '';
+
+    for (let i = 0; i < Math.min(lines.length, 6); i++) {
+      const line = lines[i];
+      const lower = line.toLowerCase();
+      if (lower.includes('customer:') || lower.includes('shop:') || lower.includes('store:') || lower.includes('to:')) {
+        const parts = line.split(/:/);
+        if (parts.length > 1 && parts[1].trim().length > 2) {
+          detectedShopName = parts[1].trim();
+          break;
+        }
+      } else if (lower.includes('fashion') || lower.includes('mart') || lower.includes('shop') || lower.includes('bug')) {
+        detectedShopName = line;
+        break;
+      }
+    }
+
+    const phoneMatch = text.match(/(?:\+94|0)\s?[0-9]{2,3}[-\s]?[0-9]{6,7}/);
+    if (phoneMatch) {
+      detectedPhone = phoneMatch[0].replace(/\s+/g, '');
+    }
+
+    const matchedItems: any[] = [];
+    const allProducts = this.products();
+
+    for (const prod of allProducts) {
+      let found = false;
+      let matchedQty = 1;
+      let matchedPrice = prod.price || 0;
+
+      for (const line of lines) {
+        const lineLower = line.toLowerCase();
+        const skuMatch = prod.sku && lineLower.includes(prod.sku.toLowerCase());
+        const nameMatch = prod.name && (lineLower.includes(prod.name.toLowerCase()) || 
+          (prod.name.length > 4 && lineLower.includes(prod.name.substring(0, Math.min(prod.name.length, 8)).toLowerCase())));
+
+        if (skuMatch || nameMatch) {
+          found = true;
+          const numbers = line.match(/\b\d+(?:\.\d+)?\b/g);
+          if (numbers && numbers.length > 0) {
+            const parsedNums = numbers.map(n => parseFloat(n)).filter(n => !isNaN(n) && n > 0);
+            if (parsedNums.length === 1) {
+              matchedQty = Math.round(parsedNums[0]);
+            } else if (parsedNums.length >= 2) {
+              const [n1, n2] = parsedNums;
+              if (n1 <= 100 && n2 > n1) {
+                matchedQty = Math.round(n1);
+                matchedPrice = n2;
+              } else if (n2 <= 100 && n1 > n2) {
+                matchedQty = Math.round(n2);
+                matchedPrice = n1;
+              } else {
+                matchedQty = Math.round(n1);
+                matchedPrice = n2;
+              }
+            }
+          }
+          break;
+        }
+      }
+
+      if (found) {
+        matchedItems.push({
+          productId: prod.id,
+          productName: prod.name,
+          sku: prod.sku,
+          unit: prod.unit || 'PCS',
+          quantity: matchedQty,
+          customPrice: matchedPrice,
+          lineTotal: matchedQty * matchedPrice,
+          availableStock: prod.currentStock || 0,
+          isStockSufficient: (prod.currentStock || 0) >= matchedQty,
+          matched: true
+        });
+      }
+    }
+
+    if (matchedItems.length === 0) {
+      for (const line of lines) {
+        if (line.length < 3 || /^\d+$/.test(line) || line.toLowerCase().includes('total') || line.toLowerCase().includes('invoice') || line.toLowerCase().includes('date')) continue;
+        const numbers = line.match(/\b\d+(?:\.\d+)?\b/g);
+        if (numbers && numbers.length >= 1) {
+          const qty = Math.min(parseInt(numbers[0], 10) || 1, 999);
+          const price = numbers.length >= 2 ? parseFloat(numbers[1]) : 0;
+          const cleanItemName = line.replace(/\b\d+(?:\.\d+)?\b/g, '').replace(/[@xX*]/g, '').trim();
+          if (cleanItemName.length > 2) {
+            const prod = allProducts.find(p => p.name.toLowerCase().includes(cleanItemName.toLowerCase()) || cleanItemName.toLowerCase().includes(p.name.toLowerCase()));
+            matchedItems.push({
+              productId: prod ? prod.id : undefined,
+              productName: prod ? prod.name : cleanItemName,
+              sku: prod ? prod.sku : '',
+              unit: prod?.unit || 'PCS',
+              quantity: qty,
+              customPrice: price > 0 ? price : (prod?.price || 0),
+              lineTotal: qty * (price > 0 ? price : (prod?.price || 0)),
+              availableStock: prod?.currentStock || 0,
+              isStockSufficient: (prod?.currentStock || 0) >= qty,
+              matched: !!prod
+            });
+          }
+        }
+      }
+    }
+
+    if (this.poPreview) {
+      this.poPreview.shopName = detectedShopName || this.poPreview.shopName;
+      if (detectedPhone) this.poPreview.shopPhone = detectedPhone;
+      if (matchedItems.length > 0) {
+        this.poPreview.items = matchedItems;
+        this.recalculatePoTotals();
+      }
+    }
+  }
+
+  recalculatePoTotals(): void {
+    if (!this.poPreview || !this.poPreview.items) return;
+    let units = 0;
+    let total = 0;
+    for (const item of this.poPreview.items) {
+      item.lineTotal = (item.quantity || 1) * (item.customPrice || 0);
+      units += item.quantity || 1;
+      total += item.lineTotal;
+    }
+    this.poPreview.totalItems = this.poPreview.items.length;
+    this.poPreview.totalQuantity = units;
+    this.poPreview.estimatedTotal = total;
+  }
+
+  onPoItemQtyChange(item: any): void {
+    if (!item.quantity || item.quantity < 1) item.quantity = 1;
+    this.recalculatePoTotals();
+  }
+
+  onPoItemPriceChange(item: any): void {
+    if (item.customPrice === null || item.customPrice === undefined || item.customPrice < 0) {
+      item.customPrice = 0;
+    }
+    this.recalculatePoTotals();
+  }
+
+  removePoItem(idx: number): void {
+    if (!this.poPreview || !this.poPreview.items) return;
+    this.poPreview.items.splice(idx, 1);
+    this.recalculatePoTotals();
+  }
+
+  onPoProductSelect(item: any, productId: any): void {
+    const prod = this.products().find(p => p.id === Number(productId));
+    if (prod) {
+      item.productId = prod.id;
+      item.productName = prod.name;
+      item.sku = prod.sku;
+      item.unit = prod.unit || 'PCS';
+      if (!item.customPrice || item.customPrice === 0) {
+        item.customPrice = prod.price || 0;
+      }
+      item.availableStock = prod.currentStock || 0;
+      item.isStockSufficient = (prod.currentStock || 0) >= item.quantity;
+      item.matched = true;
+      this.recalculatePoTotals();
+    }
+  }
+
+  addPoItemFromCatalog(): void {
+    if (!this.poSearchProductToAdd || !this.poPreview) return;
+    const prod = this.products().find(p => p.id === Number(this.poSearchProductToAdd));
+    if (!prod) return;
+
+    if (!this.poPreview.items) this.poPreview.items = [];
+    const existing = this.poPreview.items.find(i => i.productId === prod.id);
+    if (existing) {
+      existing.quantity += 1;
+    } else {
+      this.poPreview.items.push({
+        productId: prod.id,
+        productName: prod.name,
+        sku: prod.sku,
+        unit: prod.unit || 'PCS',
+        quantity: 1,
+        customPrice: prod.price || 0,
+        lineTotal: prod.price || 0,
+        availableStock: prod.currentStock || 0,
+        isStockSufficient: (prod.currentStock || 0) >= 1,
+        matched: true
+      });
+    }
+    this.poSearchProductToAdd = null;
+    this.recalculatePoTotals();
   }
 
   loadPoIntoCart(): void {
@@ -1407,13 +1901,14 @@ export class BillingComponent implements OnInit {
 
     if (this.poPreview.shopName) {
       this.customerName = this.poPreview.shopName;
+      this.selectedCustomerOption = this.poPreview.shopName;
       this.isWalkIn = false;
     }
     if (this.poPreview.shopPhone) {
       this.customerPhone = this.poPreview.shopPhone;
     }
 
-    // Add each matched item into cart with its custom price
+    this.cart = [];
     for (const poItem of this.poPreview.items) {
       let product = this.products().find(p => p.id === poItem.productId);
       if (!product && poItem.sku) {
@@ -1425,11 +1920,34 @@ export class BillingComponent implements OnInit {
 
       if (product) {
         this.addToCart(product, poItem.customPrice, poItem.quantity);
+        this.customerPriceMap[product.id] = poItem.customPrice;
+      } else {
+        const stubProduct: Product = {
+          id: poItem.productId || -(Math.floor(Math.random() * 100000)),
+          clientId: 0,
+          name: poItem.productName,
+          sku: poItem.sku || 'CUSTOM',
+          barcode: '',
+          price: poItem.customPrice,
+          currentStock: poItem.availableStock || 999,
+          unit: poItem.unit || 'PCS',
+          reorderLevel: 0,
+          minStockLevel: 0,
+          maxStockLevel: 9999,
+          expiryTrackingEnabled: false,
+          isActive: true
+        };
+        this.cart.push({
+          product: stubProduct,
+          quantity: poItem.quantity,
+          unitPrice: poItem.customPrice,
+          totalPrice: poItem.quantity * poItem.customPrice,
+          barcode: ''
+        });
       }
     }
 
     this.closePriceOrderModal();
-    alert(`Loaded ${this.poPreview.items.length} items from "${this.customerName}" Price Order into cart! You can review or adjust prices and quantities.`);
   }
 
   directCheckoutFromPo(): void {

@@ -51,7 +51,7 @@ public class BillingController {
     @PostMapping("/upload-price-order")
     @PreAuthorize("hasAnyRole('CLIENT_ADMIN', 'BRANCH_MANAGER', 'WAREHOUSE_STAFF')")
     public ResponseEntity<ApiResponse<PriceOrderPreviewDto>> uploadPriceOrder(@RequestParam("file") MultipartFile file) {
-        PriceOrderPreviewDto preview = billingService.parsePriceOrderExcel(file);
+        PriceOrderPreviewDto preview = billingService.parsePriceOrderFile(file);
         return ResponseEntity.ok(ApiResponse.ok("Price Order parsed successfully", preview));
     }
 

@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import com.lowagie.text.pdf.PdfReader;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -378,6 +379,113 @@ public class BillingService {
             throw new BusinessRuleException("Failed to read Price Order Excel sheet: " + e.getMessage());
         }
 
+        return preview;
+    }
+
+    public PriceOrderPreviewDto parsePriceOrderFile(MultipartFile file) {
+        String filename = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
+        if (filename.endsWith(".pdf")) {
+            return parsePriceOrderPdf(file);
+        } else {
+            return parsePriceOrderExcel(file);
+        }
+    }
+
+    public PriceOrderPreviewDto parsePriceOrderPdf(MultipartFile file) {
+        Long clientId = tenantSecurityService.requireCurrentClientId();
+        PriceOrderPreviewDto preview = new PriceOrderPreviewDto();
+        preview.setFileName(file.getOriginalFilename());
+        preview.setFileType("PDF");
+
+        List<Product> clientProducts = productRepository.findByClientId(clientId);
+        List<String> textTokens = new ArrayList<>();
+
+        try (InputStream is = file.getInputStream()) {
+            PdfReader reader = new PdfReader(is);
+            int pages = reader.getNumberOfPages();
+            for (int p = 1; p <= pages; p++) {
+                byte[] streamBytes = reader.getPageContent(p);
+                if (streamBytes != null && streamBytes.length > 0) {
+                    String raw = new String(streamBytes, java.nio.charset.StandardCharsets.UTF_8);
+                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\(([^\\)]+)\\)").matcher(raw);
+                    while (m.find()) {
+                        String token = m.group(1).trim();
+                        if (!token.isEmpty()) {
+                            textTokens.add(token);
+                        }
+                    }
+                }
+            }
+            reader.close();
+        } catch (Exception ignored) {}
+
+        // Detect shop/customer name
+        for (int i = 0; i < textTokens.size(); i++) {
+            String l = textTokens.get(i).toLowerCase();
+            if (l.contains("shop") || l.contains("customer") || l.contains("bill to") || l.contains("m/s")) {
+                if (i + 1 < textTokens.size()) {
+                    preview.setShopName(textTokens.get(i + 1));
+                    break;
+                }
+            }
+        }
+
+        List<PriceOrderItemPreviewDto> items = new ArrayList<>();
+        double grandTotal = 0.0;
+        int totalUnits = 0;
+
+        for (Product prod : clientProducts) {
+            boolean found = false;
+            int foundQty = 1;
+            Double foundPrice = prod.getPrice() != null ? prod.getPrice() : 0.0;
+
+            for (int i = 0; i < textTokens.size(); i++) {
+                String token = textTokens.get(i);
+                if ((prod.getSku() != null && token.equalsIgnoreCase(prod.getSku())) ||
+                    (prod.getName() != null && token.toLowerCase().contains(prod.getName().toLowerCase()))) {
+                    found = true;
+                    for (int k = i + 1; k < Math.min(i + 4, textTokens.size()); k++) {
+                        String numToken = textTokens.get(k).replaceAll("[^0-9.]", "");
+                        if (!numToken.isEmpty()) {
+                            try {
+                                double num = Double.parseDouble(numToken);
+                                if (num > 0 && num < 1000) {
+                                    foundQty = (int) num;
+                                } else if (num >= 1000) {
+                                    foundPrice = num;
+                                }
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                    break;
+                }
+            }
+
+            if (found) {
+                PriceOrderItemPreviewDto itemDto = new PriceOrderItemPreviewDto();
+                itemDto.setProductId(prod.getId());
+                itemDto.setProductName(prod.getName());
+                itemDto.setSku(prod.getSku());
+                itemDto.setUnit(prod.getUnit() != null ? prod.getUnit() : "PCS");
+                itemDto.setQuantity(foundQty);
+                itemDto.setCustomPrice(foundPrice);
+                itemDto.setLineTotal(foundQty * foundPrice);
+                Integer stock = inventoryRepository.getTotalStockForProduct(clientId, prod.getId());
+                int availStock = stock != null ? stock : 0;
+                itemDto.setAvailableStock(availStock);
+                itemDto.setIsStockSufficient(availStock >= foundQty);
+                itemDto.setMatched(true);
+                items.add(itemDto);
+
+                grandTotal += itemDto.getLineTotal();
+                totalUnits += foundQty;
+            }
+        }
+
+        preview.setItems(items);
+        preview.setTotalItems(items.size());
+        preview.setTotalQuantity(totalUnits);
+        preview.setEstimatedTotal(grandTotal);
         return preview;
     }
 
