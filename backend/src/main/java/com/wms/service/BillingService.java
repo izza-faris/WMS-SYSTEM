@@ -86,15 +86,9 @@ public class BillingService {
                 ? request.getCustomerName().trim()
                 : "Walk-in Customer";
 
-        String shopBarcode = request.getShopBarcode();
-        if (shopBarcode == null || shopBarcode.trim().isEmpty()) {
-            String nameClean = customerName.replaceAll("[^a-zA-Z0-9]", "").toUpperCase();
-            if (nameClean.length() > 6) nameClean = nameClean.substring(0, 6);
-            if (nameClean.isEmpty()) nameClean = "CUST";
-            shopBarcode = "SHOP-" + nameClean + "-" + String.format("%03d", (count % 1000));
-        } else {
-            shopBarcode = shopBarcode.trim();
-        }
+        String shopBarcode = (request.getShopBarcode() != null && !request.getShopBarcode().trim().isEmpty())
+                ? request.getShopBarcode().trim()
+                : null;
 
         double subtotal = 0.0;
         int totalQty = 0;
@@ -374,12 +368,7 @@ public class BillingService {
             preview.setTotalQuantity(totalUnits);
             preview.setEstimatedTotal(grandTotal);
 
-            if (preview.getShopBarcode() == null || preview.getShopBarcode().trim().isEmpty()) {
-                String clean = preview.getShopName() != null ? preview.getShopName().replaceAll("[^a-zA-Z0-9]", "").toUpperCase() : "SHOP";
-                if (clean.length() > 6) clean = clean.substring(0, 6);
-                if (clean.isEmpty()) clean = "SHOP";
-                preview.setShopBarcode("SHOP-" + clean + "-001");
-            }
+
 
         } catch (Exception e) {
             throw new BusinessRuleException("Failed to read Price Order Excel sheet: " + e.getMessage());

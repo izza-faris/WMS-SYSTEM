@@ -168,19 +168,12 @@ interface CartItem {
               </div>
 
               <div class="row g-2">
-                <div class="col-5">
+                <div class="col-7">
                   <label class="text-secondary text-xs d-block mb-0.5">Shop / Customer Name *</label>
                   <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary"
-                         [(ngModel)]="customerName" (ngModelChange)="onCustomerNameChange()" placeholder="e.g. Shop A / FB Mart" [disabled]="isWalkIn">
+                         [(ngModel)]="customerName" placeholder="e.g. Shop A / FB Mart" [disabled]="isWalkIn">
                 </div>
-                <div class="col-4">
-                  <label class="text-secondary text-xs d-block mb-0.5">
-                    <i class="bi bi-upc text-warning me-0.5"></i>Shop Barcode
-                  </label>
-                  <input type="text" class="form-control form-control-sm bg-dark text-warning border-warning border-opacity-50 font-monospace fw-bold"
-                         [(ngModel)]="customerBarcode" placeholder="e.g. SHOP-FB-001" [disabled]="isWalkIn">
-                </div>
-                <div class="col-3">
+                <div class="col-5">
                   <label class="text-secondary text-xs d-block mb-0.5">Mobile # (Opt)</label>
                   <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary"
                          [(ngModel)]="customerPhone" placeholder="Mobile #" [disabled]="isWalkIn">
@@ -201,37 +194,10 @@ interface CartItem {
               </button>
             </div>
 
-            <!-- Quick Barcode / SKU Scan & Type Input Box -->
-            <div class="p-2 rounded-2 bg-dark bg-opacity-70 border border-warning border-opacity-40 mb-2.5 shadow-sm">
-              <div class="d-flex align-items-center justify-content-between mb-1">
-                <label class="form-label text-warning text-xs fw-bold mb-0">
-                  <i class="bi bi-upc-scan me-1"></i>Scan / Type Barcode or SKU to Add:
-                </label>
-                <small *ngIf="barcodeFeedback" class="text-xs animate__animated animate__fadeIn"
-                       [ngClass]="barcodeSuccess ? 'text-success fw-bold' : 'text-danger fw-bold'">
-                  {{ barcodeFeedback }}
-                </small>
-              </div>
-              <div class="input-group input-group-sm">
-                <span class="input-group-text bg-dark border-secondary text-warning">
-                  <i class="bi bi-upc"></i>
-                </span>
-                <input type="text" class="form-control bg-dark text-light border-secondary"
-                       [(ngModel)]="cartBarcode"
-                       (keydown.enter)="addByBarcode()"
-                       placeholder="Scan/type Barcode or SKU & press Enter...">
-                <button class="btn btn-warning text-dark fw-bold px-3"
-                        (click)="addByBarcode()"
-                        [disabled]="!cartBarcode || !cartBarcode.trim()">
-                  <i class="bi bi-plus-lg me-1"></i>+ Add
-                </button>
-              </div>
-            </div>
-
-            <div class="cart-scroll flex-grow-1 overflow-y-auto mb-3 pe-1" style="max-height: 320px; min-height: 180px;">
+            <div class="cart-scroll flex-grow-1 overflow-y-auto mb-3 pe-1" style="max-height: 380px; min-height: 200px;">
               <div *ngIf="cart.length === 0" class="text-center py-4 text-muted border border-dashed border-secondary border-opacity-25 rounded-2">
                 <i class="bi bi-cart-x fs-2 d-block mb-1 text-secondary opacity-50"></i>
-                <span class="small">Cart is empty. Scan/type a barcode or click any product to add.</span>
+                <span class="small">Cart is empty. Click any product from the catalog to add.</span>
               </div>
 
               <!-- Cart Row with Live Editable Price per Shop -->
@@ -441,9 +407,6 @@ interface CartItem {
                   </td>
                   <td class="py-3">
                     <div class="text-light fw-semibold small">{{ inv.customerName }}</div>
-                    <div *ngIf="inv.shopBarcode" class="text-warning font-monospace text-xs">
-                      <i class="bi bi-upc me-0.5"></i>{{ inv.shopBarcode }}
-                    </div>
                     <div *ngIf="inv.customerPhone" class="text-muted text-xs">{{ inv.customerPhone }}</div>
                   </td>
                   <td class="py-3 text-center">
@@ -516,21 +479,15 @@ interface CartItem {
             <!-- Shop Info Header -->
             <div class="p-3 rounded-2 bg-dark bg-opacity-70 border border-secondary border-opacity-30 mb-3">
               <div class="row g-2 align-items-center">
-                <div class="col-md-4">
+                <div class="col-md-5">
                   <label class="form-label text-secondary text-xs mb-0.5 fw-semibold">Shop / Customer Name:</label>
-                  <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" [(ngModel)]="poPreview.shopName" (ngModelChange)="onPoShopNameChange()">
+                  <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" [(ngModel)]="poPreview.shopName">
                 </div>
                 <div class="col-md-3">
-                  <label class="form-label text-secondary text-xs mb-0.5 fw-semibold">
-                    <i class="bi bi-upc text-warning me-0.5"></i>Shop Barcode:
-                  </label>
-                  <input type="text" class="form-control form-control-sm bg-dark text-warning border-warning border-opacity-50 font-monospace fw-bold" [(ngModel)]="poPreview.shopBarcode" placeholder="e.g. SHOP-FB-001">
-                </div>
-                <div class="col-md-2">
                   <label class="form-label text-secondary text-xs mb-0.5">Mobile #:</label>
                   <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" [(ngModel)]="poPreview.shopPhone" placeholder="Optional">
                 </div>
-                <div class="col-md-3 text-md-end">
+                <div class="col-md-4 text-md-end">
                   <small class="text-secondary d-block">Estimated Total:</small>
                   <strong class="text-success fs-5">{{ defaultCurrency }} {{ poPreview.estimatedTotal | number:'1.2-2' }}</strong>
                 </div>
@@ -654,26 +611,8 @@ interface CartItem {
                 </div>
                 <div class="text-end">
                   <div><strong>Shop / Customer:</strong> <span class="fw-bold">{{ currentBill.customerName }}</span></div>
-                  <div *ngIf="currentBill.shopBarcode">
-                    <strong>Shop Code:</strong> <span class="font-monospace fw-bold text-dark">{{ currentBill.shopBarcode }}</span>
-                  </div>
                   <div *ngIf="currentBill.customerPhone"><strong>Mobile:</strong> {{ currentBill.customerPhone }}</div>
                   <div><strong>Payment:</strong> <span class="badge bg-secondary text-uppercase">{{ currentBill.paymentMethod }}</span></div>
-                </div>
-              </div>
-
-              <!-- Shop Barcode Graphic & Identification (Scannable Barcode for Shop) -->
-              <div *ngIf="currentBill.shopBarcode" class="p-2 mb-3 rounded bg-light border border-dark border-opacity-15 text-center bill-shop-badge">
-                <div class="d-flex align-items-center justify-content-between">
-                  <div class="text-start">
-                    <span class="text-uppercase text-muted fw-bold d-block" style="font-size: 8.5px; letter-spacing: 0.08em;">SHOP / OUTLET BARCODE</span>
-                    <span class="fw-bold text-dark" style="font-size: 0.95rem;">{{ currentBill.customerName }}</span>
-                    <div class="font-monospace fw-bold text-primary small">{{ currentBill.shopBarcode }}</div>
-                  </div>
-                  <div class="text-end" *ngIf="currentBill.shopBarcodeImage">
-                    <img [src]="currentBill.shopBarcodeImage" alt="Shop Barcode" style="max-height: 40px; width: auto; display: block;" class="ms-auto" />
-                    <span class="font-monospace text-muted" style="font-size: 8px; letter-spacing: 0.1em;">*{{ currentBill.shopBarcode }}*</span>
-                  </div>
                 </div>
               </div>
 
@@ -734,9 +673,6 @@ interface CartItem {
               <div class="text-center pt-3 border-top border-dark border-opacity-20 bill-footer">
                 <div class="font-monospace text-xs tracking-wider mb-1" style="letter-spacing: 0.15em;">
                   *{{ currentBill.invoiceNumber }}*
-                </div>
-                <div *ngIf="currentBill.shopBarcode" class="small text-muted mb-1 font-monospace">
-                  Shop Barcode: {{ currentBill.shopBarcode }}
                 </div>
                 <div class="fw-bold text-xs mb-1">THANK YOU FOR YOUR BUSINESS!</div>
                 <small class="text-muted text-xs d-block">Goods once sold can be exchanged within 7 days with this receipt.</small>
@@ -917,18 +853,11 @@ export class BillingComponent implements OnInit {
   cart: CartItem[] = [];
   isWalkIn = false;
   customerName = 'Shop A';
-  customerBarcode = 'SHOP-A-001';
   customerPhone = '';
   paymentMethod = 'CASH';
   discountAmount: number = 0;
   taxAmount: number = 0;
   paidAmount: number | null = null;
-
-  // Barcode / SKU Quick Add State
-  cartBarcode = '';
-  barcodeFeedback = '';
-  barcodeSuccess = false;
-  barcodeTimeout: any = null;
 
   isSubmitting = false;
 
@@ -1049,44 +978,6 @@ export class BillingComponent implements OnInit {
 
   // --- Cart Operations ---
 
-  addByBarcode(): void {
-    if (!this.cartBarcode || !this.cartBarcode.trim()) return;
-    const query = this.cartBarcode.trim().toLowerCase();
-
-    // 1. Exact match by barcode
-    let product = this.products().find(p => p.barcode && p.barcode.trim().toLowerCase() === query);
-
-    // 2. Match by SKU
-    if (!product) {
-      product = this.products().find(p => p.sku && p.sku.trim().toLowerCase() === query);
-    }
-
-    // 3. Match by exact name
-    if (!product) {
-      product = this.products().find(p => p.name.trim().toLowerCase() === query);
-    }
-
-    // 4. Case-insensitive substring match
-    if (!product) {
-      product = this.products().find(p => p.name.toLowerCase().includes(query) || (p.sku && p.sku.toLowerCase().includes(query)));
-    }
-
-    if (product) {
-      this.addToCart(product);
-      this.barcodeFeedback = `✓ Added "${product.name}"`;
-      this.barcodeSuccess = true;
-      this.cartBarcode = '';
-    } else {
-      this.barcodeFeedback = `✗ Product not found for "${this.cartBarcode}"`;
-      this.barcodeSuccess = false;
-    }
-
-    if (this.barcodeTimeout) clearTimeout(this.barcodeTimeout);
-    this.barcodeTimeout = setTimeout(() => {
-      this.barcodeFeedback = '';
-    }, 3500);
-  }
-
   addToCart(product: Product, customPrice?: number, qty: number = 1): void {
     const existing = this.cart.find(item => item.product.id === product.id);
     if (existing) {
@@ -1147,30 +1038,10 @@ export class BillingComponent implements OnInit {
   onWalkInToggle(): void {
     if (this.isWalkIn) {
       this.customerName = 'Walk-in Customer';
-      this.customerBarcode = 'WALK-IN';
       this.customerPhone = '';
     } else {
       this.customerName = '';
-      this.customerBarcode = '';
       this.customerPhone = '';
-    }
-  }
-
-  onCustomerNameChange(): void {
-    if (!this.isWalkIn && this.customerName) {
-      const clean = this.customerName.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 6);
-      if (clean) {
-        this.customerBarcode = `SHOP-${clean}-001`;
-      }
-    }
-  }
-
-  onPoShopNameChange(): void {
-    if (this.poPreview && this.poPreview.shopName) {
-      const clean = this.poPreview.shopName.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 6);
-      if (clean) {
-        this.poPreview.shopBarcode = `SHOP-${clean}-001`;
-      }
     }
   }
 
@@ -1211,7 +1082,6 @@ export class BillingComponent implements OnInit {
     const payload: CheckoutRequest = {
       warehouseId: this.selectedWarehouseId || undefined,
       customerName: this.customerName.trim(),
-      shopBarcode: this.customerBarcode ? this.customerBarcode.trim() : undefined,
       customerPhone: this.customerPhone ? this.customerPhone.trim() : undefined,
       paymentMethod: this.paymentMethod,
       discountAmount: this.discountAmount || 0,
@@ -1279,7 +1149,6 @@ export class BillingComponent implements OnInit {
 
     if (this.poPreview.shopName) {
       this.customerName = this.poPreview.shopName;
-      this.customerBarcode = this.poPreview.shopBarcode || `SHOP-${this.poPreview.shopName.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 6)}-001`;
       this.isWalkIn = false;
     }
     if (this.poPreview.shopPhone) {
@@ -1318,7 +1187,6 @@ export class BillingComponent implements OnInit {
     const payload: CheckoutRequest = {
       warehouseId: this.selectedWarehouseId || undefined,
       customerName: this.poPreview.shopName || 'Wholesale Shop',
-      shopBarcode: this.poPreview.shopBarcode || undefined,
       customerPhone: this.poPreview.shopPhone || undefined,
       paymentMethod: this.paymentMethod,
       discountAmount: 0,
