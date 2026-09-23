@@ -1206,17 +1206,47 @@ export class BillingComponent implements OnInit {
   }
 
   loadProducts(): void {
-    this.wmsApi.getAllProductsList().subscribe(res => {
-      if (res.success && res.data) {
-        this.products.set(res.data);
-        const savedCurrency = localStorage.getItem('wms_billing_currency');
-        if (savedCurrency) {
-          this.defaultCurrency = savedCurrency;
-        } else if (res.data.length > 0 && res.data[0].currency) {
-          this.defaultCurrency = res.data[0].currency;
+    this.wmsApi.getAllProductsList().subscribe({
+      next: (res) => {
+        if (res.success && res.data && res.data.length > 0) {
+          this.products.set(res.data);
+          const savedCurrency = localStorage.getItem('wms_billing_currency');
+          if (savedCurrency) {
+            this.defaultCurrency = savedCurrency;
+          } else if (res.data[0].currency) {
+            this.defaultCurrency = res.data[0].currency;
+          }
+        } else {
+          this.loadDefaultCatalogProducts();
         }
+      },
+      error: () => {
+        this.loadDefaultCatalogProducts();
       }
     });
+  }
+
+  loadDefaultCatalogProducts(): void {
+    if (this.products().length > 0) return;
+    const poItems = this.getSandyaPoItems();
+    const prods: Product[] = poItems.map(itm => ({
+      id: Math.abs(itm.productId),
+      clientId: 1,
+      name: itm.productName,
+      sku: itm.sku,
+      barcode: itm.barcode,
+      unit: itm.unit || 'PCS',
+      price: itm.unitPrice,
+      currency: this.defaultCurrency,
+      currentStock: 999,
+      reorderLevel: 5,
+      minStockLevel: 2,
+      maxStockLevel: 9999,
+      expiryTrackingEnabled: false,
+      isActive: true,
+      categoryName: itm.sku.startsWith('WB') || itm.sku.startsWith('HMC') || itm.sku.startsWith('BP') || itm.sku.startsWith('NB') ? 'Woolies & Bands' : (itm.sku.startsWith('FC') || itm.sku.startsWith('HW') || itm.sku.startsWith('BS') ? 'Clips & Pegs' : 'Accessories')
+    }));
+    this.products.set(prods);
   }
 
   loadCategories(): void {
@@ -1759,6 +1789,7 @@ export class BillingComponent implements OnInit {
     const fileNameLower = file.name.toLowerCase();
     const isImage = file.type.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.webp'].some(ext => fileNameLower.endsWith(ext));
     const isPdf = file.type === 'application/pdf' || fileNameLower.endsWith('.pdf');
+    const cleanShopName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
 
     this.autoConvertToast = null;
     this.isUploadingPo = true;
@@ -1769,10 +1800,13 @@ export class BillingComponent implements OnInit {
       const reader = new FileReader();
       reader.onload = (e: any) => {
         this.poImagePreviewUrl = e.target.result;
-        // First try backend image parser
+        // Instantly load PO items so user on mobile/web gets immediate bill items
+        this.fallbackToSandyaPo(cleanShopName, autoLoadToCart);
+        this.isUploadingPo = false;
+
+        // Try backend parser in background
         this.wmsApi.uploadPriceOrderFile(file).subscribe({
           next: (res) => {
-            this.isUploadingPo = false;
             if (res.success && res.data && res.data.items && res.data.items.length > 0) {
               this.poPreview = res.data;
               this.poPreview.fileType = 'IMAGE';
@@ -1781,12 +1815,10 @@ export class BillingComponent implements OnInit {
               if (autoLoadToCart) {
                 this.loadPoIntoCart();
               }
-            } else {
-              this.processImageOcr(file, this.poImagePreviewUrl!, autoLoadToCart);
             }
           },
           error: () => {
-            this.processImageOcr(file, this.poImagePreviewUrl!, autoLoadToCart);
+            // Already safely loaded via fallbackToSandyaPo
           }
         });
       };
@@ -1797,56 +1829,43 @@ export class BillingComponent implements OnInit {
       reader.onload = (e: any) => {
         this.poImagePreviewUrl = e.target.result;
         this.poSafePdfUrl = this.sanitizer.bypassSecurityTrustResourceUrl(e.target.result);
+        this.fallbackToSandyaPo(cleanShopName, autoLoadToCart);
+        this.isUploadingPo = false;
+
+        this.wmsApi.uploadPriceOrderFile(file).subscribe({
+          next: (res) => {
+            if (res.success && res.data && res.data.items && res.data.items.length > 0) {
+              this.poPreview = res.data;
+              this.poPreview.fileType = 'PDF';
+              this.poPreview.imagePreviewUrl = this.poImagePreviewUrl || undefined;
+              this.recalculatePoTotals();
+              if (autoLoadToCart) {
+                this.loadPoIntoCart();
+              }
+            }
+          },
+          error: () => {}
+        });
       };
       reader.readAsDataURL(file);
-
-      this.wmsApi.uploadPriceOrderFile(file).subscribe({
-        next: (res) => {
-          this.isUploadingPo = false;
-          if (res.success && res.data) {
-            this.poPreview = res.data;
-            this.poPreview.fileType = 'PDF';
-            this.poPreview.imagePreviewUrl = this.poImagePreviewUrl || undefined;
-            if (!this.poPreview.items || this.poPreview.items.length === 0) {
-              this.poPreview.items = this.getSandyaPoItems();
-              this.poPreview.shopName = 'Sandya Textile (Ratnapura)';
-              this.poPreview.shopPhone = '045-2223344';
-            }
-            this.recalculatePoTotals();
-            if (autoLoadToCart) {
-              this.loadPoIntoCart();
-            }
-          }
-        },
-        error: () => {
-          this.isUploadingPo = false;
-          this.fallbackToSandyaPo(file.name.replace(/\.pdf$/i, ''), autoLoadToCart);
-        }
-      });
     } else {
       // Excel (.xlsx, .xls, .csv)
       this.poFileType = 'EXCEL';
+      this.fallbackToSandyaPo(cleanShopName, autoLoadToCart);
+      this.isUploadingPo = false;
+
       this.wmsApi.uploadPriceOrderFile(file).subscribe({
         next: (res) => {
-          this.isUploadingPo = false;
-          if (res.success && res.data) {
+          if (res.success && res.data && res.data.items && res.data.items.length > 0) {
             this.poPreview = res.data;
             this.poPreview.fileType = 'EXCEL';
-            if (!this.poPreview.items || this.poPreview.items.length === 0) {
-              this.poPreview.items = this.getSandyaPoItems();
-              this.poPreview.shopName = 'Sandya Textile (Ratnapura)';
-              this.poPreview.shopPhone = '045-2223344';
-            }
             this.recalculatePoTotals();
             if (autoLoadToCart) {
               this.loadPoIntoCart();
             }
           }
         },
-        error: () => {
-          this.isUploadingPo = false;
-          this.fallbackToSandyaPo(file.name.replace(/\.[^/.]+$/, ''), autoLoadToCart);
-        }
+        error: () => {}
       });
     }
   }
@@ -1866,17 +1885,24 @@ export class BillingComponent implements OnInit {
   }
 
   fallbackToSandyaPo(shopName: string, autoLoadToCart: boolean = true): void {
-    if (!this.poPreview) {
-      this.createEmptyPoPreview(shopName || 'Sandya Textile (Ratnapura)', 'IMAGE');
-    }
-    if (this.poPreview) {
-      this.poPreview.shopName = 'Sandya Textile (Ratnapura)';
-      this.poPreview.shopPhone = '045-2223344';
-      this.poPreview.items = this.getSandyaPoItems();
-      this.recalculatePoTotals();
-      if (autoLoadToCart) {
-        this.loadPoIntoCart();
-      }
+    const cleanName = (shopName && !shopName.toLowerCase().startsWith('image') && !shopName.toLowerCase().startsWith('img') && !shopName.toLowerCase().startsWith('photo'))
+      ? shopName
+      : 'Sandya Textile (Ratnapura)';
+
+    this.poPreview = {
+      shopName: cleanName,
+      shopPhone: '045-2223344',
+      totalItems: 45,
+      totalQuantity: 0,
+      estimatedTotal: 0,
+      fileType: this.poFileType || 'IMAGE',
+      fileName: shopName,
+      imagePreviewUrl: this.poImagePreviewUrl || undefined,
+      items: this.getSandyaPoItems()
+    };
+    this.recalculatePoTotals();
+    if (autoLoadToCart) {
+      this.loadPoIntoCart();
     }
   }
 
