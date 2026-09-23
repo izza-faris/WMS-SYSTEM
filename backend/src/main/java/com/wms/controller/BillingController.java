@@ -63,4 +63,19 @@ public class BillingController {
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(excelBytes);
     }
+
+    @GetMapping("/customer-suggestions")
+    @PreAuthorize("hasAnyRole('CLIENT_ADMIN', 'BRANCH_MANAGER', 'WAREHOUSE_STAFF')")
+    public ResponseEntity<ApiResponse<java.util.List<String>>> getCustomerSuggestions(
+            @RequestParam(required = false, defaultValue = "") String query) {
+        return ResponseEntity.ok(ApiResponse.ok(billingService.getCustomerSuggestions(query)));
+    }
+
+    @GetMapping("/customer-last-order")
+    @PreAuthorize("hasAnyRole('CLIENT_ADMIN', 'BRANCH_MANAGER', 'WAREHOUSE_STAFF')")
+    public ResponseEntity<ApiResponse<SaleInvoiceDto>> getCustomerLastOrder(
+            @RequestParam String customerName) {
+        SaleInvoiceDto dto = billingService.getCustomerLastOrder(customerName);
+        return ResponseEntity.ok(ApiResponse.ok(dto));
+    }
 }

@@ -334,4 +334,14 @@ export class WmsApiService {
   getPriceOrderTemplateUrl(): string {
     return `${this.baseUrl}/billing/price-order-template`;
   }
+
+  getCustomerSuggestions(query: string = ''): Observable<ApiResponse<string[]>> {
+    const params = new HttpParams().set('query', query);
+    return this.http.get<ApiResponse<string[]>>(`${this.baseUrl}/billing/customer-suggestions`, { params });
+  }
+
+  getCustomerLastOrder(customerName: string): Observable<ApiResponse<SaleInvoice>> {
+    const params = new HttpParams().set('customerName', customerName);
+    return this.http.get<ApiResponse<SaleInvoice>>(`${this.baseUrl}/billing/customer-last-order`, { params });
+  }
 }

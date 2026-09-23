@@ -11,6 +11,7 @@ import com.wms.repository.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -562,5 +563,25 @@ public class BillingService {
         }
 
         return dto;
+    }
+
+    public List<String> getCustomerSuggestions(String query) {
+        Long clientId = tenantSecurityService.requireCurrentClientId();
+        String q = query != null ? query.trim() : "";
+        return saleInvoiceRepository.findDistinctCustomerNames(clientId, q, PageRequest.of(0, 15));
+    }
+
+    public SaleInvoiceDto getCustomerLastOrder(String customerName) {
+        if (customerName == null || customerName.trim().isEmpty()) {
+            return null;
+        }
+        Long clientId = tenantSecurityService.requireCurrentClientId();
+        List<SaleInvoice> invoices = saleInvoiceRepository.findLatestByCustomerName(clientId, customerName.trim(), PageRequest.of(0, 1));
+        if (invoices.isEmpty()) {
+            return null;
+        }
+        SaleInvoice latest = invoices.get(0);
+        List<SaleInvoiceItem> items = saleInvoiceItemRepository.findByInvoiceId(latest.getId());
+        return convertToDto(latest, items);
     }
 }

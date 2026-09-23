@@ -172,13 +172,37 @@ interface CartItem {
                 <div class="col-7">
                   <label class="text-secondary text-xs d-block mb-0.5">Shop / Customer Name *</label>
                   <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary"
-                         [(ngModel)]="customerName" placeholder="e.g. Shop A / FB Mart" [disabled]="isWalkIn">
+                         [(ngModel)]="customerName" (ngModelChange)="onCustomerNameChange()"
+                         list="customerSuggestionsList"
+                         placeholder="e.g. Fashion Bug / Shop A" [disabled]="isWalkIn">
+                  <datalist id="customerSuggestionsList">
+                    <option *ngFor="let name of customerSuggestions" [value]="name"></option>
+                  </datalist>
                 </div>
                 <div class="col-5">
                   <label class="text-secondary text-xs d-block mb-0.5">Mobile # (Opt)</label>
                   <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary"
                          [(ngModel)]="customerPhone" placeholder="Mobile #" [disabled]="isWalkIn">
                 </div>
+              </div>
+
+              <!-- ⚡ Repeat Previous PO / Order for Customer Banner -->
+              <div *ngIf="customerLastOrder && !isWalkIn && customerLastOrder.items && customerLastOrder.items.length > 0"
+                   class="mt-2.5 p-2 rounded-2 bg-primary bg-opacity-15 border border-primary border-opacity-35 d-flex flex-wrap align-items-center justify-content-between gap-2 animate__animated animate__fadeIn">
+                <div class="d-flex align-items-center gap-1.5 overflow-hidden">
+                  <i class="bi bi-clock-history text-info flex-shrink-0 fs-6"></i>
+                  <div class="text-truncate" style="font-size: 0.76rem;">
+                    <span class="text-light fw-bold">{{ customerLastOrder.customerName }}</span>
+                    <span class="text-secondary ms-1">has previous PO:</span>
+                    <span class="text-warning fw-bold font-monospace ms-1">{{ customerLastOrder.invoiceNumber }}</span>
+                    <span class="text-muted ms-1">({{ customerLastOrder.items?.length }} items &bull; {{ defaultCurrency }} {{ customerLastOrder.grandTotal | number:'1.2-2' }})</span>
+                  </div>
+                </div>
+                <button type="button" (click)="loadCustomerLastOrderIntoCart()"
+                        class="btn btn-warning btn-xs fw-bold px-2.5 py-1 text-dark shadow-sm d-flex align-items-center gap-1 flex-shrink-0"
+                        title="Load all items from this customer's previous order into the bill with their agreed prices">
+                  <i class="bi bi-box-arrow-in-down"></i>Repeat PO into Bill
+                </button>
               </div>
             </div>
 
@@ -877,6 +901,12 @@ export class BillingComponent implements OnInit {
   taxAmount: number = 0;
   paidAmount: number | null = null;
 
+  // Customer PO & Price Memory State
+  customerSuggestions: string[] = [];
+  customerLastOrder: SaleInvoice | null = null;
+  customerPriceMap: { [productId: number]: number } = {};
+  customerDebounceTimer: any = null;
+
   isSubmitting = false;
 
   // Bill Modal State
@@ -913,6 +943,14 @@ export class BillingComponent implements OnInit {
     });
 
     this.loadInvoices();
+
+    // Fetch customer suggestions for autocomplete
+    this.wmsApi.getCustomerSuggestions('').subscribe(res => {
+      if (res.success && res.data) {
+        this.customerSuggestions = res.data;
+      }
+    });
+    this.onCustomerNameChange();
 
     // Keydown listener for F9 shortcut (Instant Complete & Print)
     window.addEventListener('keydown', (e: KeyboardEvent) => {
@@ -997,6 +1035,11 @@ export class BillingComponent implements OnInit {
   // --- Cart Operations ---
 
   addToCart(product: Product, customPrice?: number, qty: number = 1): void {
+    // If no explicit price provided, check customer price memory (last agreed price for this customer)
+    if ((customPrice === undefined || customPrice === null) && this.customerPriceMap[product.id] !== undefined) {
+      customPrice = this.customerPriceMap[product.id];
+    }
+
     const existing = this.cart.find(item => item.product.id === product.id);
     if (existing) {
       existing.quantity += qty;
@@ -1058,9 +1101,109 @@ export class BillingComponent implements OnInit {
     if (this.isWalkIn) {
       this.customerName = 'Walk-in Customer';
       this.customerPhone = '';
+      this.customerLastOrder = null;
+      this.customerPriceMap = {};
     } else {
       this.customerName = '';
       this.customerPhone = '';
+      this.customerLastOrder = null;
+      this.customerPriceMap = {};
+    }
+  }
+
+  onCustomerNameChange(): void {
+    if (this.customerDebounceTimer) clearTimeout(this.customerDebounceTimer);
+    this.customerLastOrder = null;
+    this.customerPriceMap = {};
+
+    const name = this.customerName ? this.customerName.trim() : '';
+    if (!name || this.isWalkIn) return;
+
+    this.customerDebounceTimer = setTimeout(() => {
+      this.wmsApi.getCustomerLastOrder(name).subscribe({
+        next: (res) => {
+          if (res.success && res.data) {
+            this.customerLastOrder = res.data;
+            this.customerPriceMap = {};
+            if (this.customerLastOrder.items) {
+              for (const itm of this.customerLastOrder.items) {
+                this.customerPriceMap[itm.productId] = itm.unitPrice;
+              }
+            }
+          }
+        },
+        error: () => {
+          this.customerLastOrder = null;
+          this.customerPriceMap = {};
+        }
+      });
+
+      // Update autocomplete suggestions as user types
+      if (name.length >= 1) {
+        this.wmsApi.getCustomerSuggestions(name).subscribe(res => {
+          if (res.success && res.data) {
+            this.customerSuggestions = res.data;
+          }
+        });
+      }
+    }, 350);
+  }
+
+  loadCustomerLastOrderIntoCart(): void {
+    if (!this.customerLastOrder || !this.customerLastOrder.items?.length) return;
+
+    if (this.cart.length > 0) {
+      if (!confirm(`Cart already has ${this.cart.length} item(s). Do you want to load ${this.customerLastOrder.customerName}'s previous Purchase Order into the bill?`)) {
+        return;
+      }
+    }
+
+    this.cart = [];
+    for (const poItem of this.customerLastOrder.items) {
+      let product = this.products().find(p => p.id === poItem.productId);
+      if (!product && poItem.sku) {
+        product = this.products().find(p => p.sku && p.sku.toLowerCase() === poItem.sku?.toLowerCase());
+      }
+      if (!product) {
+        product = this.products().find(p => p.name.toLowerCase() === poItem.productName.toLowerCase());
+      }
+
+      if (product) {
+        this.cart.push({
+          product,
+          quantity: poItem.quantity,
+          unitPrice: poItem.unitPrice,
+          totalPrice: poItem.quantity * poItem.unitPrice,
+          barcode: poItem.barcode || product.barcode || ''
+        });
+      } else {
+        const stubProduct: Product = {
+          id: poItem.productId,
+          clientId: 0,
+          name: poItem.productName,
+          sku: poItem.sku || 'SKU',
+          barcode: poItem.barcode,
+          unit: poItem.unit || 'PCS',
+          price: poItem.unitPrice,
+          currentStock: 999,
+          reorderLevel: 0,
+          minStockLevel: 0,
+          maxStockLevel: 9999,
+          expiryTrackingEnabled: false,
+          isActive: true
+        };
+        this.cart.push({
+          product: stubProduct,
+          quantity: poItem.quantity,
+          unitPrice: poItem.unitPrice,
+          totalPrice: poItem.quantity * poItem.unitPrice,
+          barcode: poItem.barcode || ''
+        });
+      }
+    }
+
+    if (this.customerLastOrder.customerPhone && !this.customerPhone) {
+      this.customerPhone = this.customerLastOrder.customerPhone;
     }
   }
 
