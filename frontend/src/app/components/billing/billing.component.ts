@@ -645,10 +645,10 @@ interface CartItem {
                     <td>{{ idx + 1 }}</td>
                     <td>
                       <div class="fw-bold bill-item-name">{{ item.productName }}</div>
-                      <div class="d-flex align-items-center gap-1.5 text-muted text-xs">
+                      <div class="d-flex align-items-center gap-2 text-muted text-xs mt-0.5">
                         <small *ngIf="item.sku">SKU: {{ item.sku }}</small>
-                        <small *ngIf="item.barcode" class="badge bg-light border text-dark font-monospace py-0 px-1">
-                          <i class="bi bi-upc me-0.5"></i>{{ item.barcode }}
+                        <small *ngIf="item.barcode" class="font-monospace fw-bold text-dark border border-dark border-opacity-25 px-1 rounded bg-light">
+                          <i class="bi bi-upc me-0.5"></i>Barcode: {{ item.barcode }}
                         </small>
                       </div>
                     </td>
