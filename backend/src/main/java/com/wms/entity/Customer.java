@@ -1,38 +1,30 @@
 package com.wms.entity;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "customers")
+@Document(collection = "customers")
 public class Customer {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private Long clientId;
 
-    @Column(nullable = false, length = 150)
     private String name;
 
-    @Column(length = 100)
     private String contactPerson;
 
-    @Column(length = 100)
     private String email;
 
-    @Column(length = 30)
     private String phone;
 
-    @Column(columnDefinition = "TEXT")
     private String address;
 
-    @Column(nullable = false)
     private Boolean isActive = true;
 
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public Customer() {}

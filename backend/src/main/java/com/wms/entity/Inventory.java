@@ -1,35 +1,28 @@
 package com.wms.entity;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "inventory", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"clientId", "warehouseId", "binId", "productId", "batchId"})
-})
+@Document(collection = "inventory")
 public class Inventory {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private Long clientId;
 
-    @Column(nullable = false)
     private Long warehouseId;
 
     private Long binId;
 
-    @Column(nullable = false)
     private Long productId;
 
     private Long batchId;
 
-    @Column(nullable = false)
     private Integer quantity = 0;
 
-    @Column(nullable = false)
     private Integer reservedQuantity = 0;
 
     private LocalDateTime updatedAt = LocalDateTime.now();
@@ -47,7 +40,6 @@ public class Inventory {
         this.updatedAt = LocalDateTime.now();
     }
 
-    @PreUpdate
     public void onPreUpdate() {
         this.updatedAt = LocalDateTime.now();
     }

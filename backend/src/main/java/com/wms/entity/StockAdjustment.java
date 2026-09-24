@@ -1,60 +1,45 @@
 package com.wms.entity;
 
 import com.wms.entity.enums.AdjustmentStatus;
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "stock_adjustments", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"clientId", "adjustmentNumber"})
-})
+@Document(collection = "stock_adjustments")
 public class StockAdjustment {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private Long clientId;
 
-    @Column(nullable = false, length = 50)
     private String adjustmentNumber;
 
-    @Column(nullable = false)
     private Long warehouseId;
 
     private Long binId;
 
-    @Column(nullable = false)
     private Long productId;
 
     private Long batchId;
 
-    @Column(nullable = false)
     private Integer systemQuantity;
 
-    @Column(nullable = false)
     private Integer physicalQuantity;
 
-    @Column(nullable = false)
     private Integer discrepancyQuantity;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
     private String reason;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
     private AdjustmentStatus status = AdjustmentStatus.PENDING;
 
-    @Column(nullable = false)
     private Long requestedBy;
 
     private Long reviewedBy;
 
-    @Column(columnDefinition = "TEXT")
     private String reviewNotes;
 
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     private LocalDateTime reviewedAt;

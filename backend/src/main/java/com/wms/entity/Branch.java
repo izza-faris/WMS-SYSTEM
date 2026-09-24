@@ -1,37 +1,28 @@
 package com.wms.entity;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "branches", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"clientId", "branchCode"})
-})
+@Document(collection = "branches")
 public class Branch {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private Long clientId;
 
-    @Column(nullable = false, length = 100)
     private String branchName;
 
-    @Column(nullable = false, length = 50)
     private String branchCode;
 
-    @Column(columnDefinition = "TEXT")
     private String address;
 
-    @Column(length = 30)
     private String phone;
 
-    @Column(nullable = false)
     private Boolean isActive = true;
 
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     private LocalDateTime updatedAt = LocalDateTime.now();
@@ -49,12 +40,10 @@ public class Branch {
         this.updatedAt = LocalDateTime.now();
     }
 
-    @PreUpdate
     public void onPreUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

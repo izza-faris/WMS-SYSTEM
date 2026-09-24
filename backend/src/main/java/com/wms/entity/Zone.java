@@ -1,27 +1,20 @@
 package com.wms.entity;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "zones", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"warehouseId", "code"})
-})
+@Document(collection = "zones")
 public class Zone {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private Long clientId;
 
-    @Column(nullable = false)
     private Long warehouseId;
 
-    @Column(nullable = false, length = 50)
     private String name;
 
-    @Column(nullable = false, length = 30)
     private String code;
 
     private String description;

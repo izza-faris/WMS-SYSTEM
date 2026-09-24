@@ -1,35 +1,26 @@
 package com.wms.entity;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.math.BigDecimal;
 
-@Entity
-@Table(name = "bins", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"shelfId", "code"}),
-    @UniqueConstraint(columnNames = {"clientId", "qrCode"})
-})
+@Document(collection = "bins")
 public class Bin {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private Long clientId;
 
-    @Column(nullable = false)
     private Long shelfId;
 
-    @Column(nullable = false, length = 30)
     private String code;
 
-    @Column(nullable = false, length = 100)
     private String qrCode;
 
-    @Column(precision = 10, scale = 2)
     private BigDecimal capacityCubicMeters = BigDecimal.ZERO;
 
-    @Column(nullable = false)
     private Boolean isActive = true;
 
     public Bin() {}

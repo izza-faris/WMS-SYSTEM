@@ -1,24 +1,18 @@
 package com.wms.entity;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "shelves", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"rackId", "code"})
-})
+@Document(collection = "shelves")
 public class Shelf {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private Long clientId;
 
-    @Column(nullable = false)
     private Long rackId;
 
-    @Column(nullable = false, length = 30)
     private String code;
 
     public Shelf() {}

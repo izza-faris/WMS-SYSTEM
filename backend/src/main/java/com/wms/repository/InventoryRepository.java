@@ -1,16 +1,14 @@
 package com.wms.repository;
 
 import com.wms.entity.Inventory;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface InventoryRepository extends JpaRepository<Inventory, Long> {
+public interface InventoryRepository extends MongoRepository<Inventory, Long> {
     List<Inventory> findByClientId(Long clientId);
     List<Inventory> findByClientIdAndWarehouseId(Long clientId, Long warehouseId);
     List<Inventory> findByClientIdAndProductId(Long clientId, Long productId);
@@ -19,15 +17,26 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     Optional<Inventory> findByClientIdAndWarehouseIdAndBinIdAndProductIdAndBatchId(
             Long clientId, Long warehouseId, Long binId, Long productId, Long batchId);
 
-    @Query("SELECT SUM(i.quantity) FROM Inventory i WHERE i.clientId = :clientId AND i.productId = :productId")
-    Integer getTotalStockForProduct(@Param("clientId") Long clientId, @Param("productId") Long productId);
+    default Integer getTotalStockForProduct(Long clientId, Long productId) {
+        List<Inventory> list = findByClientIdAndProductId(clientId, productId);
+        return list.stream().mapToInt(i -> i.getQuantity() != null ? i.getQuantity() : 0).sum();
+    }
 
-    @Query("SELECT SUM(i.quantity) FROM Inventory i WHERE i.clientId = :clientId AND i.warehouseId = :warehouseId AND i.productId = :productId")
-    Integer getWarehouseStockForProduct(@Param("clientId") Long clientId, @Param("warehouseId") Long warehouseId, @Param("productId") Long productId);
+    default Integer getWarehouseStockForProduct(Long clientId, Long warehouseId, Long productId) {
+        List<Inventory> list = findByClientIdAndWarehouseId(clientId, warehouseId);
+        return list.stream()
+                .filter(i -> productId != null && productId.equals(i.getProductId()))
+                .mapToInt(i -> i.getQuantity() != null ? i.getQuantity() : 0).sum();
+    }
 
-    @Query("SELECT SUM(i.quantity) FROM Inventory i WHERE i.clientId = :clientId")
-    Long getTotalStockQuantityForClient(@Param("clientId") Long clientId);
+    default Long getTotalStockQuantityForClient(Long clientId) {
+        List<Inventory> list = findByClientId(clientId);
+        return list.stream().mapToLong(i -> i.getQuantity() != null ? i.getQuantity() : 0).sum();
+    }
 
-    @Query("SELECT i FROM Inventory i WHERE i.clientId = :clientId AND i.productId = :productId AND i.quantity > 0")
-    List<Inventory> findAvailableStockForProduct(@Param("clientId") Long clientId, @Param("productId") Long productId);
+    List<Inventory> findByClientIdAndProductIdAndQuantityGreaterThan(Long clientId, Long productId, int quantity);
+
+    default List<Inventory> findAvailableStockForProduct(Long clientId, Long productId) {
+        return findByClientIdAndProductIdAndQuantityGreaterThan(clientId, productId, 0);
+    }
 }

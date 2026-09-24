@@ -1,28 +1,22 @@
 package com.wms.entity;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "categories", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"clientId", "name"})
-})
+@Document(collection = "categories")
 public class Category {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private Long clientId;
 
-    @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public Category() {}

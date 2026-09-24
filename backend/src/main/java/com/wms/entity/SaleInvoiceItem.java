@@ -1,42 +1,30 @@
 package com.wms.entity;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "sale_invoice_items", indexes = {
-    @Index(name = "idx_items_invoice_id", columnList = "invoiceId")
-})
+@Document(collection = "sale_invoice_items")
 public class SaleInvoiceItem {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private Long invoiceId;
 
-    @Column(nullable = false)
     private Long productId;
 
-    @Column(nullable = false, length = 150)
     private String productName;
 
-    @Column(length = 50)
     private String sku;
 
-    @Column(length = 20)
     private String unit = "PCS";
 
-    @Column(nullable = false)
     private Integer quantity;
 
-    @Column(nullable = false)
     private Double unitPrice = 0.0;
 
-    @Column(nullable = false)
     private Double totalPrice = 0.0;
 
-    @Column(length = 60)
     private String barcode;
 
     public SaleInvoiceItem() {}

@@ -1,19 +1,16 @@
 package com.wms.entity;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "stock_transfer_items")
+@Document(collection = "stock_transfer_items")
 public class StockTransferItem {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private Long transferId;
 
-    @Column(nullable = false)
     private Long productId;
 
     private Long batchId;
@@ -22,10 +19,8 @@ public class StockTransferItem {
 
     private Long destBinId;
 
-    @Column(nullable = false)
     private Integer quantity;
 
-    @Column(nullable = false)
     private Integer receivedQuantity = 0;
 
     public StockTransferItem() {}

@@ -1,36 +1,29 @@
 package com.wms.entity;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "product_batches", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"clientId", "productId", "batchNumber"})
-})
+@Document(collection = "product_batches")
 public class ProductBatch {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private Long clientId;
 
-    @Column(nullable = false)
     private Long productId;
 
-    @Column(nullable = false, length = 100)
     private String batchNumber;
 
     private LocalDate mfgDate;
 
     private LocalDate expiryDate;
 
-    @Column(nullable = false)
     private Integer initialQuantity;
 
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public ProductBatch() {}

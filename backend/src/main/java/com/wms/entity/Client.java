@@ -1,40 +1,31 @@
 package com.wms.entity;
 
 import com.wms.entity.enums.ClientStatus;
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "clients")
+@Document(collection = "clients")
 public class Client {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 150)
     private String companyName;
 
-    @Column(nullable = false, unique = true, length = 50)
     private String companyCode;
 
-    @Column(nullable = false, unique = true, length = 100)
     private String email;
 
-    @Column(nullable = false, length = 30)
     private String phone;
 
-    @Column(columnDefinition = "TEXT")
     private String address;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
     private ClientStatus status = ClientStatus.PENDING;
 
-    @Column(nullable = false)
     private Boolean allowNegativeStock = false;
 
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     private LocalDateTime updatedAt = LocalDateTime.now();
@@ -53,7 +44,6 @@ public class Client {
         this.updatedAt = LocalDateTime.now();
     }
 
-    @PreUpdate
     public void onPreUpdate() {
         this.updatedAt = LocalDateTime.now();
     }

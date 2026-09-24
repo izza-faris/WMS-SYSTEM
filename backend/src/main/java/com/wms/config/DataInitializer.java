@@ -35,5 +35,13 @@ public class DataInitializer implements CommandLineRunner {
             platformAdmin.setEmail("izzafaris.it@gmail.com");
             userRepository.save(platformAdmin);
         }
+
+        if (!userRepository.existsByEmail("admin@aerowms.com")) {
+            User demoAdmin = new User(
+                    null, null, "Super Administrator", "admin@aerowms.com",
+                    passwordEncoder.encode("admin123"), Role.PLATFORM_ADMIN, "+1 800-555-0199"
+            );
+            userRepository.save(demoAdmin);
+        }
     }
 }

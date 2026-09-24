@@ -1,53 +1,41 @@
 package com.wms.entity;
 
 import com.wms.entity.enums.TransactionType;
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "stock_transactions")
+@Document(collection = "stock_transactions")
 public class StockTransaction {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private Long clientId;
 
-    @Column(nullable = false)
     private Long warehouseId;
 
     private Long binId;
 
-    @Column(nullable = false)
     private Long productId;
 
     private Long batchId;
 
-    @Column(nullable = false)
     private Long userId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
     private TransactionType transactionType;
 
-    @Column(nullable = false)
     private Integer quantity;
 
-    @Column(nullable = false)
     private Integer previousQuantity;
 
-    @Column(nullable = false)
     private Integer newQuantity;
 
-    @Column(length = 100)
     private String referenceNumber;
 
-    @Column(columnDefinition = "TEXT")
     private String notes;
 
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public StockTransaction() {}

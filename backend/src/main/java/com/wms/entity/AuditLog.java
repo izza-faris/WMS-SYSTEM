@@ -1,14 +1,14 @@
 package com.wms.entity;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "audit_logs")
+@Document(collection = "audit_logs")
 public class AuditLog {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     // NULL for platform-level audit events
@@ -18,21 +18,16 @@ public class AuditLog {
 
     private Long branchId;
 
-    @Column(nullable = false, length = 100)
     private String action;
 
-    @Column(nullable = false, length = 100)
     private String entityType;
 
     private Long entityId;
 
-    @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(length = 45)
     private String ipAddress;
 
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public AuditLog() {}

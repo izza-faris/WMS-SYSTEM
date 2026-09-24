@@ -1,15 +1,15 @@
 package com.wms.entity;
 
 import com.wms.entity.enums.Role;
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "users")
+@Document(collection = "users")
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     // NULL for Platform Admin; required for all client users
@@ -18,26 +18,18 @@ public class User {
     // Optional: assigned branch for Branch Manager / Staff
     private Long branchId;
 
-    @Column(nullable = false, length = 100)
     private String fullName;
 
-    @Column(nullable = false, unique = true, length = 100)
     private String email;
 
-    @Column(nullable = false)
     private String passwordHash;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
     private Role role;
 
-    @Column(length = 30)
     private String phone;
 
-    @Column(nullable = false)
     private Boolean isActive = true;
 
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     private LocalDateTime updatedAt = LocalDateTime.now();
@@ -57,7 +49,6 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
-    @PreUpdate
     public void onPreUpdate() {
         this.updatedAt = LocalDateTime.now();
     }

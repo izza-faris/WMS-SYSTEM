@@ -1,66 +1,48 @@
 package com.wms.entity;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "products", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"clientId", "sku"})
-})
+@Document(collection = "products")
 public class Product {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private Long clientId;
 
     private Long categoryId;
 
-    @Column(nullable = false, length = 150)
     private String name;
 
-    @Column(nullable = false, length = 50)
     private String sku;
 
-    @Column(length = 100)
     private String barcode;
 
-    @Column(length = 100)
     private String qrCode;
 
-    @Column(length = 100)
     private String brand;
 
-    @Column(nullable = false, length = 30)
     private String unit = "PCS";
 
-    @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false)
     private Integer reorderLevel = 10;
 
-    @Column(nullable = false)
     private Integer minStockLevel = 5;
 
-    @Column(nullable = false)
     private Integer maxStockLevel = 1000;
 
-    @Column(nullable = false)
     private Boolean expiryTrackingEnabled = false;
 
-    @Column(nullable = false)
     private Boolean isActive = true;
 
-    @Column
     private Double price = 0.0;
 
-    @Column(length = 20)
     private String currency = "$";
 
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     private LocalDateTime updatedAt = LocalDateTime.now();
@@ -88,7 +70,6 @@ public class Product {
         this.updatedAt = LocalDateTime.now();
     }
 
-    @PreUpdate
     public void onPreUpdate() {
         this.updatedAt = LocalDateTime.now();
     }

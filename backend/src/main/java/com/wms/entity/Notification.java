@@ -1,15 +1,15 @@
 package com.wms.entity;
 
 import com.wms.entity.enums.NotificationType;
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "notifications")
+@Document(collection = "notifications")
 public class Notification {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     // NULL for platform-wide notifications
@@ -18,22 +18,16 @@ public class Notification {
     // NULL for tenant-wide broadcasts
     private Long userId;
 
-    @Column(nullable = false, length = 150)
     private String title;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
     private NotificationType type;
 
-    @Column(nullable = false)
     private Boolean isRead = false;
 
     private String linkUrl;
 
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public Notification() {}

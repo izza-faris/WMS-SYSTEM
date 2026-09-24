@@ -1,44 +1,33 @@
 package com.wms.entity;
 
 import com.wms.entity.enums.TransferStatus;
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "stock_transfers", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"clientId", "transferNumber"})
-})
+@Document(collection = "stock_transfers")
 public class StockTransfer {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private Long clientId;
 
-    @Column(nullable = false, length = 50)
     private String transferNumber;
 
-    @Column(nullable = false)
     private Long sourceWarehouseId;
 
-    @Column(nullable = false)
     private Long destWarehouseId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
     private TransferStatus status = TransferStatus.PENDING;
 
-    @Column(nullable = false)
     private Long createdBy;
 
     private Long approvedBy;
 
-    @Column(columnDefinition = "TEXT")
     private String notes;
 
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     private LocalDateTime updatedAt = LocalDateTime.now();
@@ -57,7 +46,6 @@ public class StockTransfer {
         this.updatedAt = LocalDateTime.now();
     }
 
-    @PreUpdate
     public void onPreUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
