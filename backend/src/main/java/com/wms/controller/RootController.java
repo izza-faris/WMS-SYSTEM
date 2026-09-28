@@ -9,7 +9,7 @@ import java.util.Map;
 @RestController
 public class RootController {
 
-    @GetMapping(value = "/", produces = "text/html")
+    @GetMapping(value = {"/", "/api/v1", "/api/v1/"}, produces = "text/html")
     public String home() {
         return """
             <!DOCTYPE html>
