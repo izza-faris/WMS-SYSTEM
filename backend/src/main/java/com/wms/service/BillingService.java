@@ -300,9 +300,7 @@ public class BillingService {
                             preview.setOrderDate(getCellValueAsString(row.getCell(c + 1)).trim());
                         }
                     }
-                    if (valLower.contains("sandya") || valLower.contains("textile") || valLower.contains("rathnapura") || valLower.contains("ratnapura")) {
-                        preview.setShopName(valLower.contains("sandya") ? "Sandya Textile (Ratnapura)" : val);
-                    }
+                    // Removed hardcoded customer name checks to ensure strict tenant data isolation
                 }
 
                 // Header column matches
@@ -454,20 +452,19 @@ public class BillingService {
         preview.setFileType("IMAGE");
 
         String filename = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
-        String shop = "Sandya Textile (Ratnapura)";
-        if (!filename.contains("sandya") && !filename.contains("klippie") && !filename.contains("media") && !filename.contains("image") && !filename.contains("upload")) {
+        String shop = "Walk-in Customer";
+        if (filename.length() > 0 && !filename.startsWith("image") && !filename.startsWith("photo") && !filename.startsWith("img") && !filename.startsWith("upload")) {
             shop = file.getOriginalFilename().replaceFirst("[.][^.]+$", "").replace('-', ' ').replace('_', ' ');
         }
         preview.setShopName(shop);
-        preview.setShopPhone("045-2223344");
+        preview.setShopPhone("");
 
-        List<PriceOrderItemPreviewDto> items = getSandyaPoItemsList(clientId);
-        preview.setItems(items);
-        preview.setTotalItems(items.size());
-        int units = items.stream().mapToInt(i -> i.getQuantity() != null ? i.getQuantity() : 0).sum();
-        double total = items.stream().mapToDouble(i -> i.getLineTotal() != null ? i.getLineTotal() : 0.0).sum();
-        preview.setTotalQuantity(units);
-        preview.setEstimatedTotal(total);
+        // Image OCR is handled client-side via Tesseract.js using the tenant's own product catalog
+        // Backend returns an empty preview structure strictly isolated to this tenant
+        preview.setItems(new ArrayList<>());
+        preview.setTotalItems(0);
+        preview.setTotalQuantity(0);
+        preview.setEstimatedTotal(0.0);
 
         return preview;
     }
@@ -503,12 +500,16 @@ public class BillingService {
         // Detect shop/customer name
         for (int i = 0; i < textTokens.size(); i++) {
             String l = textTokens.get(i).toLowerCase();
-            if (l.contains("shop") || l.contains("customer") || l.contains("bill to") || l.contains("m/s") || l.contains("sandya")) {
+            if (l.contains("shop") || l.contains("customer") || l.contains("bill to") || l.contains("m/s")) {
                 if (i + 1 < textTokens.size()) {
                     preview.setShopName(textTokens.get(i + 1));
                     break;
                 }
             }
+        }
+        if (preview.getShopName() == null || preview.getShopName().isBlank()) {
+            String cleanName = file.getOriginalFilename() != null ? file.getOriginalFilename().replaceFirst("[.][^.]+$", "").replace('-', ' ').replace('_', ' ') : "Wholesale Customer";
+            preview.setShopName(cleanName);
         }
 
         List<PriceOrderItemPreviewDto> items = new ArrayList<>();
@@ -563,115 +564,11 @@ public class BillingService {
             }
         }
 
-        String filename = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
-        boolean isSandya = filename.contains("sandya") || filename.contains("klippie") || filename.contains("ratnapura")
-                || textTokens.stream().anyMatch(t -> t.toLowerCase().contains("sandya") || t.toLowerCase().contains("klippie") || t.toLowerCase().contains("ratnapura"));
-        if (isSandya || items.isEmpty()) {
-            preview.setShopName("Sandya Textile (Ratnapura)");
-            preview.setShopPhone("045-2223344");
-            items = getSandyaPoItemsList(clientId);
-            grandTotal = items.stream().mapToDouble(i -> i.getLineTotal() != null ? i.getLineTotal() : 0.0).sum();
-            totalUnits = items.stream().mapToInt(i -> i.getQuantity() != null ? i.getQuantity() : 0).sum();
-        }
-
         preview.setItems(items);
         preview.setTotalItems(items.size());
         preview.setTotalQuantity(totalUnits);
         preview.setEstimatedTotal(grandTotal);
         return preview;
-    }
-
-    private List<PriceOrderItemPreviewDto> getSandyaPoItemsList(Long clientId) {
-        String[][] rawData = new String[][] {
-            {"HMC 36", "Bundle Small Woolies & Classical Set Woolies (8 Designs)", "65.00", "48"},
-            {"WB 10", "Thick Blacky Wooly & Designer Color Woolies (13 Designs)", "95.00", "36"},
-            {"BP 62", "Blacky on Color Bundle Teen Woolies (16 Designs)", "120.00", "36"},
-            {"NB 72", "Thin & Thick Bundle Wooly Designers (10 Designs)", "125.00", "36"},
-            {"RC 32", "Rabbit Fur Scrunchy Wooly (4 Designs)", "95.00", "36"},
-            {"FW 03", "Telephone Wire Designer Woolies & Fur Thin Double Kid Wooly (12 Designs)", "105.00", "36"},
-            {"PB 31", "Small Trancy Clips & Wooly Set Combo Pcs (4 Designs)", "160.00", "36"},
-            {"FN 01", "6 pcs Kiddy Peicy Wooly Long Card (7 Designs)", "140.00", "36"},
-            {"FC 04", "3 Pcs Designer Kiddy Clip Set (10 Designs)", "120.00", "36"},
-            {"FC 08", "Steel Mini 2pcs peg & Gloss Peg with Wooly Set (10 Designs)", "125.00", "36"},
-            {"FC 09", "Kiddy 6pcs clip on Small 3pcs Set Peg (8 Designs)", "180.00", "36"},
-            {"FC 13", "Shiny Stone Pegs & premier Set Hair Clips (6 Designs)", "195.00", "36"},
-            {"BLC 11", "Premier B fly Clips & Bow Clip Exclusive (7 Designs)", "230.00", "36"},
-            {"BS 09", "Acrylic Designer Clips & Steel Pegs 3pcs (13 Designs)", "195.00", "36"},
-            {"PHB 01", "Premier Set Hair Clips with Sunflower Pegs (13 Designs)", "190.00", "36"},
-            {"MBE 10", "Clip & Wooly Mix with Kiddy double peggy Set (14 Designs)", "220.00", "36"},
-            {"NB 67", "Combo Set Designer Kiddy Clips (10 Designs)", "140.00", "36"},
-            {"BLC 09", "Acrylic Combo Set & Glossy Set Clips (6 Designs)", "170.00", "36"},
-            {"MCP 02", "Jojo Siwa Medium Clips Premier Designs (5 Designs)", "220.00", "36"},
-            {"MB 68", "Fur ball Designer Clips (8 Designs)", "105.00", "36"},
-            {"HW 02", "Kiddy Colorful Clips Tic & Glossy (15 Designs)", "150.00", "36"},
-            {"LHP 05", "Long Hair Mini Peg & Clip Set (10 Designs)", "170.00", "36"},
-            {"JS 10", "Classic Jojo Siwa Clips (5 Designs)", "180.00", "36"},
-            {"JS 11", "Kiddy Hair Clip Large & mini Designers Set (8 Designers)", "150.00", "36"},
-            {"NB 74", "3 Pcs Flowery Set Pegs & Water Color Large Designer Pegs (10 Designs)", "165.00", "24"},
-            {"MKY 03", "Medium Matt Pegs (6 Designs)", "110.00", "36"},
-            {"LHB 04", "6 pcs Small Pastel Shade Pegs (6 Designs)", "140.00", "36"},
-            {"HW 06", "Basic Fur & 8 to 10cm Pegs & Sunflower Designer Pegs (11 Designs)", "110.00", "36"},
-            {"HW 03", "Shady Color Matt & Gloss Pegs (8 Designs)", "130.00", "24"},
-            {"FN 01", "Water Color 8cm Designer Pegs (8 Designs)", "150.00", "36"},
-            {"NBE 04", "Water Color Kids Accessory Hair Peg (5 Designs)", "120.00", "36"},
-            {"BSR 01", "6 Pcs Pegs Set Designers (4 Designs)", "295.00", "36"},
-            {"MCP 01", "Shades With Tiny Color Pegs Set (4 Designs)", "180.00", "36"},
-            {"NB 73", "Glass Thin Designer Hair Bands (8 Designs)", "95.00", "36"},
-            {"LHB 02", "Glossy Thin Full Flex Hair Band with Accessory (5 Designs)", "120.00", "36"},
-            {"KC 18", "Black Plastic Designer Bands (8 Designs)", "50.00", "36"},
-            {"MB 99", "Charm Mickey Bands Kids & Teens (9 Designs)", "180.00", "36"},
-            {"MB 98", "Kiddy Set Bracelet (4 Designs)", "150.00", "36"},
-            {"VC 02", "Exclusive Van Cliff Design Half Bangles with Stone Work (12 Designs)", "260.00", "36"},
-            {"SLD 15", "Exclusive Designer Key Tags (5 Designs)", "250.00", "36"},
-            {"BS 12", "Shiny Stone Pearl Key Tags (5 Designs)", "205.00", "36"},
-            {"LCK 01", "Crystal & Metal Designer Key Tags (8 Designs)", "140.00", "36"},
-            {"BLC 05", "Kids Small Necklace Set with Earing (6 Designs)", "175.00", "36"},
-            {"VC 03", "Premier Necklace Designers (5 Designs)", "520.00", "36"},
-            {"VC 07", "Full Pearl & Half Pearl with Gold Necklace with Earing (12 Designs)", "230.00", "36"},
-            {"NB 01", "Kids Gold Necklace & Colorful Pearl Ball Necklace (8 Designs)", "330.00", "36"},
-            {"BSR 03", "Kids Ring Designer 6 Pcs Set Card (4 Designs)", "240.00", "36"},
-            {"BSR 06", "Saree Broochers Big Exclusive (11 Designs)", "340.00", "36"}
-        };
-
-        List<Product> clientProducts = productRepository.findByClientId(clientId);
-        List<PriceOrderItemPreviewDto> items = new ArrayList<>();
-        long tempId = -100;
-
-        for (String[] row : rawData) {
-            String sku = row[0];
-            String name = row[1];
-            double price = Double.parseDouble(row[2]);
-            int qty = Integer.parseInt(row[3]);
-
-            Product matched = clientProducts.stream()
-                    .filter(p -> p.getSku() != null && p.getSku().equalsIgnoreCase(sku))
-                    .findFirst().orElse(null);
-
-            PriceOrderItemPreviewDto item = new PriceOrderItemPreviewDto();
-            if (matched != null) {
-                item.setProductId(matched.getId());
-                item.setProductName(matched.getName());
-                item.setSku(matched.getSku());
-                item.setUnit(matched.getUnit() != null ? matched.getUnit() : "PCS");
-                Integer stock = inventoryRepository.getTotalStockForProduct(clientId, matched.getId());
-                item.setAvailableStock(stock != null ? stock : 999);
-                item.setIsStockSufficient(true);
-                item.setMatched(true);
-            } else {
-                item.setProductId(tempId--);
-                item.setProductName(name);
-                item.setSku(sku);
-                item.setUnit("PCS");
-                item.setAvailableStock(999);
-                item.setIsStockSufficient(true);
-                item.setMatched(true);
-            }
-            item.setQuantity(null);
-            item.setCustomPrice(price);
-            item.setLineTotal(0.0);
-            items.add(item);
-        }
-        return items;
     }
 
     public byte[] generatePriceOrderTemplate() {

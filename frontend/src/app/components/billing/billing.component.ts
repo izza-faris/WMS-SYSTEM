@@ -120,7 +120,11 @@ interface CartItem {
             <div class="flex-grow-1 overflow-y-auto pe-1" style="max-height: 680px;">
               <div *ngIf="filteredProducts.length === 0" class="text-center py-5 text-muted">
                 <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>
-                No matching products found.
+                <h6 class="text-secondary fw-semibold">No products in your catalog</h6>
+                <p class="small text-muted mb-3">Add items in Products &amp; Catalog to start billing for this business.</p>
+                <a routerLink="/app/products" class="btn btn-outline-success btn-sm">
+                  <i class="bi bi-plus-circle me-1"></i> Add Products to Catalog
+                </a>
               </div>
 
               <div class="row g-2">
@@ -1130,8 +1134,8 @@ export class BillingComponent implements OnInit {
 
   // Cart & Customer Form State
   cart: CartItem[] = [];
-  isWalkIn = false;
-  customerName = 'Shop A';
+  isWalkIn = true;
+  customerName = 'Walk-in Customer';
   customerPhone = '';
   paymentMethod = 'CASH';
   discountAmount: number = 0;
@@ -1173,6 +1177,20 @@ export class BillingComponent implements OnInit {
   currentUser = computed(() => this.authService.currentUser());
 
   ngOnInit(): void {
+    // Clear legacy un-scoped customer PO cache so data never bleeds across tenants
+    try {
+      localStorage.removeItem('wms_saved_customer_pos');
+    } catch (e) {}
+
+    // Reset cart and selection to prevent any carry-over across user sessions
+    this.cart = [];
+    this.selectedCustomerOption = '__WALK_IN__';
+    this.customerName = 'Walk-in Customer';
+    this.customerPhone = '';
+    this.isWalkIn = true;
+    this.selectedCustomerProfile = null;
+    this.customerPriceMap = {};
+
     const savedCurrency = localStorage.getItem('wms_billing_currency');
     if (savedCurrency) {
       this.defaultCurrency = savedCurrency;
@@ -1217,36 +1235,18 @@ export class BillingComponent implements OnInit {
             this.defaultCurrency = res.data[0].currency;
           }
         } else {
-          this.loadDefaultCatalogProducts();
+          this.products.set([]);
         }
       },
       error: () => {
-        this.loadDefaultCatalogProducts();
+        this.products.set([]);
       }
     });
   }
 
   loadDefaultCatalogProducts(): void {
-    if (this.products().length > 0) return;
-    const poItems = this.getSandyaPoItems();
-    const prods: Product[] = poItems.map(itm => ({
-      id: Math.abs(itm.productId),
-      clientId: 1,
-      name: itm.productName,
-      sku: itm.sku,
-      barcode: itm.barcode,
-      unit: itm.unit || 'PCS',
-      price: itm.unitPrice,
-      currency: this.defaultCurrency,
-      currentStock: 999,
-      reorderLevel: 5,
-      minStockLevel: 2,
-      maxStockLevel: 9999,
-      expiryTrackingEnabled: false,
-      isActive: true,
-      categoryName: itm.sku.startsWith('WB') || itm.sku.startsWith('HMC') || itm.sku.startsWith('BP') || itm.sku.startsWith('NB') ? 'Woolies & Bands' : (itm.sku.startsWith('FC') || itm.sku.startsWith('HW') || itm.sku.startsWith('BS') ? 'Clips & Pegs' : 'Accessories')
-    }));
-    this.products.set(prods);
+    // Strictly tenant-isolated: do not inject any other customer's products
+    this.products.set([]);
   }
 
   loadCategories(): void {
@@ -1401,103 +1401,25 @@ export class BillingComponent implements OnInit {
     this.paidAmount = null;
   }
 
-  getSandyaPoItems(): any[] {
-    return [
-      { productId: -101, sku: 'HMC 36', productName: 'Bundle Small Woolies & Classical Set Woolies (8 Designs)', quantity: null, unitPrice: 65.00, totalPrice: 0.0, barcode: 'HMC 36', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -102, sku: 'WB 10', productName: 'Thick Blacky Wooly & Designer Color Woolies (13 Designs)', quantity: null, unitPrice: 95.00, totalPrice: 0.0, barcode: 'WB 10', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -103, sku: 'BP 62', productName: 'Blacky on Color Bundle Teen Woolies (16 Designs)', quantity: null, unitPrice: 120.00, totalPrice: 0.0, barcode: 'BP 62', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -104, sku: 'NB 72', productName: 'Thin & Thick Bundle Wooly Designers (10 Designs)', quantity: null, unitPrice: 125.00, totalPrice: 0.0, barcode: 'NB 72', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -105, sku: 'RC 32', productName: 'Rabbit Fur Scrunchy Wooly (4 Designs)', quantity: null, unitPrice: 95.00, totalPrice: 0.0, barcode: 'RC 32', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -106, sku: 'FW 03', productName: 'Telephone Wire Designer Woolies & Fur Thin Double Kid Wooly (12 Designs)', quantity: null, unitPrice: 105.00, totalPrice: 0.0, barcode: 'FW 03', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -107, sku: 'PB 31', productName: 'Small Trancy Clips & Wooly Set Combo Pcs (4 Designs)', quantity: null, unitPrice: 160.00, totalPrice: 0.0, barcode: 'PB 31', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -108, sku: 'FN 01', productName: '6 pcs Kiddy Fancy Wooly Long Card (7 Designs)', quantity: null, unitPrice: 140.00, totalPrice: 0.0, barcode: 'FN 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -109, sku: 'FC 04', productName: '3 Pcs Designer Kiddy Clip Set (10 Designs)', quantity: null, unitPrice: 120.00, totalPrice: 0.0, barcode: 'FC 04', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -110, sku: 'FC 08', productName: 'Steel Mini 2pcs peg & Glass Peg with Wooly Set (10 Designs)', quantity: null, unitPrice: 125.00, totalPrice: 0.0, barcode: 'FC 08', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -111, sku: 'FC 09', productName: 'Kiddy 6pcs clip on Small 3pcs Set Peg (8 Designs)', quantity: null, unitPrice: 180.00, totalPrice: 0.0, barcode: 'FC 09', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -112, sku: 'FC 13', productName: 'Shiny Stone Pegs & premier Set Hair Clips (6 Designs)', quantity: null, unitPrice: 195.00, totalPrice: 0.0, barcode: 'FC 13', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -113, sku: 'BLC 11', productName: 'Premier B\'Fly Clips & Bow Clip Exclusive (7 Designs)', quantity: null, unitPrice: 230.00, totalPrice: 0.0, barcode: 'BLC 11', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -114, sku: 'BS 09', productName: 'Acrylic Designer Clips & Steel Pegs 3pcs (13 Designs)', quantity: null, unitPrice: 195.00, totalPrice: 0.0, barcode: 'BS 09', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -115, sku: 'PHB 01', productName: 'Premier Set Hair Clips with Sunflower Pegs (13 Designs)', quantity: null, unitPrice: 190.00, totalPrice: 0.0, barcode: 'PHB 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -116, sku: 'MBE 10', productName: 'Clip & Wooly Mix with Kiddy double peggy Set (14 Designs)', quantity: null, unitPrice: 220.00, totalPrice: 0.0, barcode: 'MBE 10', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -117, sku: 'NB 67', productName: 'Combo Set Designer Kiddy Clips (10 Designs)', quantity: null, unitPrice: 140.00, totalPrice: 0.0, barcode: 'NB 67', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -118, sku: 'BLC 09', productName: 'Acrylic Combo Set & Glossy Set Clips (6 Designs)', quantity: null, unitPrice: 170.00, totalPrice: 0.0, barcode: 'BLC 09', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -119, sku: 'MCF 02', productName: 'Jojo Siwa Medium Clips Premier Designs (5 Designs)', quantity: null, unitPrice: 220.00, totalPrice: 0.0, barcode: 'MCF 02', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -120, sku: 'MB 68', productName: 'Fur ball Designer Clips (8 Designs)', quantity: null, unitPrice: 105.00, totalPrice: 0.0, barcode: 'MB 68', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -121, sku: 'HW 02', productName: 'Kiddy Colorful Clips Tic & Glossy (15 Designs)', quantity: null, unitPrice: 150.00, totalPrice: 0.0, barcode: 'HW 02', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -122, sku: 'LHP 05', productName: 'Long Hair Mini Peg & Clip Set (10 Designs)', quantity: null, unitPrice: 170.00, totalPrice: 0.0, barcode: 'LHP 05', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -123, sku: 'JS 10', productName: 'Classic Jojo Siwa Clips (5 Designs)', quantity: null, unitPrice: 180.00, totalPrice: 0.0, barcode: 'JS 10', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -124, sku: 'JS 11', productName: 'Kiddy Hair Clip Large & mini Designers Set (8 Designers)', quantity: null, unitPrice: 150.00, totalPrice: 0.0, barcode: 'JS 11', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -125, sku: 'NB 74', productName: '3 Pcs Flowery Set Pegs & Water Color Large Designer Pegs (10 Designs)', quantity: null, unitPrice: 165.00, totalPrice: 0.0, barcode: 'NB 74', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -126, sku: 'MKY 03', productName: 'Medium Matt Pegs (6 Designs)', quantity: null, unitPrice: 110.00, totalPrice: 0.0, barcode: 'MKY 03', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -127, sku: 'LHB 04', productName: '6 pcs Small Pastel Shade Pegs (6 Designs)', quantity: null, unitPrice: 140.00, totalPrice: 0.0, barcode: 'LHB 04', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -128, sku: 'HW 06', productName: 'Basic Fur & 8 to 10cm Pegs & Sunflower Designer Pegs (11 Designs)', quantity: null, unitPrice: 110.00, totalPrice: 0.0, barcode: 'HW 06', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -129, sku: 'HW 03', productName: 'Shady Color Matt & Gloss Pegs (8 Designs)', quantity: null, unitPrice: 130.00, totalPrice: 0.0, barcode: 'HW 03', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -130, sku: 'FN 01', productName: 'Water Color 8cm Designer Pegs (8 Designs)', quantity: null, unitPrice: 150.00, totalPrice: 0.0, barcode: 'FN 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -131, sku: 'NBE 04', productName: 'Water Color Kids Accessory Hair Peg (5 Designs)', quantity: null, unitPrice: 120.00, totalPrice: 0.0, barcode: 'NBE 04', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -132, sku: 'BSR 01', productName: '6 Pcs Pegs Set Designers (4 Designs)', quantity: null, unitPrice: 295.00, totalPrice: 0.0, barcode: 'BSR 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -133, sku: 'MCP 01', productName: 'Shades With Tiny Color Pegs Set (4 Designs)', quantity: null, unitPrice: 180.00, totalPrice: 0.0, barcode: 'MCP 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -134, sku: 'NB 73', productName: 'Glass Thin Designer Hair Bands (8 Designs)', quantity: null, unitPrice: 95.00, totalPrice: 0.0, barcode: 'NB 73', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -135, sku: 'LHB 02', productName: 'Glossy Thin Full Flex Hair Band with Accessory (5 Designs)', quantity: null, unitPrice: 120.00, totalPrice: 0.0, barcode: 'LHB 02', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -136, sku: 'KC 18', productName: 'Black Plastic Designer Bands (8 Designs)', quantity: null, unitPrice: 50.00, totalPrice: 0.0, barcode: 'KC 18', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -137, sku: 'MB 99', productName: 'Charm Mickey Bands Kids & Teens (9 Designs)', quantity: null, unitPrice: 180.00, totalPrice: 0.0, barcode: 'MB 99', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -138, sku: 'MB 98', productName: 'Kiddy Set Bracelet (4 Designs)', quantity: null, unitPrice: 150.00, totalPrice: 0.0, barcode: 'MB 98', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -139, sku: 'VC 02', productName: 'Exclusive Van Cliff Design Half Bangles with Stone Work (12 Designs)', quantity: null, unitPrice: 260.00, totalPrice: 0.0, barcode: 'VC 02', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -140, sku: 'SLD 15', productName: 'Exclusive Designer Key Tags (5 Designs)', quantity: null, unitPrice: 250.00, totalPrice: 0.0, barcode: 'SLD 15', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -141, sku: 'BS 12', productName: 'Shiny Stone Pearl Key Tags (5 Designs)', quantity: null, unitPrice: 205.00, totalPrice: 0.0, barcode: 'BS 12', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -142, sku: 'LCK 01', productName: 'Crystal & Metal Designer Key Tags (8 Designs)', quantity: null, unitPrice: 140.00, totalPrice: 0.0, barcode: 'LCK 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -143, sku: 'BLC 05', productName: 'Kids Small Necklace Set with Earing (6 Designs)', quantity: null, unitPrice: 175.00, totalPrice: 0.0, barcode: 'BLC 05', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -144, sku: 'VC 03', productName: 'Premier Necklace Designers (5 Designs)', quantity: null, unitPrice: 520.00, totalPrice: 0.0, barcode: 'VC 03', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -145, sku: 'VC 07', productName: 'Full Pearl & Half Pearl with Gold Necklace with Earing (12 Designs)', quantity: null, unitPrice: 230.00, totalPrice: 0.0, barcode: 'VC 07', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -146, sku: 'NB 01', productName: 'Kids Gold Necklace & Colorful Pearl Ball Necklace (8 Designs)', quantity: null, unitPrice: 330.00, totalPrice: 0.0, barcode: 'NB 01', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -147, sku: 'BSR 03', productName: 'Kids Ring Designer 6 Pcs Set Card (4 Designs)', quantity: null, unitPrice: 240.00, totalPrice: 0.0, barcode: 'BSR 03', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true },
-      { productId: -148, sku: 'BSR 06', productName: 'Saree Broochers Big Exclusive (11 Designs)', quantity: null, unitPrice: 340.00, totalPrice: 0.0, barcode: 'BSR 06', unit: 'PCS', matched: true, availableStock: 999, isStockSufficient: true }
-    ];
+  private getCustomerProfilesStorageKey(): string {
+    const user = this.currentUser();
+    const identifier = user?.clientId || user?.email || 'default';
+    return `wms_saved_customer_pos_${identifier}`;
   }
 
   private getLocalProfiles(): CustomerProfile[] {
-    const sandyaItems = this.getSandyaPoItems();
-    const sandyaTotal = sandyaItems.reduce((acc, itm) => acc + (itm.totalPrice || 0), 0);
-
-    const sandyaProfile: CustomerProfile = {
-      customerName: 'Sandya Textile (Ratnapura)',
-      customerPhone: '045-2223344',
-      lastInvoiceNumber: 'PO-KLIPPIE-SANDYA',
-      lastOrderDate: new Date().toISOString(),
-      grandTotal: sandyaTotal,
-      items: sandyaItems
-    };
-
     try {
-      const data = localStorage.getItem('wms_saved_customer_pos');
+      const data = localStorage.getItem(this.getCustomerProfilesStorageKey());
       if (data) {
         const parsed = JSON.parse(data);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const sandyaIdx = parsed.findIndex(p => p.customerName.toLowerCase().includes('sandya'));
-          if (sandyaIdx >= 0) {
-            parsed[sandyaIdx] = sandyaProfile;
-          } else {
-            parsed.unshift(sandyaProfile);
-          }
-          localStorage.setItem('wms_saved_customer_pos', JSON.stringify(parsed));
+        if (Array.isArray(parsed)) {
           return parsed;
         }
       }
     } catch (e) {
       console.warn('Could not read local customer profiles', e);
     }
-
-    const presets: CustomerProfile[] = [
-      sandyaProfile,
-      {
-        customerName: 'Fashion Bug',
-        customerPhone: '077-1234567',
-        lastInvoiceNumber: 'PO-FB-001',
-        lastOrderDate: new Date().toISOString(),
-        grandTotal: 15000,
-        items: []
-      }
-    ];
-    return presets;
+    return [];
   }
 
   private saveCustomerProfileLocally(
@@ -1538,7 +1460,7 @@ export class BillingComponent implements OnInit {
       } else {
         list.push(profile);
       }
-      localStorage.setItem('wms_saved_customer_pos', JSON.stringify(list));
+      localStorage.setItem(this.getCustomerProfilesStorageKey(), JSON.stringify(list));
     } catch (e) {
       console.warn('Could not save customer profile locally', e);
     }
@@ -1800,27 +1722,8 @@ export class BillingComponent implements OnInit {
       const reader = new FileReader();
       reader.onload = (e: any) => {
         this.poImagePreviewUrl = e.target.result;
-        // Instantly load PO items so user on mobile/web gets immediate bill items
-        this.fallbackToSandyaPo(cleanShopName, autoLoadToCart);
-        this.isUploadingPo = false;
-
-        // Try backend parser in background
-        this.wmsApi.uploadPriceOrderFile(file).subscribe({
-          next: (res) => {
-            if (res.success && res.data && res.data.items && res.data.items.length > 0) {
-              this.poPreview = res.data;
-              this.poPreview.fileType = 'IMAGE';
-              this.poPreview.imagePreviewUrl = this.poImagePreviewUrl || undefined;
-              this.recalculatePoTotals();
-              if (autoLoadToCart) {
-                this.loadPoIntoCart();
-              }
-            }
-          },
-          error: () => {
-            // Already safely loaded via fallbackToSandyaPo
-          }
-        });
+        this.createEmptyPoPreview(cleanShopName, 'IMAGE');
+        this.processImageOcr(file, this.poImagePreviewUrl!, autoLoadToCart);
       };
       reader.readAsDataURL(file);
     } else if (isPdf) {
@@ -1829,43 +1732,57 @@ export class BillingComponent implements OnInit {
       reader.onload = (e: any) => {
         this.poImagePreviewUrl = e.target.result;
         this.poSafePdfUrl = this.sanitizer.bypassSecurityTrustResourceUrl(e.target.result);
-        this.fallbackToSandyaPo(cleanShopName, autoLoadToCart);
-        this.isUploadingPo = false;
+        this.createEmptyPoPreview(cleanShopName, 'PDF');
 
         this.wmsApi.uploadPriceOrderFile(file).subscribe({
           next: (res) => {
-            if (res.success && res.data && res.data.items && res.data.items.length > 0) {
+            this.isUploadingPo = false;
+            if (res.success && res.data) {
               this.poPreview = res.data;
               this.poPreview.fileType = 'PDF';
               this.poPreview.imagePreviewUrl = this.poImagePreviewUrl || undefined;
               this.recalculatePoTotals();
-              if (autoLoadToCart) {
-                this.loadPoIntoCart();
+              if (res.data.items && res.data.items.length > 0) {
+                if (autoLoadToCart) {
+                  this.loadPoIntoCart();
+                }
+              } else {
+                this.openPriceOrderModal();
               }
             }
           },
-          error: () => {}
+          error: () => {
+            this.isUploadingPo = false;
+            this.openPriceOrderModal();
+          }
         });
       };
       reader.readAsDataURL(file);
     } else {
       // Excel (.xlsx, .xls, .csv)
       this.poFileType = 'EXCEL';
-      this.fallbackToSandyaPo(cleanShopName, autoLoadToCart);
-      this.isUploadingPo = false;
+      this.createEmptyPoPreview(cleanShopName, 'EXCEL');
 
       this.wmsApi.uploadPriceOrderFile(file).subscribe({
         next: (res) => {
-          if (res.success && res.data && res.data.items && res.data.items.length > 0) {
+          this.isUploadingPo = false;
+          if (res.success && res.data) {
             this.poPreview = res.data;
             this.poPreview.fileType = 'EXCEL';
             this.recalculatePoTotals();
-            if (autoLoadToCart) {
-              this.loadPoIntoCart();
+            if (res.data.items && res.data.items.length > 0) {
+              if (autoLoadToCart) {
+                this.loadPoIntoCart();
+              }
+            } else {
+              this.openPriceOrderModal();
             }
           }
         },
-        error: () => {}
+        error: () => {
+          this.isUploadingPo = false;
+          this.openPriceOrderModal();
+        }
       });
     }
   }
@@ -1882,28 +1799,6 @@ export class BillingComponent implements OnInit {
       imagePreviewUrl: this.poImagePreviewUrl || undefined,
       items: []
     };
-  }
-
-  fallbackToSandyaPo(shopName: string, autoLoadToCart: boolean = true): void {
-    const cleanName = (shopName && !shopName.toLowerCase().startsWith('image') && !shopName.toLowerCase().startsWith('img') && !shopName.toLowerCase().startsWith('photo'))
-      ? shopName
-      : 'Sandya Textile (Ratnapura)';
-
-    this.poPreview = {
-      shopName: cleanName,
-      shopPhone: '045-2223344',
-      totalItems: 45,
-      totalQuantity: 0,
-      estimatedTotal: 0,
-      fileType: this.poFileType || 'IMAGE',
-      fileName: shopName,
-      imagePreviewUrl: this.poImagePreviewUrl || undefined,
-      items: this.getSandyaPoItems()
-    };
-    this.recalculatePoTotals();
-    if (autoLoadToCart) {
-      this.loadPoIntoCart();
-    }
   }
 
   processImageOcr(file: File, dataUrl: string, autoLoadToCart: boolean = true): void {
@@ -1928,6 +1823,7 @@ export class BillingComponent implements OnInit {
           }
         }).then((result: any) => {
           this.isOcrProcessing = false;
+          this.isUploadingPo = false;
           this.ocrProgressPercent = 100;
           this.ocrProgressMessage = 'Scan complete!';
           const text = result?.data?.text || '';
@@ -1935,15 +1831,18 @@ export class BillingComponent implements OnInit {
         }).catch((err: any) => {
           console.warn('OCR processing error', err);
           this.isOcrProcessing = false;
-          this.fallbackToSandyaPo(cleanShopName, autoLoadToCart);
+          this.isUploadingPo = false;
+          this.openPriceOrderModal();
         });
       } else {
         this.isOcrProcessing = false;
-        this.fallbackToSandyaPo(cleanShopName, autoLoadToCart);
+        this.isUploadingPo = false;
+        this.openPriceOrderModal();
       }
     }).catch(() => {
       this.isOcrProcessing = false;
-      this.fallbackToSandyaPo(cleanShopName, autoLoadToCart);
+      this.isUploadingPo = false;
+      this.openPriceOrderModal();
     });
   }
 
@@ -1968,12 +1867,12 @@ export class BillingComponent implements OnInit {
   }
 
   parseOcrTextIntoPo(text: string, fallbackShopName: string, autoLoadToCart: boolean = true): void {
-    const textLower = (text || '').toLowerCase();
-    const isSandyaDoc = textLower.includes('sandya') || textLower.includes('klippie') || textLower.includes('ratnapura')
-      || textLower.includes('wool') || textLower.includes('clips') || textLower.includes('hmc') || textLower.includes('order');
-
-    if (isSandyaDoc || !text || text.trim().length < 20) {
-      this.fallbackToSandyaPo(fallbackShopName, autoLoadToCart);
+    if (!text || text.trim().length < 5) {
+      if (this.poPreview) {
+        this.poPreview.items = [];
+        this.recalculatePoTotals();
+      }
+      this.openPriceOrderModal();
       return;
     }
 
@@ -1990,7 +1889,7 @@ export class BillingComponent implements OnInit {
           detectedShopName = parts[1].trim();
           break;
         }
-      } else if (lower.includes('fashion') || lower.includes('mart') || lower.includes('shop') || lower.includes('bug')) {
+      } else if (lower.includes('fashion') || lower.includes('mart') || lower.includes('shop') || lower.includes('store') || lower.includes('textile')) {
         detectedShopName = line;
         break;
       }
@@ -2086,16 +1985,14 @@ export class BillingComponent implements OnInit {
     if (this.poPreview) {
       this.poPreview.shopName = detectedShopName || this.poPreview.shopName;
       if (detectedPhone) this.poPreview.shopPhone = detectedPhone;
-      if (matchedItems.length > 0) {
-        this.poPreview.items = matchedItems;
-        this.recalculatePoTotals();
-      } else {
-        this.fallbackToSandyaPo(detectedShopName, autoLoadToCart);
-        return;
-      }
+      this.poPreview.items = matchedItems;
+      this.recalculatePoTotals();
     }
-    if (autoLoadToCart) {
+
+    if (matchedItems.length > 0 && autoLoadToCart) {
       this.loadPoIntoCart();
+    } else {
+      this.openPriceOrderModal();
     }
   }
 

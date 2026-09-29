@@ -294,11 +294,21 @@ export class WmsApiService {
   }
 
   getInventoryPdfUrl(): string {
-    return `${this.baseUrl}/reports/inventory/pdf`;
+    const token = localStorage.getItem('wms_auth_token');
+    return token ? `${this.baseUrl}/reports/inventory/pdf?token=${encodeURIComponent(token)}` : `${this.baseUrl}/reports/inventory/pdf`;
   }
 
   getMovementsExcelUrl(): string {
-    return `${this.baseUrl}/reports/movements/excel`;
+    const token = localStorage.getItem('wms_auth_token');
+    return token ? `${this.baseUrl}/reports/movements/excel?token=${encodeURIComponent(token)}` : `${this.baseUrl}/reports/movements/excel`;
+  }
+
+  downloadInventoryPdf(): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/reports/inventory/pdf`, { responseType: 'blob' });
+  }
+
+  downloadMovementsExcel(): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/reports/movements/excel`, { responseType: 'blob' });
   }
 
   // Users

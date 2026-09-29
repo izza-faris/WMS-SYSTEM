@@ -29,10 +29,11 @@ import { WmsApiService } from '../../services/wms-api.service';
               </p>
             </div>
 
-            <a [href]="inventoryPdfUrl" target="_blank" class="btn btn-danger d-flex align-items-center justify-content-center gap-2 py-2">
-              <i class="bi bi-download"></i>
-              <span>Download PDF Report</span>
-            </a>
+            <button type="button" (click)="downloadPdf()" [disabled]="downloadingPdf" class="btn btn-danger d-flex align-items-center justify-content-center gap-2 py-2 w-100">
+              <span *ngIf="downloadingPdf" class="spinner-border spinner-border-sm"></span>
+              <i *ngIf="!downloadingPdf" class="bi bi-download"></i>
+              <span>{{ downloadingPdf ? 'Generating PDF...' : 'Download PDF Report' }}</span>
+            </button>
           </div>
         </div>
 
@@ -49,10 +50,11 @@ import { WmsApiService } from '../../services/wms-api.service';
               </p>
             </div>
 
-            <a [href]="movementsExcelUrl" target="_blank" class="btn btn-success d-flex align-items-center justify-content-center gap-2 py-2">
-              <i class="bi bi-file-earmark-spreadsheet-fill"></i>
-              <span>Download Excel Spreadsheet</span>
-            </a>
+            <button type="button" (click)="downloadExcel()" [disabled]="downloadingExcel" class="btn btn-success d-flex align-items-center justify-content-center gap-2 py-2 w-100">
+              <span *ngIf="downloadingExcel" class="spinner-border spinner-border-sm"></span>
+              <i *ngIf="!downloadingExcel" class="bi bi-file-earmark-spreadsheet-fill"></i>
+              <span>{{ downloadingExcel ? 'Generating Excel...' : 'Download Excel Spreadsheet' }}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -62,11 +64,57 @@ import { WmsApiService } from '../../services/wms-api.service';
 export class ReportsComponent implements OnInit {
   inventoryPdfUrl = '';
   movementsExcelUrl = '';
+  downloadingPdf = false;
+  downloadingExcel = false;
 
   constructor(private wmsApi: WmsApiService) {}
 
   ngOnInit(): void {
     this.inventoryPdfUrl = this.wmsApi.getInventoryPdfUrl();
     this.movementsExcelUrl = this.wmsApi.getMovementsExcelUrl();
+  }
+
+  downloadPdf(): void {
+    this.downloadingPdf = true;
+    this.wmsApi.downloadInventoryPdf().subscribe({
+      next: (blob) => {
+        this.downloadingPdf = false;
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `inventory_report_${new Date().toISOString().slice(0, 10)}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        this.downloadingPdf = false;
+        console.error('PDF download error, trying direct link', err);
+        window.open(this.inventoryPdfUrl, '_blank');
+      }
+    });
+  }
+
+  downloadExcel(): void {
+    this.downloadingExcel = true;
+    this.wmsApi.downloadMovementsExcel().subscribe({
+      next: (blob) => {
+        this.downloadingExcel = false;
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `stock_movements_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        this.downloadingExcel = false;
+        console.error('Excel download error, trying direct link', err);
+        window.open(this.movementsExcelUrl, '_blank');
+      }
+    });
   }
 }

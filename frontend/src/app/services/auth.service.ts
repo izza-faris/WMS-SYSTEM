@@ -52,6 +52,15 @@ export class AuthService {
   logout(): void {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
+    localStorage.removeItem('wms_saved_customer_pos');
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('wms_saved_customer_pos') || key.startsWith('wms_cart_') || key.startsWith('wms_pos_'))) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch (e) {}
     this.currentUser.set(null);
     this.router.navigate(['/login']);
   }
