@@ -54,26 +54,6 @@ interface CartItem {
             </button>
           </div>
 
-          <!-- Instant Auto-Convert Button (One-click Image / PDF / Excel to Bill) -->
-          <input type="file" #quickAutoConvertInput (change)="onAutoConvertFileSelected($event)" accept="image/*,.pdf,.xlsx,.xls,.csv" class="d-none">
-          <button (click)="quickAutoConvertInput.click()" class="btn btn-warning btn-sm px-3 fw-bold shadow-sm d-flex align-items-center gap-1.5" title="Upload customer PO (Image, PDF, or Excel) to automatically convert directly into a bill">
-            <i class="bi bi-magic fs-6 text-dark"></i>
-            <span>⚡ Auto-Convert PO to Bill</span>
-            <span class="badge bg-dark text-warning text-xs px-1.5 py-0.5 ms-1">Photo / PDF</span>
-          </button>
-
-          <!-- Wholesale Price Order & PO Upload Button (Camera / Image / PDF / Excel) -->
-          <button (click)="openPriceOrderModal()" class="btn btn-outline-warning btn-sm px-2.5 fw-semibold shadow-sm d-flex align-items-center gap-1.5" title="Take photo or review purchase order side-by-side">
-            <i class="bi bi-camera-fill text-warning"></i>
-            <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
-            <span>Scan PO</span>
-          </button>
-
-          <!-- Download Excel Template Link -->
-          <a [href]="templateUrl" class="btn btn-outline-secondary btn-sm px-2.5 d-none d-md-inline-flex align-items-center" title="Download sample Excel template for wholesale shops" download>
-            <i class="bi bi-download me-1"></i> Template
-          </a>
-
           <!-- Warehouse Selector -->
           <div *ngIf="warehouses().length > 1" class="d-flex align-items-center gap-1 bg-dark px-2 py-1 rounded border border-secondary border-opacity-25">
             <small class="text-secondary">Warehouse:</small>
@@ -191,9 +171,6 @@ interface CartItem {
                   <i class="bi bi-shop text-info me-1"></i>Select Customer / Shop PO:
                 </span>
                 <div class="d-flex align-items-center gap-1.5">
-                  <button type="button" (click)="quickAutoConvertInput.click()" class="btn btn-xs btn-outline-warning py-0.5 px-2 fw-bold" title="Upload customer PO Image or PDF to auto convert directly into bill">
-                    <i class="bi bi-magic me-1"></i>Auto-Convert PO
-                  </button>
                   <span *ngIf="selectedCustomerProfile && selectedCustomerOption !== '__WALK_IN__' && selectedCustomerOption !== '__NEW__'" 
                         class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-30 text-xs">
                     <i class="bi bi-check2-circle me-1"></i>PO Loaded ({{ cart.length }} items)
