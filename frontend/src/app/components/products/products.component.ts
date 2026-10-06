@@ -381,6 +381,9 @@ import { Category, Product } from '../../models/wms.models';
                             name="priceSelect"
                             title="Select a previously saved price or choose Custom">
                       <option value="CUSTOM">-- Type Custom Price (புதிய விலை) --</option>
+                      <option *ngIf="savedPrices.length === 0" disabled value="">
+                        (No saved prices yet / சேமித்த விலைகள் இல்லை)
+                      </option>
                       <optgroup label="Saved Prices / சேமித்த விலைகள்" *ngIf="savedPrices.length > 0">
                         <option *ngFor="let p of savedPrices" [value]="p">
                           {{ newProduct.currency || defaultCurrency }} {{ p | number:'1.2-2' }}
@@ -393,6 +396,13 @@ import { Category, Product } from '../../models/wms.models';
                             class="btn btn-outline-danger btn-sm px-2"
                             title="Delete this price from dropdown">
                       <i class="bi bi-trash3"></i>
+                    </button>
+                    <button *ngIf="savedPrices.length > 0 && selectedPriceOption === 'CUSTOM'"
+                            type="button"
+                            (click)="clearAllSavedPrices()"
+                            class="btn btn-outline-secondary btn-sm px-2 text-xs"
+                            title="Clear all saved prices from list (அனைத்து விலைகளையும் நீக்க)">
+                      <i class="bi bi-trash"></i> Clear All
                     </button>
                   </div>
 
@@ -726,32 +736,47 @@ export class ProductsComponent implements OnInit {
 
   loadSavedPrices(): void {
     try {
-      const stored = localStorage.getItem('wms_saved_product_prices');
-      if (stored) {
-        this.savedPrices = JSON.parse(stored);
-      } else {
-        // Helpful initial standard prices
-        this.savedPrices = [50, 100, 150, 200, 250, 500, 1000];
+      // One-time purge of the previously seeded default dummy prices (50, 100, 150, 200, 250, 500, 1000)
+      const purgeKey = 'wms_purged_default_seeds_v5';
+      const isPurged = localStorage.getItem(purgeKey);
+      if (!isPurged) {
+        const dummySeeds = new Set([50, 100, 150, 200, 250, 500, 1000]);
+        const stored = localStorage.getItem('wms_saved_product_prices');
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed)) {
+              this.savedPrices = parsed.filter(p => !dummySeeds.has(Number(p)));
+            } else {
+              this.savedPrices = [];
+            }
+          } catch (e) {
+            this.savedPrices = [];
+          }
+        } else {
+          this.savedPrices = [];
+        }
+        localStorage.setItem(purgeKey, 'true');
         this.persistSavedPrices();
+      } else {
+        const stored = localStorage.getItem('wms_saved_product_prices');
+        if (stored) {
+          this.savedPrices = JSON.parse(stored);
+        } else {
+          this.savedPrices = [];
+        }
       }
     } catch (e) {
-      this.savedPrices = [50, 100, 150, 200, 250, 500, 1000];
+      this.savedPrices = [];
     }
     this.sortAndCleanSavedPrices();
   }
 
-  syncPricesFromProducts(productsList: Product[]): void {
-    if (!productsList || productsList.length === 0) return;
-    let hasNew = false;
-    for (const p of productsList) {
-      if (p.price && p.price > 0 && !this.savedPrices.includes(p.price)) {
-        this.savedPrices.push(p.price);
-        hasNew = true;
-      }
-    }
-    if (hasNew) {
-      this.sortAndCleanSavedPrices();
+  clearAllSavedPrices(): void {
+    if (confirm('Clear all saved prices from dropdown list?\n(டிராப்டவுனில் உள்ள அனைத்து சேமித்த விலைகளையும் நீக்கவா?)')) {
+      this.savedPrices = [];
       this.persistSavedPrices();
+      this.selectedPriceOption = 'CUSTOM';
     }
   }
 
@@ -838,7 +863,6 @@ export class ProductsComponent implements OnInit {
       next: (res) => {
         if (res.success && res.data?.content) {
           this.products.set(res.data.content);
-          this.syncPricesFromProducts(res.data.content);
         }
       }
     });
