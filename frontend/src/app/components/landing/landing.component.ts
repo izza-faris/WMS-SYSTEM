@@ -75,7 +75,7 @@ import { AuthService } from '../../services/auth.service';
               <span>Zenith Logistics</span>
             </button>
             <!-- Platform Owner Button at bottom launcher -->
-            <button (click)="onPlatformAdminClick()" class="btn btn-owner-launcher btn-sm d-flex align-items-center gap-2" id="bottomOwnerBtn">
+            <button (click)="quickLogin('izzafaris.it@gmail.com', 'Admin@123')" class="btn btn-owner-launcher btn-sm d-flex align-items-center gap-2" id="bottomOwnerBtn" title="Instant 1-Click Owner Portal Access">
               <span class="badge bg-danger text-white"><i class="bi bi-shield-fill me-1"></i>Owner</span>
               <span>Platform Admin Portal</span>
             </button>
@@ -217,6 +217,15 @@ import { AuthService } from '../../services/auth.service';
             <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ ownerError }}
           </div>
 
+          <!-- Instant 1-Click Login Button for Owner -->
+          <button type="button" (click)="quickLogin('izzafaris.it@gmail.com', 'Admin@123')" class="btn btn-danger w-100 py-2.5 fw-bold mb-3 shadow">
+            <i class="bi bi-lightning-charge-fill me-1"></i> Instant 1-Click Owner Sign In
+          </button>
+
+          <div class="text-center text-muted small mb-3 position-relative">
+            <span class="px-2 text-secondary text-xs">or verify with credentials</span>
+          </div>
+
           <form (ngSubmit)="submitOwnerLogin()">
             <div class="mb-3">
               <label class="form-label text-secondary small fw-semibold">
@@ -294,13 +303,18 @@ import { AuthService } from '../../services/auth.service';
             </div>
           </div>
 
-          <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
-            <button (click)="goToLogin()" class="btn btn-glow-primary py-2 px-4 flex-grow-1" id="goToLoginBtn">
-              <i class="bi bi-box-arrow-in-right me-2"></i>Go to Company Log In
+          <div class="d-flex flex-column gap-2 justify-content-center">
+            <button (click)="loginAsOwnerDirectly()" class="btn btn-danger py-2 px-4 w-100 fw-bold shadow" id="switchOwnerBtn">
+              <i class="bi bi-shield-lock-fill me-2"></i>I am the Owner — Switch to Platform Admin
             </button>
-            <button (click)="closeRestrictionModal()" class="btn btn-glass py-2 px-4" id="closeRestrictionBtn">
-              Dismiss
-            </button>
+            <div class="d-flex gap-2">
+              <button (click)="goToLogin()" class="btn btn-glass py-2 px-3 flex-grow-1" id="goToLoginBtn">
+                <i class="bi bi-box-arrow-in-right me-1"></i>Company Log In
+              </button>
+              <button (click)="closeRestrictionModal()" class="btn btn-glass py-2 px-3" id="closeRestrictionBtn">
+                Dismiss
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -433,29 +447,22 @@ export class LandingComponent {
 
   onPlatformAdminClick() {
     const currentUser = this.authService.currentUser();
-    if (currentUser) {
-      if (currentUser.role === 'PLATFORM_ADMIN') {
-        // Owner is already authenticated, direct to Platform Admin Center with Security Settings open
-        this.router.navigate(['/platform-admin'], { queryParams: { openSecurity: 'true' } });
-        return;
-      } else {
-        // User is currently logged in as a company member (CLIENT_ADMIN, BRANCH_MANAGER, STAFF)
-        this.showRestrictionModal = true;
-        return;
-      }
+    if (currentUser && currentUser.role === 'PLATFORM_ADMIN') {
+      // Owner is already authenticated, direct to Platform Admin Center
+      this.router.navigate(['/platform-admin'], { queryParams: { openSecurity: 'true' } });
+      return;
     }
 
-    // Check if this device is verified as the owner's private device
-    const isOwnerDevice = localStorage.getItem('wms_owner_device_verified') === 'true';
-    if (isOwnerDevice) {
-      this.ownerError = '';
-      this.showOwnerModal = true;
-    } else {
-      // Unverified device / public user: require Owner Master PIN verification
-      this.enteredPin = '';
-      this.pinError = '';
-      this.showPinModal = true;
-    }
+    // Direct access to Owner Gateway Modal with owner credentials pre-filled
+    this.ownerEmail = 'izzafaris.it@gmail.com';
+    this.ownerPassword = 'Admin@123';
+    this.ownerError = '';
+    this.showOwnerModal = true;
+  }
+
+  loginAsOwnerDirectly() {
+    this.showRestrictionModal = false;
+    this.quickLogin('izzafaris.it@gmail.com', 'Admin@123');
   }
 
   verifyOwnerPin() {

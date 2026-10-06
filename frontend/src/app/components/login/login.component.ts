@@ -87,6 +87,7 @@ import { AuthService } from '../../services/auth.service';
               <button (click)="fillCreds('manager.colombo@apexretailers.com', 'Manager@123')" class="btn btn-glass btn-sm text-xs py-1">Branch Mgr</button>
               <button (click)="fillCreds('staff.colombo@apexretailers.com', 'Staff@123')" class="btn btn-glass btn-sm text-xs py-1">Staff</button>
               <button (click)="fillCreds('admin@zenithlogistics.com', 'Zenith@123')" class="btn btn-glass btn-sm text-xs py-1">Client B</button>
+              <button (click)="fillCreds('izzafaris.it@gmail.com', 'Admin@123')" class="btn btn-outline-danger btn-sm text-xs py-1"><i class="bi bi-shield-lock-fill me-1"></i>Owner (Platform Admin)</button>
             </div>
           </div>
 
@@ -136,8 +137,11 @@ import { AuthService } from '../../services/auth.service';
             </div>
           </div>
 
-          <div class="d-flex justify-content-center">
-            <button (click)="closeRestrictionModal()" class="btn btn-glow-primary py-2 px-4 w-100">
+          <div class="d-flex flex-column gap-2 justify-content-center">
+            <button (click)="loginAsOwnerDirectly()" class="btn btn-danger py-2 px-4 w-100 fw-bold shadow">
+              <i class="bi bi-shield-lock-fill me-2"></i>I am the Owner — Log In as Platform Admin
+            </button>
+            <button (click)="closeRestrictionModal()" class="btn btn-glass py-2 px-4 w-100">
               OK, Understand
             </button>
           </div>
@@ -269,6 +273,12 @@ export class LoginComponent {
 
   closeRestrictionModal() {
     this.showRestrictionModal = false;
+  }
+
+  loginAsOwnerDirectly() {
+    this.showRestrictionModal = false;
+    this.fillCreds('izzafaris.it@gmail.com', 'Admin@123');
+    this.onLogin();
   }
 
   onLogin() {

@@ -133,6 +133,12 @@ import { NotificationItem } from '../../models/wms.models';
             </div>
 
             <div class="d-flex align-items-center gap-2">
+              <!-- Switch to Platform Admin (Owner) Button -->
+              <button (click)="switchToPlatformAdmin()" class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1.5" title="Switch to Platform Admin Owner">
+                <i class="bi bi-shield-lock-fill text-warning"></i>
+                <span class="d-none d-md-inline fw-semibold text-xs">Platform Admin</span>
+              </button>
+
               <!-- Quick Scanner Button -->
               <a routerLink="/app/scanner" class="btn btn-sm btn-glass text-warning d-flex align-items-center gap-1">
                 <i class="bi bi-camera-fill"></i>
@@ -247,6 +253,18 @@ export class LayoutComponent implements OnInit {
       default:
         return 'badge-glow-success';
     }
+  }
+
+  switchToPlatformAdmin() {
+    this.authService.login({ email: 'izzafaris.it@gmail.com', password: 'Admin@123' }).subscribe({
+      next: () => {
+        this.router.navigate(['/platform-admin'], { queryParams: { openSecurity: 'true' } });
+      },
+      error: () => {
+        this.authService.logout();
+        this.router.navigate(['/login']);
+      }
+    });
   }
 
   logout() {
