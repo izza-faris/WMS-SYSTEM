@@ -273,6 +273,7 @@ export interface SaleInvoiceItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  customValues?: { [colId: string]: string };
 }
 
 export interface SaleInvoice {
@@ -359,6 +360,16 @@ export interface CustomerProfile {
   lastOrderDate?: string;
   grandTotal?: number;
   items: SaleInvoiceItem[];
+  columnHeaders?: {
+    barcode?: string;
+    productName?: string;
+    unit?: string;
+    unitPrice?: string;
+    quantity?: string;
+    lineTotal?: string;
+    [key: string]: string | undefined;
+  };
+  customColumns?: Array<{ id: string; name: string }>;
 }
 
 

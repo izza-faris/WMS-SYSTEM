@@ -434,8 +434,8 @@ interface CartItem {
       <!-- ============================================================= -->
       <div *ngIf="activeTab === 'CUSTOMER_POS'" class="animate__animated animate__fadeIn no-print">
         <div class="row g-3">
-          <!-- LEFT COLUMN: Saved Customers List & Search (4 cols) -->
-          <div class="col-lg-4">
+          <!-- LEFT COLUMN: Saved Customers List & Search (3 cols) -->
+          <div class="col-xl-3 col-lg-4">
             <div class="glass-panel p-3 h-100 d-flex flex-column">
               <div class="d-flex align-items-center justify-content-between mb-3">
                 <div>
@@ -498,8 +498,8 @@ interface CartItem {
             </div>
           </div>
 
-          <!-- RIGHT COLUMN: Customer PO Sheet Editor (8 cols) -->
-          <div class="col-lg-8">
+          <!-- RIGHT COLUMN: Customer PO Sheet Editor (9 cols) -->
+          <div class="col-xl-9 col-lg-8">
             <div class="glass-panel p-3 p-md-4 h-100 d-flex flex-column">
               <!-- Header & Quick Actions -->
               <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pb-3 mb-3 border-bottom border-secondary border-opacity-20">
@@ -509,7 +509,7 @@ interface CartItem {
                     {{ isCreatingNewPO ? 'Create Customer Purchase Order (புதிய வாடிக்கையாளர் PO)' : 'Edit Customer PO: ' + editingCustomerPO.customerName }}
                   </h5>
                   <p class="text-secondary small mb-0">
-                    Configure agreed items, barcode numbers, customer prices and quantities for this customer.
+                    Configure agreed items, barcode numbers, custom prices, quantities and editable custom columns.
                   </p>
                 </div>
 
@@ -542,8 +542,8 @@ interface CartItem {
                 </div>
               </div>
 
-              <!-- Quick Add From Catalog Row -->
-              <div class="p-2 mb-3 rounded-2 bg-dark border border-secondary border-opacity-20 d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <!-- Quick Add From Catalog & Custom Column Action Row -->
+              <div class="p-2 mb-2 rounded-2 bg-dark border border-secondary border-opacity-20 d-flex flex-wrap align-items-center justify-content-between gap-2">
                 <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 480px;">
                   <span class="text-secondary small fw-semibold text-nowrap"><i class="bi bi-plus-circle text-info me-1"></i>Quick Add from Catalog:</span>
                   <select class="form-select form-select-sm bg-dark text-light border-secondary" #quickProdSelect (change)="addCatalogProductToPO(quickProdSelect.value); quickProdSelect.value = ''">
@@ -553,41 +553,128 @@ interface CartItem {
                     </option>
                   </select>
                 </div>
-                <button type="button" (click)="addPORow()" class="btn btn-outline-warning btn-sm px-2.5 fw-semibold">
-                  <i class="bi bi-plus-lg me-1"></i>+ Add Empty Row
-                </button>
+                <div class="d-flex align-items-center gap-2">
+                  <button type="button" (click)="addCustomColumn()" class="btn btn-outline-info btn-sm px-2.5 fw-semibold" title="Add a custom column like Size, Color, Batch, Remarks">
+                    <i class="bi bi-layout-three-columns me-1"></i>+ Add Column (புதிய Column)
+                  </button>
+                  <button type="button" (click)="addPORow()" class="btn btn-outline-warning btn-sm px-2.5 fw-semibold">
+                    <i class="bi bi-plus-lg me-1"></i>+ Add Empty Row
+                  </button>
+                </div>
               </div>
 
-              <!-- PO Items Table with exact requested columns: Barcode Num, Product Name, Cost/Price, Qty, Total -->
+              <!-- Tip banner: Editable headings notice -->
+              <div class="text-secondary small mb-2 d-flex align-items-center gap-1.5 px-1" style="font-size: 0.78rem;">
+                <i class="bi bi-pencil-square text-info"></i>
+                <span><strong>Tip:</strong> Click on any table heading below to rename it to match your customer's preference. Use <strong>+ Add Column</strong> to add extra columns.</span>
+              </div>
+
+              <!-- PO Items Table with Editable Headings, Full Spacious Width, and Custom Columns -->
               <div class="table-responsive flex-grow-1 border border-secondary border-opacity-20 rounded-3 mb-3 bg-dark bg-opacity-30">
-                <table class="table table-dark table-hover table-sm align-middle mb-0" style="font-size: 0.84rem;">
-                  <thead class="text-secondary text-uppercase text-xs" style="background: rgba(15, 23, 42, 0.85);">
+                <table class="table table-dark table-hover align-middle mb-0" style="min-width: 1250px; font-size: 0.9rem;">
+                  <thead class="text-secondary text-uppercase" style="background: rgba(15, 23, 42, 0.95);">
                     <tr>
-                      <th style="width: 32px;" class="text-center">#</th>
-                      <th style="width: 175px;">Barcode Number (பார்கோடு)</th>
-                      <th>Product Name (பொருள் பெயர்)</th>
-                      <th style="width: 75px;" class="text-center">Unit</th>
-                      <th style="width: 130px;" class="text-end">Agreed Price / Cost (விலை) *</th>
-                      <th style="width: 90px;" class="text-center">Default Qty (அளவு)</th>
-                      <th style="width: 110px;" class="text-end">Line Total (மொத்தம்)</th>
-                      <th style="width: 42px;" class="text-center">Action</th>
+                      <th style="width: 48px;" class="text-center text-secondary">#</th>
+
+                      <!-- Editable Barcode Header -->
+                      <th style="width: 210px; min-width: 200px;">
+                        <div class="d-flex align-items-center gap-1 px-2 py-1 rounded bg-black bg-opacity-40 border border-secondary border-opacity-30" title="Click to rename this heading">
+                          <i class="bi bi-upc text-info"></i>
+                          <input type="text"
+                                 class="form-control form-control-sm table-header-input"
+                                 [(ngModel)]="editingCustomerPO.headers.barcode"
+                                 placeholder="Barcode Heading">
+                          <i class="bi bi-pencil-fill text-secondary opacity-40" style="font-size: 0.65rem;"></i>
+                        </div>
+                      </th>
+
+                      <!-- Editable Product Name Header -->
+                      <th style="min-width: 320px;">
+                        <div class="d-flex align-items-center gap-1 px-2 py-1 rounded bg-black bg-opacity-40 border border-secondary border-opacity-30" title="Click to rename this heading">
+                          <i class="bi bi-tag-fill text-warning"></i>
+                          <input type="text"
+                                 class="form-control form-control-sm table-header-input"
+                                 [(ngModel)]="editingCustomerPO.headers.productName"
+                                 placeholder="Product Name Heading">
+                          <i class="bi bi-pencil-fill text-secondary opacity-40" style="font-size: 0.65rem;"></i>
+                        </div>
+                      </th>
+
+                      <!-- Editable Unit Header -->
+                      <th style="width: 95px; min-width: 95px;" class="text-center">
+                        <div class="d-flex align-items-center gap-1 px-1.5 py-1 rounded bg-black bg-opacity-40 border border-secondary border-opacity-30" title="Click to rename this heading">
+                          <input type="text"
+                                 class="form-control form-control-sm table-header-input text-center"
+                                 [(ngModel)]="editingCustomerPO.headers.unit"
+                                 placeholder="Unit">
+                        </div>
+                      </th>
+
+                      <!-- Editable Agreed Price / Cost Header -->
+                      <th style="width: 190px; min-width: 180px;" class="text-end">
+                        <div class="d-flex align-items-center gap-1 px-2 py-1 rounded bg-black bg-opacity-40 border border-secondary border-opacity-30" title="Click to rename this heading">
+                          <i class="bi bi-cash-stack text-success"></i>
+                          <input type="text"
+                                 class="form-control form-control-sm table-header-input text-end"
+                                 [(ngModel)]="editingCustomerPO.headers.unitPrice"
+                                 placeholder="Price / Cost Heading">
+                          <i class="bi bi-pencil-fill text-secondary opacity-40" style="font-size: 0.65rem;"></i>
+                        </div>
+                      </th>
+
+                      <!-- Editable Default Qty Header -->
+                      <th style="width: 120px; min-width: 110px;" class="text-center">
+                        <div class="d-flex align-items-center gap-1 px-2 py-1 rounded bg-black bg-opacity-40 border border-secondary border-opacity-30" title="Click to rename this heading">
+                          <input type="text"
+                                 class="form-control form-control-sm table-header-input text-center"
+                                 [(ngModel)]="editingCustomerPO.headers.quantity"
+                                 placeholder="Qty Heading">
+                          <i class="bi bi-pencil-fill text-secondary opacity-40" style="font-size: 0.65rem;"></i>
+                        </div>
+                      </th>
+
+                      <!-- Dynamic Custom Columns Headers -->
+                      <th *ngFor="let col of editingCustomerPO.customColumns; let cIdx = index" style="width: 170px; min-width: 160px;">
+                        <div class="d-flex align-items-center justify-content-between gap-1 px-2 py-1 rounded bg-black bg-opacity-40 border border-info border-opacity-40" title="Click to rename this column">
+                          <input type="text"
+                                 class="form-control form-control-sm table-header-input text-info fw-bold"
+                                 [(ngModel)]="col.name"
+                                 [placeholder]="'Column ' + (cIdx + 1)">
+                          <button type="button" (click)="removeCustomColumn(cIdx)" class="btn btn-link btn-xs text-danger p-0" title="Delete Column">
+                            <i class="bi bi-x-circle fs-6"></i>
+                          </button>
+                        </div>
+                      </th>
+
+                      <!-- Editable Line Total Header -->
+                      <th style="width: 150px; min-width: 140px;" class="text-end">
+                        <div class="d-flex align-items-center gap-1 px-2 py-1 rounded bg-black bg-opacity-40 border border-secondary border-opacity-30" title="Click to rename this heading">
+                          <input type="text"
+                                 class="form-control form-control-sm table-header-input text-end text-success"
+                                 [(ngModel)]="editingCustomerPO.headers.lineTotal"
+                                 placeholder="Total Heading">
+                        </div>
+                      </th>
+
+                      <!-- Action Header -->
+                      <th style="width: 50px; min-width: 50px;" class="text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr *ngFor="let row of editingCustomerPO.items; let idx = index" class="border-secondary border-opacity-15">
-                      <td class="text-center text-muted font-monospace text-xs">{{ idx + 1 }}</td>
+                      <td class="text-center text-muted font-monospace fw-semibold">{{ idx + 1 }}</td>
                       <td>
-                        <div class="input-group input-group-sm">
-                          <span class="input-group-text bg-dark border-secondary p-1 text-secondary"><i class="bi bi-upc"></i></span>
-                          <input type="text" class="form-control form-control-sm bg-dark text-info font-monospace border-secondary p-1"
+                        <div class="input-group">
+                          <span class="input-group-text bg-dark border-secondary px-2 text-secondary"><i class="bi bi-upc"></i></span>
+                          <input type="text" class="form-control bg-dark text-info font-monospace border-secondary po-cell-input fw-semibold"
                                  [(ngModel)]="row.barcode"
-                                 placeholder="Barcode / SKU">
+                                 placeholder="Scan or type barcode...">
                         </div>
                       </td>
                       <td>
-                        <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary p-1 fw-semibold"
+                        <input type="text" class="form-control bg-dark text-light border-secondary po-cell-input fw-semibold"
                                [(ngModel)]="row.productName"
-                               placeholder="Type or select product name"
+                               placeholder="Type product name or select from catalog..."
                                [attr.list]="'poCatalogList_' + idx"
                                (change)="onPOProductNameChange(row)">
                         <datalist [id]="'poCatalogList_' + idx">
@@ -595,16 +682,16 @@ interface CartItem {
                         </datalist>
                       </td>
                       <td class="text-center">
-                        <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary text-center p-1 text-xs"
+                        <input type="text" class="form-control bg-dark text-light border-secondary text-center po-cell-input"
                                [(ngModel)]="row.unit"
                                placeholder="PCS"
-                               style="width: 60px; margin: 0 auto;">
+                               style="width: 80px; margin: 0 auto;">
                       </td>
                       <td>
-                        <div class="input-group input-group-sm">
-                          <span class="input-group-text bg-dark border-secondary p-1 text-secondary text-xs">{{ defaultCurrency }}</span>
+                        <div class="input-group">
+                          <span class="input-group-text bg-dark border-secondary px-2 text-secondary text-xs fw-bold">{{ defaultCurrency }}</span>
                           <input type="number" step="0.5" min="0"
-                                 class="form-control form-control-sm bg-dark text-warning fw-bold text-end border-secondary p-1"
+                                 class="form-control bg-dark text-warning fw-bold text-end border-secondary po-cell-input"
                                  [(ngModel)]="row.unitPrice"
                                  (ngModelChange)="onPORowChange(row)"
                                  placeholder="0.00">
@@ -612,17 +699,26 @@ interface CartItem {
                       </td>
                       <td>
                         <input type="number" step="any" min="0"
-                               class="form-control form-control-sm bg-dark text-light fw-bold text-center border-secondary p-1"
+                               class="form-control bg-dark text-light fw-bold text-center border-secondary po-cell-input"
                                [(ngModel)]="row.quantity"
                                (ngModelChange)="onPORowChange(row)"
                                placeholder="1">
                       </td>
-                      <td class="text-end font-monospace text-success fw-bold">
+
+                      <!-- Dynamic Custom Columns Row Inputs -->
+                      <td *ngFor="let col of editingCustomerPO.customColumns">
+                        <input type="text"
+                               class="form-control bg-dark text-light border-secondary po-cell-input"
+                               [(ngModel)]="row.customValues[col.id]"
+                               [placeholder]="col.name + '...'">
+                      </td>
+
+                      <td class="text-end font-monospace text-success fw-bold fs-6">
                         {{ defaultCurrency }} {{ (row.lineTotal || 0) | number:'1.2-2' }}
                       </td>
                       <td class="text-center">
-                        <button type="button" (click)="removePORow(idx)" class="btn btn-link btn-xs text-danger p-0" title="Delete row">
-                          <i class="bi bi-trash3 fs-6"></i>
+                        <button type="button" (click)="removePORow(idx)" class="btn btn-link btn-sm text-danger p-1" title="Delete row">
+                          <i class="bi bi-trash3 fs-5"></i>
                         </button>
                       </td>
                     </tr>
@@ -635,6 +731,9 @@ interface CartItem {
                 <div class="d-flex align-items-center gap-2">
                   <button type="button" (click)="addPORow()" class="btn btn-outline-secondary btn-sm px-2.5">
                     <i class="bi bi-plus-lg me-1"></i>+ Add Row
+                  </button>
+                  <button type="button" (click)="addCustomColumn()" class="btn btn-outline-info btn-sm px-2.5">
+                    <i class="bi bi-layout-three-columns me-1"></i>+ Add Column
                   </button>
                   <span class="text-secondary small ms-2">
                     Active Items: <strong class="text-light">{{ editingPOTotalItemsCount }}</strong>
@@ -652,7 +751,7 @@ interface CartItem {
                     <i class="bi bi-floppy-fill me-1"></i>Save Customer PO
                   </button>
                   <button type="button" (click)="loadCurrentPOIntoBill()" class="btn btn-success btn-sm px-3 fw-bold shadow">
-                    <i class="bi bi-cart-check-fill me-1"></i>Open in Bill
+                    <i class="bi bi-cart-check-fill me-1"></i>Save & Open in Bill
                   </button>
                 </div>
               </div>
@@ -1321,6 +1420,37 @@ interface CartItem {
         display: none !important;
       }
     }
+    .table-header-input {
+      background: transparent !important;
+      border: 1px solid transparent !important;
+      color: #f8fafc !important;
+      font-weight: 700 !important;
+      font-size: 0.8rem !important;
+      letter-spacing: 0.5px !important;
+      padding: 3px 6px !important;
+      border-radius: 4px !important;
+      width: 100% !important;
+      transition: all 0.2s ease !important;
+    }
+    .table-header-input:hover {
+      background: rgba(30, 41, 59, 0.7) !important;
+      border-color: rgba(148, 163, 184, 0.4) !important;
+    }
+    .table-header-input:focus {
+      background: rgba(15, 23, 42, 0.95) !important;
+      border-color: #3b82f6 !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
+    }
+    .po-cell-input {
+      font-size: 0.92rem !important;
+      height: 38px !important;
+      transition: border-color 0.2s, box-shadow 0.2s !important;
+    }
+    .po-cell-input:focus {
+      border-color: #3b82f6 !important;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
+    }
   `]
 })
 export class BillingComponent implements OnInit {
@@ -1378,6 +1508,15 @@ export class BillingComponent implements OnInit {
   editingCustomerPO = {
     customerName: '',
     customerPhone: '',
+    headers: {
+      barcode: 'Barcode Number (பார்கோடு)',
+      productName: 'Product Name (பொருள் பெயர்)',
+      unit: 'Unit',
+      unitPrice: 'Agreed Price / Cost (விலை) *',
+      quantity: 'Default Qty (அளவு)',
+      lineTotal: 'Line Total (மொத்தம்)'
+    },
+    customColumns: [] as Array<{ id: string; name: string }>,
     items: [
       {
         productId: undefined as number | undefined,
@@ -1386,8 +1525,9 @@ export class BillingComponent implements OnInit {
         barcode: '',
         unit: 'PCS',
         unitPrice: 0,
-        quantity: 1,
-        lineTotal: 0
+        quantity: 1 as number | null,
+        lineTotal: 0,
+        customValues: {} as { [colId: string]: string }
       }
     ]
   };
@@ -1546,17 +1686,27 @@ export class BillingComponent implements OnInit {
   selectCustomerForEdit(profile: CustomerProfile): void {
     this.isCreatingNewPO = false;
     this.poSaveMessage = '';
+    const customCols = profile.customColumns ? [...profile.customColumns] : [];
     const items = (profile.items && profile.items.length > 0)
-      ? profile.items.map(item => ({
-          productId: item.productId,
-          productName: item.productName || '',
-          sku: item.sku || '',
-          barcode: item.barcode || '',
-          unit: item.unit || 'PCS',
-          unitPrice: item.unitPrice || 0,
-          quantity: item.quantity !== null && item.quantity !== undefined ? item.quantity : 1,
-          lineTotal: ((item.quantity !== null && item.quantity !== undefined ? item.quantity : 1) * (item.unitPrice || 0))
-        }))
+      ? profile.items.map(item => {
+          const rowCustomValues: { [colId: string]: string } = {};
+          if (customCols.length > 0) {
+            for (const col of customCols) {
+              rowCustomValues[col.id] = (item.customValues && item.customValues[col.id]) ? item.customValues[col.id] : '';
+            }
+          }
+          return {
+            productId: item.productId,
+            productName: item.productName || '',
+            sku: item.sku || '',
+            barcode: item.barcode || '',
+            unit: item.unit || 'PCS',
+            unitPrice: item.unitPrice || 0,
+            quantity: item.quantity !== null && item.quantity !== undefined ? item.quantity : 1,
+            lineTotal: ((item.quantity !== null && item.quantity !== undefined ? item.quantity : 1) * (item.unitPrice || 0)),
+            customValues: rowCustomValues
+          };
+        })
       : [
           {
             productId: undefined as number | undefined,
@@ -1566,13 +1716,23 @@ export class BillingComponent implements OnInit {
             unit: 'PCS',
             unitPrice: 0,
             quantity: 1,
-            lineTotal: 0
+            lineTotal: 0,
+            customValues: {}
           }
         ];
 
     this.editingCustomerPO = {
       customerName: profile.customerName,
       customerPhone: profile.customerPhone || '',
+      headers: {
+        barcode: profile.columnHeaders?.barcode || 'Barcode Number (பார்கோடு)',
+        productName: profile.columnHeaders?.productName || 'Product Name (பொருள் பெயர்)',
+        unit: profile.columnHeaders?.unit || 'Unit',
+        unitPrice: profile.columnHeaders?.unitPrice || 'Agreed Price / Cost (விலை) *',
+        quantity: profile.columnHeaders?.quantity || 'Default Qty (அளவு)',
+        lineTotal: profile.columnHeaders?.lineTotal || 'Line Total (மொத்தம்)'
+      },
+      customColumns: customCols,
       items
     };
   }
@@ -1583,6 +1743,15 @@ export class BillingComponent implements OnInit {
     this.editingCustomerPO = {
       customerName: '',
       customerPhone: '',
+      headers: {
+        barcode: 'Barcode Number (பார்கோடு)',
+        productName: 'Product Name (பொருள் பெயர்)',
+        unit: 'Unit',
+        unitPrice: 'Agreed Price / Cost (விலை) *',
+        quantity: 'Default Qty (அளவு)',
+        lineTotal: 'Line Total (மொத்தம்)'
+      },
+      customColumns: [],
       items: [
         {
           productId: undefined as number | undefined,
@@ -1592,13 +1761,55 @@ export class BillingComponent implements OnInit {
           unit: 'PCS',
           unitPrice: 0,
           quantity: 1,
-          lineTotal: 0
+          lineTotal: 0,
+          customValues: {}
         }
       ]
     };
   }
 
+  addCustomColumn(): void {
+    const colNumber = (this.editingCustomerPO.customColumns?.length || 0) + 1;
+    const colName = prompt('Enter Column Name (e.g. Size, Color, Batch, Remarks):', `Column ${colNumber}`);
+    if (!colName || !colName.trim()) return;
+
+    const colId = 'col_' + Date.now().toString().slice(-6);
+    if (!this.editingCustomerPO.customColumns) {
+      this.editingCustomerPO.customColumns = [];
+    }
+    this.editingCustomerPO.customColumns.push({
+      id: colId,
+      name: colName.trim()
+    });
+
+    for (const item of this.editingCustomerPO.items) {
+      if (!item.customValues) {
+        item.customValues = {};
+      }
+      item.customValues[colId] = '';
+    }
+  }
+
+  removeCustomColumn(index: number): void {
+    const col = this.editingCustomerPO.customColumns[index];
+    if (!col) return;
+    if (confirm(`Remove column "${col.name}"?`)) {
+      this.editingCustomerPO.customColumns.splice(index, 1);
+      for (const item of this.editingCustomerPO.items) {
+        if (item.customValues) {
+          delete item.customValues[col.id];
+        }
+      }
+    }
+  }
+
   addPORow(): void {
+    const rowCustomValues: { [colId: string]: string } = {};
+    if (this.editingCustomerPO.customColumns) {
+      for (const col of this.editingCustomerPO.customColumns) {
+        rowCustomValues[col.id] = '';
+      }
+    }
     this.editingCustomerPO.items.push({
       productId: undefined,
       productName: '',
@@ -1607,7 +1818,8 @@ export class BillingComponent implements OnInit {
       unit: 'PCS',
       unitPrice: 0,
       quantity: 1,
-      lineTotal: 0
+      lineTotal: 0,
+      customValues: rowCustomValues
     });
   }
 
@@ -1615,6 +1827,12 @@ export class BillingComponent implements OnInit {
     if (this.editingCustomerPO.items.length > 1) {
       this.editingCustomerPO.items.splice(index, 1);
     } else {
+      const rowCustomValues: { [colId: string]: string } = {};
+      if (this.editingCustomerPO.customColumns) {
+        for (const col of this.editingCustomerPO.customColumns) {
+          rowCustomValues[col.id] = '';
+        }
+      }
       this.editingCustomerPO.items = [{
         productId: undefined,
         productName: '',
@@ -1623,7 +1841,8 @@ export class BillingComponent implements OnInit {
         unit: 'PCS',
         unitPrice: 0,
         quantity: 1,
-        lineTotal: 0
+        lineTotal: 0,
+        customValues: rowCustomValues
       }];
     }
   }
@@ -1633,6 +1852,13 @@ export class BillingComponent implements OnInit {
     const prodId = Number(prodIdStr);
     const prod = this.products().find(p => p.id === prodId);
     if (!prod) return;
+
+    const rowCustomValues: { [colId: string]: string } = {};
+    if (this.editingCustomerPO.customColumns) {
+      for (const col of this.editingCustomerPO.customColumns) {
+        rowCustomValues[col.id] = '';
+      }
+    }
 
     const items = this.editingCustomerPO.items;
     const lastRow = items.length > 0 ? items[items.length - 1] : null;
@@ -1646,7 +1872,8 @@ export class BillingComponent implements OnInit {
       unit: prod.unit || 'PCS',
       unitPrice: prod.price || 0,
       quantity: 1,
-      lineTotal: prod.price || 0
+      lineTotal: prod.price || 0,
+      customValues: rowCustomValues
     };
 
     if (isEmpty && lastRow) {
@@ -1692,7 +1919,8 @@ export class BillingComponent implements OnInit {
         unit: i.unit || 'PCS',
         quantity: i.quantity !== null && i.quantity !== undefined ? Number(i.quantity) : 1,
         unitPrice: Number(i.unitPrice) || 0,
-        lineTotal: (Number(i.quantity) || 1) * (Number(i.unitPrice) || 0)
+        lineTotal: (Number(i.quantity) || 1) * (Number(i.unitPrice) || 0),
+        customValues: i.customValues ? { ...i.customValues } : {}
       }));
 
     if (validItems.length === 0) {
@@ -1707,7 +1935,9 @@ export class BillingComponent implements OnInit {
       this.editingCustomerPO.customerPhone ? this.editingCustomerPO.customerPhone.trim() : '',
       'PO-' + Date.now().toString().slice(-4),
       grandTotal,
-      validItems
+      validItems,
+      { ...this.editingCustomerPO.headers },
+      [ ...this.editingCustomerPO.customColumns ]
     );
 
     this.loadCustomerProfiles();
@@ -1957,7 +2187,9 @@ export class BillingComponent implements OnInit {
     phone: string,
     invoiceNumber?: string,
     grandTotal?: number,
-    customItems?: any[]
+    customItems?: any[],
+    columnHeaders?: any,
+    customColumns?: any[]
   ): void {
     if (!name || name.trim() === 'Walk-in Customer') return;
     if (!customItems && this.isWalkIn) return;
@@ -1983,7 +2215,9 @@ export class BillingComponent implements OnInit {
         lastInvoiceNumber: invoiceNumber || 'INV-' + Date.now().toString().slice(-4),
         lastOrderDate: new Date().toISOString(),
         grandTotal: grandTotal || this.cartGrandTotal,
-        items: newItems
+        items: newItems,
+        columnHeaders: columnHeaders || (existingIdx >= 0 ? list[existingIdx].columnHeaders : undefined),
+        customColumns: customColumns || (existingIdx >= 0 ? list[existingIdx].customColumns : undefined)
       };
 
       if (existingIdx >= 0) {
