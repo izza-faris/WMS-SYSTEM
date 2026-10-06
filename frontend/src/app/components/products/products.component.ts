@@ -362,18 +362,82 @@ import { Category, Product } from '../../models/wms.models';
                   </div>
                 </div>
 
-                <!-- 2. Selling Price (per chosen unit) -->
+                <!-- 2. Selling Price (per chosen unit) with Saved Price Dropdown & Quick Tap Pills -->
                 <div class="col-md-4">
-                  <label class="form-label text-secondary small fw-semibold">
-                    Selling Price / விற்பனை விலை (1 {{ newProduct.unit || 'Unit' }}) *
-                  </label>
+                  <div class="d-flex align-items-center justify-content-between mb-1">
+                    <label class="form-label text-secondary small fw-semibold mb-0">
+                      Selling Price / விற்பனை விலை (1 {{ newProduct.unit || 'Unit' }}) *
+                    </label>
+                    <span *ngIf="newProduct.price" class="badge bg-success bg-opacity-25 text-success font-monospace text-xs">
+                      {{ newProduct.currency || defaultCurrency }} {{ (newProduct.price || 0) | number:'1.2-2' }}
+                    </span>
+                  </div>
+
+                  <!-- Dropdown for Saved / Recent Prices -->
+                  <div class="d-flex gap-1 mb-1">
+                    <select class="form-select bg-dark text-light border-secondary"
+                            [(ngModel)]="selectedPriceOption"
+                            (change)="onPriceOptionSelect()"
+                            name="priceSelect"
+                            title="Select a previously saved price or choose Custom">
+                      <option value="CUSTOM">-- Type Custom Price (புதிய விலை) --</option>
+                      <optgroup label="Saved Prices / சேமித்த விலைகள்" *ngIf="savedPrices.length > 0">
+                        <option *ngFor="let p of savedPrices" [value]="p">
+                          {{ newProduct.currency || defaultCurrency }} {{ p | number:'1.2-2' }}
+                        </option>
+                      </optgroup>
+                    </select>
+                    <button *ngIf="selectedPriceOption !== 'CUSTOM'"
+                            type="button"
+                            (click)="removeSavedPrice(+selectedPriceOption)"
+                            class="btn btn-outline-danger btn-sm px-2"
+                            title="Delete this price from dropdown">
+                      <i class="bi bi-trash3"></i>
+                    </button>
+                  </div>
+
+                  <!-- Currency Selector + Price Input + Add Price to Dropdown Button -->
                   <div class="input-group">
                     <select class="form-select bg-dark text-light border-secondary" style="max-width: 85px;" [(ngModel)]="newProduct.currency" name="currency">
                       <option *ngFor="let c of availableCurrencies" [value]="c.symbol">{{ c.symbol }}</option>
                     </select>
-                    <input type="number" step="0.01" min="0" class="form-control text-success fw-bold" [(ngModel)]="newProduct.price" name="price" placeholder="0.00" required>
+                    <input type="number" step="0.01" min="0" class="form-control text-success fw-bold"
+                           [(ngModel)]="newProduct.price"
+                           (input)="onPriceInput()"
+                           name="price"
+                           placeholder="0.00" required>
+                    <button type="button"
+                            class="btn btn-outline-success btn-sm px-2"
+                            (click)="addCurrentPriceToSavedList()"
+                            [disabled]="!newProduct.price || newProduct.price <= 0"
+                            title="Save this price to dropdown (டிராப்டவுனில் சேர்க்க)">
+                      <i class="bi bi-bookmark-plus me-1"></i>Add
+                    </button>
                   </div>
-                  <small class="text-muted text-xs">Rate per 1 {{ newProduct.unit || 'Unit' }}</small>
+
+                  <div class="d-flex align-items-center justify-content-between mt-1">
+                    <small class="text-muted text-xs">Rate per 1 {{ newProduct.unit || 'Unit' }}</small>
+                    <small *ngIf="priceAddedNotification" class="text-success text-xs fw-semibold animate__animated animate__fadeIn">
+                      <i class="bi bi-check-circle-fill me-1"></i>{{ priceAddedNotification }}
+                    </small>
+                  </div>
+
+                  <!-- Quick Tap Pills for Top Saved Prices (Symmetrical to Unit Pills on left) -->
+                  <div class="d-flex flex-wrap gap-1 mt-2" *ngIf="savedPrices.length > 0">
+                    <button type="button" *ngFor="let pr of getDisplayQuickPrices()"
+                      (click)="selectQuickPrice(pr)"
+                      class="btn btn-xs py-0 px-2 rounded-pill font-monospace"
+                      [ngClass]="newProduct.price === pr ? 'btn-success text-white fw-bold shadow-sm' : 'btn-outline-secondary text-secondary'"
+                      style="font-size: 0.72rem;">
+                      {{ pr | number:'1.0-2' }}
+                    </button>
+                    <button type="button" *ngIf="savedPrices.length > 6"
+                      (click)="showAllPrices = !showAllPrices"
+                      class="btn btn-xs py-0 px-1 btn-link text-info text-decoration-none"
+                      style="font-size: 0.7rem;">
+                      {{ showAllPrices ? 'Less' : '+' + (savedPrices.length - 6) + ' more' }}
+                    </button>
+                  </div>
                 </div>
 
                 <!-- 3. Stock Quantity (Dynamic unit label, badge and placeholder) -->
@@ -610,6 +674,12 @@ export class ProductsComponent implements OnInit {
   selectedUnitCode = 'PCS';
   customUnitText = '';
 
+  // Saved price presets and dropdown memory
+  savedPrices: number[] = [];
+  selectedPriceOption = 'CUSTOM';
+  priceAddedNotification = '';
+  showAllPrices = false;
+
   showAddModal = false;
   showCodeModal = false;
   showPriceModal = false;
@@ -642,6 +712,7 @@ export class ProductsComponent implements OnInit {
 
   ngOnInit(): void {
     this.exportUrl = this.wmsApi.exportProductsExcelUrl();
+    this.loadSavedPrices();
     this.loadProducts();
     this.loadCategories();
   }
@@ -653,11 +724,121 @@ export class ProductsComponent implements OnInit {
     }
   }
 
+  loadSavedPrices(): void {
+    try {
+      const stored = localStorage.getItem('wms_saved_product_prices');
+      if (stored) {
+        this.savedPrices = JSON.parse(stored);
+      } else {
+        // Helpful initial standard prices
+        this.savedPrices = [50, 100, 150, 200, 250, 500, 1000];
+        this.persistSavedPrices();
+      }
+    } catch (e) {
+      this.savedPrices = [50, 100, 150, 200, 250, 500, 1000];
+    }
+    this.sortAndCleanSavedPrices();
+  }
+
+  syncPricesFromProducts(productsList: Product[]): void {
+    if (!productsList || productsList.length === 0) return;
+    let hasNew = false;
+    for (const p of productsList) {
+      if (p.price && p.price > 0 && !this.savedPrices.includes(p.price)) {
+        this.savedPrices.push(p.price);
+        hasNew = true;
+      }
+    }
+    if (hasNew) {
+      this.sortAndCleanSavedPrices();
+      this.persistSavedPrices();
+    }
+  }
+
+  sortAndCleanSavedPrices(): void {
+    this.savedPrices = Array.from(new Set(this.savedPrices.map(Number)))
+      .filter(n => !isNaN(n) && n > 0)
+      .sort((a, b) => a - b);
+  }
+
+  persistSavedPrices(): void {
+    try {
+      localStorage.setItem('wms_saved_product_prices', JSON.stringify(this.savedPrices));
+    } catch (e) {
+      console.warn('Could not save prices to localStorage', e);
+    }
+  }
+
+  addPriceToSavedList(price: number): boolean {
+    const p = Math.round(Number(price) * 100) / 100;
+    if (isNaN(p) || p <= 0) return false;
+    if (!this.savedPrices.includes(p)) {
+      this.savedPrices.push(p);
+      this.sortAndCleanSavedPrices();
+      this.persistSavedPrices();
+      return true;
+    }
+    return false;
+  }
+
+  addCurrentPriceToSavedList(): void {
+    if (this.newProduct.price && Number(this.newProduct.price) > 0) {
+      const val = Number(this.newProduct.price);
+      this.addPriceToSavedList(val);
+      this.selectedPriceOption = val.toString();
+      this.priceAddedNotification = 'Added to dropdown!';
+      setTimeout(() => this.priceAddedNotification = '', 3000);
+    }
+  }
+
+  onPriceOptionSelect(): void {
+    if (this.selectedPriceOption === 'CUSTOM') {
+      // User selected custom type - leave price or allow editing
+    } else {
+      const val = Number(this.selectedPriceOption);
+      if (!isNaN(val)) {
+        this.newProduct.price = val;
+      }
+    }
+  }
+
+  onPriceInput(): void {
+    const current = Number(this.newProduct.price);
+    if (!isNaN(current) && this.savedPrices.includes(current)) {
+      this.selectedPriceOption = current.toString();
+    } else {
+      this.selectedPriceOption = 'CUSTOM';
+    }
+  }
+
+  selectQuickPrice(val: number): void {
+    this.newProduct.price = val;
+    this.selectedPriceOption = val.toString();
+  }
+
+  removeSavedPrice(val: number): void {
+    if (confirm(`Remove ${this.newProduct.currency || this.defaultCurrency} ${val} from saved price dropdown?`)) {
+      this.savedPrices = this.savedPrices.filter(p => p !== val);
+      this.persistSavedPrices();
+      if (this.selectedPriceOption === val.toString()) {
+        this.selectedPriceOption = 'CUSTOM';
+      }
+    }
+  }
+
+  getDisplayQuickPrices(): number[] {
+    if (this.showAllPrices) {
+      return this.savedPrices;
+    }
+    return this.savedPrices.slice(0, 6);
+  }
+
   loadProducts() {
     this.wmsApi.getProducts(this.searchQuery).subscribe({
       next: (res) => {
         if (res.success && res.data?.content) {
           this.products.set(res.data.content);
+          this.syncPricesFromProducts(res.data.content);
         }
       }
     });
@@ -820,6 +1001,8 @@ export class ProductsComponent implements OnInit {
     this.editingId = null;
     this.selectedUnitCode = 'PCS';
     this.customUnitText = '';
+    this.selectedPriceOption = 'CUSTOM';
+    this.priceAddedNotification = '';
     this.newProduct = {
       name: '',
       sku: '',
@@ -873,6 +1056,16 @@ export class ProductsComponent implements OnInit {
       maxStockLevel: p.maxStockLevel,
       expiryTrackingEnabled: p.expiryTrackingEnabled
     };
+
+    if (p.price && this.savedPrices.includes(p.price)) {
+      this.selectedPriceOption = p.price.toString();
+    } else if (p.price && p.price > 0) {
+      this.addPriceToSavedList(p.price);
+      this.selectedPriceOption = p.price.toString();
+    } else {
+      this.selectedPriceOption = 'CUSTOM';
+    }
+    this.priceAddedNotification = '';
     this.showAddModal = true;
   }
 
@@ -886,6 +1079,11 @@ export class ProductsComponent implements OnInit {
   }
 
   saveProduct() {
+    // Automatically save newly entered price into dropdown memory
+    if (this.newProduct.price && Number(this.newProduct.price) > 0) {
+      this.addPriceToSavedList(Number(this.newProduct.price));
+    }
+
     if (this.isEditing && this.editingId) {
       this.wmsApi.updateProduct(this.editingId, this.newProduct).subscribe({
         next: () => {
