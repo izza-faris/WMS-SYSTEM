@@ -302,41 +302,46 @@ interface CartItem {
                   </button>
                 </div>
 
-                <!-- Bottom Line: Rate, Quantity Controls, and Line Total (Side-by-Side without cramping) -->
-                <div class="d-flex align-items-center justify-content-between pt-1.5 border-top border-secondary border-opacity-15 gap-2">
+                <!-- Bottom Line: Rate, Quantity Controls, and Line Total (Spacious, Roomy & Clean) -->
+                <div class="d-flex align-items-center justify-content-between pt-2 border-top border-secondary border-opacity-20 gap-2 flex-wrap">
                   <!-- Rate Field -->
-                  <div class="d-flex align-items-center gap-1">
-                    <span class="text-secondary text-xs">Rate:</span>
-                    <input type="number" class="form-control form-control-sm text-end p-0 px-1 border-secondary bg-dark text-warning fw-bold"
-                           style="width: 74px; height: 26px; font-size: 0.82rem;"
+                  <div class="d-flex align-items-center gap-1.5">
+                    <span class="text-secondary text-xs fw-semibold">Rate:</span>
+                    <input type="number"
+                           class="form-control form-control-sm text-end p-0 px-1.5 border-secondary bg-dark text-warning fw-bold cart-qty-input"
+                           style="width: 82px; height: 30px; font-size: 0.88rem; border-radius: 6px !important; border: 1px solid rgba(148, 163, 184, 0.35) !important;"
                            [(ngModel)]="item.unitPrice"
                            (ngModelChange)="onPriceChange(item)"
                            min="0" step="0.5"
                            title="Wholesale price for this shop">
                   </div>
 
-                  <!-- Qty Controls -->
-                  <div class="d-flex align-items-center gap-1">
-                    <span class="text-secondary text-xs">Qty:</span>
-                    <div class="d-flex align-items-center">
-                      <button class="btn btn-outline-secondary btn-xs p-0 px-1.5" style="height: 26px;" (click)="decreaseQty(item)">-</button>
-                      <input type="number" class="form-control form-control-sm text-center p-0 border-secondary bg-dark text-light fw-bold"
-                             style="width: 52px; height: 26px; font-size: 0.85rem;"
+                  <!-- Qty Controls with Spacious Stepper -->
+                  <div class="d-flex align-items-center gap-1.5">
+                    <span class="text-secondary text-xs fw-semibold">Qty:</span>
+                    <div class="cart-qty-stepper">
+                      <button type="button" class="cart-qty-btn" (click)="decreaseQty(item)" title="Decrease Quantity">
+                        <i class="bi bi-dash-lg"></i>
+                      </button>
+                      <input type="number"
+                             class="cart-qty-input"
                              [(ngModel)]="item.quantity"
                              (ngModelChange)="onQtyChange(item)"
-                             placeholder="Qty"
-                             title="Type pieces/quantity to bill">
-                      <button class="btn btn-outline-secondary btn-xs p-0 px-1.5" style="height: 26px;" (click)="increaseQty(item)">+</button>
+                             placeholder="0"
+                             title="Type pieces / quantity to bill">
+                      <button type="button" class="cart-qty-btn" (click)="increaseQty(item)" title="Increase Quantity">
+                        <i class="bi bi-plus-lg"></i>
+                      </button>
                     </div>
                   </div>
 
                   <!-- Line Total -->
-                  <div class="text-end">
+                  <div class="text-end ms-auto">
                     <span class="text-secondary text-xs d-none d-sm-inline">Total: </span>
-                    <strong class="small" [ngClass]="(item.quantity && item.quantity > 0) ? 'text-success fw-bold' : 'text-secondary'">
+                    <span class="font-monospace fw-bold" style="font-size: 0.95rem;" [ngClass]="(item.quantity && item.quantity > 0) ? 'text-success' : 'text-secondary'">
                       <span *ngIf="item.quantity && item.quantity > 0">{{ defaultCurrency }} {{ item.totalPrice | number:'1.2-2' }}</span>
                       <span *ngIf="!item.quantity || item.quantity <= 0">—</span>
-                    </strong>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1450,6 +1455,69 @@ interface CartItem {
     .po-cell-input:focus {
       border-color: #3b82f6 !important;
       box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
+    }
+    /* Hide native number input spinners across cart & billing */
+    .cart-qty-input::-webkit-outer-spin-button,
+    .cart-qty-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .cart-qty-input {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    /* Cart Quantity Stepper Styling */
+    .cart-qty-stepper {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 6px;
+      overflow: hidden;
+      height: 30px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .cart-qty-stepper:focus-within {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+    }
+    .cart-qty-btn {
+      width: 28px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 0.95rem;
+      cursor: pointer;
+      padding: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+    .cart-qty-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+    }
+    .cart-qty-btn:active {
+      background: rgba(59, 130, 246, 0.3);
+    }
+    .cart-qty-input {
+      width: 58px;
+      height: 30px;
+      text-align: center;
+      background: transparent !important;
+      border: none !important;
+      border-left: 1px solid rgba(148, 163, 184, 0.2) !important;
+      border-right: 1px solid rgba(148, 163, 184, 0.2) !important;
+      color: #ffffff !important;
+      font-weight: 700 !important;
+      font-size: 0.95rem !important;
+      padding: 0 4px !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
     }
   `]
 })
