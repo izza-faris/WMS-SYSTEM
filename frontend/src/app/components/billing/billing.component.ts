@@ -38,13 +38,19 @@ interface CartItem {
         </div>
 
         <div class="d-flex align-items-center flex-wrap gap-2">
-          <!-- View Toggle: POS Counter | Invoices History -->
+          <!-- View Toggle: POS Counter | Customer POs | Invoices History -->
           <div class="btn-group btn-group-sm bg-dark p-0.5 rounded-2 border border-secondary border-opacity-25">
             <button type="button" class="btn btn-sm px-3 fw-semibold"
                     [class.btn-success]="activeTab === 'POS'"
                     [class.text-secondary]="activeTab !== 'POS'"
                     (click)="activeTab = 'POS'">
               <i class="bi bi-cart3 me-1"></i> POS Counter
+            </button>
+            <button type="button" class="btn btn-sm px-3 fw-semibold"
+                    [class.btn-warning]="activeTab === 'CUSTOMER_POS'"
+                    [class.text-secondary]="activeTab !== 'CUSTOMER_POS'"
+                    (click)="switchToCustomerPOs()">
+              <i class="bi bi-person-lines-fill me-1"></i> Customer POs / வாடிக்கையாளர் PO ({{ customerProfiles.length }})
             </button>
             <button type="button" class="btn btn-sm px-3 fw-semibold"
                     [class.btn-primary]="activeTab === 'HISTORY'"
@@ -196,10 +202,20 @@ interface CartItem {
               <!-- Customer Name & Phone Fields (Shown for New Customer or editing customer details) -->
               <div class="row g-2" *ngIf="selectedCustomerOption !== '__WALK_IN__'">
                 <div class="col-7">
-                  <label class="text-secondary text-xs d-block mb-0.5">Shop / Customer Name *</label>
+                  <div class="d-flex align-items-center justify-content-between mb-0.5">
+                    <label class="text-secondary text-xs d-block mb-0">Shop / Customer Name *</label>
+                    <span *ngIf="selectedCustomerProfile" class="badge bg-warning bg-opacity-25 text-warning text-xs py-0 px-1 font-monospace">
+                      PO Loaded ({{ cart.length }})
+                    </span>
+                  </div>
                   <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary"
                          [(ngModel)]="customerName"
-                         placeholder="e.g. Fashion Bug / Shop A">
+                         (input)="onCustomerNameInput()"
+                         list="customerListSuggestions"
+                         placeholder="Type customer name to auto-load PO...">
+                  <datalist id="customerListSuggestions">
+                    <option *ngFor="let p of customerProfiles" [value]="p.customerName">{{ p.customerPhone ? '(' + p.customerPhone + ')' : '' }}</option>
+                  </datalist>
                 </div>
                 <div class="col-5">
                   <label class="text-secondary text-xs d-block mb-0.5">Mobile # (Opt)</label>
@@ -408,6 +424,238 @@ interface CartItem {
                 <i *ngIf="!isSubmitting" class="bi bi-printer-fill fs-5"></i>
                 <span>Complete Sale & Print Bill (F9)</span>
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================= -->
+      <!-- VIEW 3: CUSTOMER PURCHASE ORDERS (PO) MANAGER                 -->
+      <!-- ============================================================= -->
+      <div *ngIf="activeTab === 'CUSTOMER_POS'" class="animate__animated animate__fadeIn no-print">
+        <div class="row g-3">
+          <!-- LEFT COLUMN: Saved Customers List & Search (4 cols) -->
+          <div class="col-lg-4">
+            <div class="glass-panel p-3 h-100 d-flex flex-column">
+              <div class="d-flex align-items-center justify-content-between mb-3">
+                <div>
+                  <h6 class="fw-bold text-light mb-0">
+                    <i class="bi bi-people-fill text-warning me-1.5"></i>Saved Customer POs
+                  </h6>
+                  <small class="text-secondary text-xs">Manage agreed items & wholesale rates</small>
+                </div>
+                <button type="button" (click)="startNewCustomerPO()" class="btn btn-warning btn-sm fw-bold px-2 py-1 text-xs">
+                  <i class="bi bi-plus-lg me-1"></i>New Customer PO
+                </button>
+              </div>
+
+              <!-- Search Input -->
+              <div class="input-group input-group-sm mb-3">
+                <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control bg-dark text-light border-secondary" [(ngModel)]="customerSearchQuery" placeholder="Search customer / shop name...">
+                <button *ngIf="customerSearchQuery" (click)="customerSearchQuery = ''" class="btn btn-outline-secondary"><i class="bi bi-x"></i></button>
+              </div>
+
+              <!-- Customer Profiles Cards List -->
+              <div class="flex-grow-1 overflow-y-auto pe-1" style="max-height: 640px;">
+                <div *ngIf="filteredCustomerProfiles.length === 0" class="text-center py-5 text-muted small">
+                  <i class="bi bi-person-x fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                  <span>No customer POs found.</span>
+                  <div class="mt-2">
+                    <button type="button" (click)="startNewCustomerPO()" class="btn btn-outline-warning btn-xs">
+                      + Create First Customer PO
+                    </button>
+                  </div>
+                </div>
+
+                <div *ngFor="let prof of filteredCustomerProfiles" 
+                     (click)="selectCustomerForEdit(prof)"
+                     class="p-2.5 mb-2 rounded-3 border transition-all cursor-pointer"
+                     [ngClass]="editingCustomerPO.customerName.toLowerCase() === prof.customerName.toLowerCase() ? 'bg-warning bg-opacity-15 border-warning shadow-sm' : 'bg-dark bg-opacity-40 border-secondary border-opacity-25 hover-border-secondary'">
+                  <div class="d-flex align-items-start justify-content-between gap-1 mb-1">
+                    <strong class="text-light text-truncate" style="font-size: 0.92rem;">
+                      <i class="bi bi-shop me-1 text-warning"></i>{{ prof.customerName }}
+                    </strong>
+                    <span class="badge bg-warning bg-opacity-25 text-warning font-monospace text-xs flex-shrink-0">
+                      {{ prof.items?.length || 0 }} Items
+                    </span>
+                  </div>
+                  <div class="d-flex align-items-center justify-content-between text-xs text-secondary mt-1">
+                    <span *ngIf="prof.customerPhone"><i class="bi bi-telephone me-1"></i>{{ prof.customerPhone }}</span>
+                    <span *ngIf="!prof.customerPhone" class="fst-italic opacity-75">No phone</span>
+                    <span class="text-success fw-bold font-monospace">{{ defaultCurrency }} {{ (prof.grandTotal || 0) | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="d-flex align-items-center justify-content-between mt-2 pt-1.5 border-top border-secondary border-opacity-15">
+                    <button type="button" (click)="$event.stopPropagation(); loadSpecificPOIntoBill(prof)" class="btn btn-link btn-xs text-success text-decoration-none p-0 fw-semibold" title="Load this PO into POS Counter bill">
+                      <i class="bi bi-cart-plus-fill me-1"></i>Load into Bill
+                    </button>
+                    <button type="button" (click)="$event.stopPropagation(); deleteCustomerProfile(prof)" class="btn btn-link btn-xs text-danger text-decoration-none p-0" title="Delete this customer profile">
+                      <i class="bi bi-trash3"></i> Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: Customer PO Sheet Editor (8 cols) -->
+          <div class="col-lg-8">
+            <div class="glass-panel p-3 p-md-4 h-100 d-flex flex-column">
+              <!-- Header & Quick Actions -->
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pb-3 mb-3 border-bottom border-secondary border-opacity-20">
+                <div>
+                  <h5 class="fw-bold text-light mb-1">
+                    <i class="bi bi-receipt text-warning me-2"></i>
+                    {{ isCreatingNewPO ? 'Create Customer Purchase Order (புதிய வாடிக்கையாளர் PO)' : 'Edit Customer PO: ' + editingCustomerPO.customerName }}
+                  </h5>
+                  <p class="text-secondary small mb-0">
+                    Configure agreed items, barcode numbers, customer prices and quantities for this customer.
+                  </p>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                  <span *ngIf="poSaveMessage" class="badge bg-success bg-opacity-25 text-success py-1.5 px-2 animate__animated animate__fadeIn">
+                    <i class="bi bi-check-circle-fill me-1"></i>{{ poSaveMessage }}
+                  </span>
+                  <button type="button" (click)="saveCurrentCustomerPO()" class="btn btn-glow-primary btn-sm px-3 fw-bold">
+                    <i class="bi bi-floppy-fill me-1"></i>Save Customer PO
+                  </button>
+                  <button type="button" (click)="loadCurrentPOIntoBill()" class="btn btn-success btn-sm px-3 fw-bold shadow">
+                    <i class="bi bi-cart-check-fill me-1"></i>Save & Open in Bill
+                  </button>
+                </div>
+              </div>
+
+              <!-- Customer Info Row -->
+              <div class="row g-2 mb-3 p-2.5 rounded-3 bg-dark bg-opacity-60 border border-secondary border-opacity-30">
+                <div class="col-md-7">
+                  <label class="form-label text-secondary small fw-semibold mb-1">Customer / Shop Name * (வாடிக்கையாளர் பெயர்)</label>
+                  <input type="text" class="form-control form-control-sm bg-dark text-warning border-warning border-opacity-40 fw-bold"
+                         [(ngModel)]="editingCustomerPO.customerName"
+                         placeholder="e.g. Kumar Store / City Super / Fashion Bug">
+                </div>
+                <div class="col-md-5">
+                  <label class="form-label text-secondary small fw-semibold mb-1">Phone / Mobile (தொலைபேசி எண்)</label>
+                  <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary"
+                         [(ngModel)]="editingCustomerPO.customerPhone"
+                         placeholder="e.g. 0771234567">
+                </div>
+              </div>
+
+              <!-- Quick Add From Catalog Row -->
+              <div class="p-2 mb-3 rounded-2 bg-dark border border-secondary border-opacity-20 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 480px;">
+                  <span class="text-secondary small fw-semibold text-nowrap"><i class="bi bi-plus-circle text-info me-1"></i>Quick Add from Catalog:</span>
+                  <select class="form-select form-select-sm bg-dark text-light border-secondary" #quickProdSelect (change)="addCatalogProductToPO(quickProdSelect.value); quickProdSelect.value = ''">
+                    <option value="">-- Choose Product to Add to PO --</option>
+                    <option *ngFor="let p of products()" [value]="p.id">
+                      {{ p.name }} &bull; SKU: {{ p.sku }} &bull; (Price: {{ p.currency || defaultCurrency }} {{ p.price }})
+                    </option>
+                  </select>
+                </div>
+                <button type="button" (click)="addPORow()" class="btn btn-outline-warning btn-sm px-2.5 fw-semibold">
+                  <i class="bi bi-plus-lg me-1"></i>+ Add Empty Row
+                </button>
+              </div>
+
+              <!-- PO Items Table with exact requested columns: Barcode Num, Product Name, Cost/Price, Qty, Total -->
+              <div class="table-responsive flex-grow-1 border border-secondary border-opacity-20 rounded-3 mb-3 bg-dark bg-opacity-30">
+                <table class="table table-dark table-hover table-sm align-middle mb-0" style="font-size: 0.84rem;">
+                  <thead class="text-secondary text-uppercase text-xs" style="background: rgba(15, 23, 42, 0.85);">
+                    <tr>
+                      <th style="width: 32px;" class="text-center">#</th>
+                      <th style="width: 175px;">Barcode Number (பார்கோடு)</th>
+                      <th>Product Name (பொருள் பெயர்)</th>
+                      <th style="width: 75px;" class="text-center">Unit</th>
+                      <th style="width: 130px;" class="text-end">Agreed Price / Cost (விலை) *</th>
+                      <th style="width: 90px;" class="text-center">Default Qty (அளவு)</th>
+                      <th style="width: 110px;" class="text-end">Line Total (மொத்தம்)</th>
+                      <th style="width: 42px;" class="text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of editingCustomerPO.items; let idx = index" class="border-secondary border-opacity-15">
+                      <td class="text-center text-muted font-monospace text-xs">{{ idx + 1 }}</td>
+                      <td>
+                        <div class="input-group input-group-sm">
+                          <span class="input-group-text bg-dark border-secondary p-1 text-secondary"><i class="bi bi-upc"></i></span>
+                          <input type="text" class="form-control form-control-sm bg-dark text-info font-monospace border-secondary p-1"
+                                 [(ngModel)]="row.barcode"
+                                 placeholder="Barcode / SKU">
+                        </div>
+                      </td>
+                      <td>
+                        <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary p-1 fw-semibold"
+                               [(ngModel)]="row.productName"
+                               placeholder="Type or select product name"
+                               [attr.list]="'poCatalogList_' + idx"
+                               (change)="onPOProductNameChange(row)">
+                        <datalist [id]="'poCatalogList_' + idx">
+                          <option *ngFor="let p of products()" [value]="p.name">{{ p.sku }} &bull; {{ defaultCurrency }} {{ p.price }}</option>
+                        </datalist>
+                      </td>
+                      <td class="text-center">
+                        <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary text-center p-1 text-xs"
+                               [(ngModel)]="row.unit"
+                               placeholder="PCS"
+                               style="width: 60px; margin: 0 auto;">
+                      </td>
+                      <td>
+                        <div class="input-group input-group-sm">
+                          <span class="input-group-text bg-dark border-secondary p-1 text-secondary text-xs">{{ defaultCurrency }}</span>
+                          <input type="number" step="0.5" min="0"
+                                 class="form-control form-control-sm bg-dark text-warning fw-bold text-end border-secondary p-1"
+                                 [(ngModel)]="row.unitPrice"
+                                 (ngModelChange)="onPORowChange(row)"
+                                 placeholder="0.00">
+                        </div>
+                      </td>
+                      <td>
+                        <input type="number" step="any" min="0"
+                               class="form-control form-control-sm bg-dark text-light fw-bold text-center border-secondary p-1"
+                               [(ngModel)]="row.quantity"
+                               (ngModelChange)="onPORowChange(row)"
+                               placeholder="1">
+                      </td>
+                      <td class="text-end font-monospace text-success fw-bold">
+                        {{ defaultCurrency }} {{ (row.lineTotal || 0) | number:'1.2-2' }}
+                      </td>
+                      <td class="text-center">
+                        <button type="button" (click)="removePORow(idx)" class="btn btn-link btn-xs text-danger p-0" title="Delete row">
+                          <i class="bi bi-trash3 fs-6"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- PO Footer Summary Banner -->
+              <div class="p-3 rounded-3 bg-dark border border-secondary border-opacity-30 d-flex flex-wrap align-items-center justify-content-between gap-2 mt-auto">
+                <div class="d-flex align-items-center gap-2">
+                  <button type="button" (click)="addPORow()" class="btn btn-outline-secondary btn-sm px-2.5">
+                    <i class="bi bi-plus-lg me-1"></i>+ Add Row
+                  </button>
+                  <span class="text-secondary small ms-2">
+                    Active Items: <strong class="text-light">{{ editingPOTotalItemsCount }}</strong>
+                  </span>
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
+                  <div class="text-end">
+                    <small class="text-secondary text-xs d-block">Estimated PO Total:</small>
+                    <span class="fs-5 fw-bold text-success font-monospace">
+                      {{ defaultCurrency }} {{ editingPOTotalAmount | number:'1.2-2' }}
+                    </span>
+                  </div>
+                  <button type="button" (click)="saveCurrentCustomerPO()" class="btn btn-glow-primary btn-sm px-3 fw-bold">
+                    <i class="bi bi-floppy-fill me-1"></i>Save Customer PO
+                  </button>
+                  <button type="button" (click)="loadCurrentPOIntoBill()" class="btn btn-success btn-sm px-3 fw-bold shadow">
+                    <i class="bi bi-cart-check-fill me-1"></i>Open in Bill
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1076,7 +1324,7 @@ interface CartItem {
   `]
 })
 export class BillingComponent implements OnInit {
-  activeTab: 'POS' | 'HISTORY' = 'POS';
+  activeTab: 'POS' | 'CUSTOMER_POS' | 'HISTORY' = 'POS';
   billFormat: 'THERMAL' | 'A4' = 'THERMAL';
 
   products = signal<Product[]>([]);
@@ -1124,6 +1372,27 @@ export class BillingComponent implements OnInit {
   selectedCustomerOption: string = '__WALK_IN__';
   selectedCustomerProfile: CustomerProfile | null = null;
   customerPriceMap: { [productId: number]: number } = {};
+
+  // Customer PO Manager State
+  customerSearchQuery: string = '';
+  editingCustomerPO = {
+    customerName: '',
+    customerPhone: '',
+    items: [
+      {
+        productId: undefined as number | undefined,
+        productName: '',
+        sku: '',
+        barcode: '',
+        unit: 'PCS',
+        unitPrice: 0,
+        quantity: 1,
+        lineTotal: 0
+      }
+    ]
+  };
+  isCreatingNewPO: boolean = false;
+  poSaveMessage: string = '';
 
   isSubmitting = false;
 
@@ -1245,6 +1514,290 @@ export class BillingComponent implements OnInit {
   switchToHistory(): void {
     this.activeTab = 'HISTORY';
     this.loadInvoices();
+  }
+
+  switchToCustomerPOs(): void {
+    this.activeTab = 'CUSTOMER_POS';
+    this.loadCustomerProfiles();
+    if (this.customerProfiles.length > 0 && !this.editingCustomerPO.customerName) {
+      this.selectCustomerForEdit(this.customerProfiles[0]);
+    }
+  }
+
+  get filteredCustomerProfiles(): CustomerProfile[] {
+    if (!this.customerSearchQuery || !this.customerSearchQuery.trim()) {
+      return this.customerProfiles;
+    }
+    const q = this.customerSearchQuery.toLowerCase().trim();
+    return this.customerProfiles.filter(p =>
+      p.customerName.toLowerCase().includes(q) ||
+      (p.customerPhone && p.customerPhone.toLowerCase().includes(q))
+    );
+  }
+
+  get editingPOTotalItemsCount(): number {
+    return (this.editingCustomerPO?.items || []).filter(i => (i.productName && i.productName.trim()) || (i.barcode && i.barcode.trim())).length;
+  }
+
+  get editingPOTotalAmount(): number {
+    return (this.editingCustomerPO?.items || []).reduce((acc, row) => acc + (row.lineTotal || 0), 0);
+  }
+
+  selectCustomerForEdit(profile: CustomerProfile): void {
+    this.isCreatingNewPO = false;
+    this.poSaveMessage = '';
+    const items = (profile.items && profile.items.length > 0)
+      ? profile.items.map(item => ({
+          productId: item.productId,
+          productName: item.productName || '',
+          sku: item.sku || '',
+          barcode: item.barcode || '',
+          unit: item.unit || 'PCS',
+          unitPrice: item.unitPrice || 0,
+          quantity: item.quantity !== null && item.quantity !== undefined ? item.quantity : 1,
+          lineTotal: ((item.quantity !== null && item.quantity !== undefined ? item.quantity : 1) * (item.unitPrice || 0))
+        }))
+      : [
+          {
+            productId: undefined as number | undefined,
+            productName: '',
+            sku: '',
+            barcode: '',
+            unit: 'PCS',
+            unitPrice: 0,
+            quantity: 1,
+            lineTotal: 0
+          }
+        ];
+
+    this.editingCustomerPO = {
+      customerName: profile.customerName,
+      customerPhone: profile.customerPhone || '',
+      items
+    };
+  }
+
+  startNewCustomerPO(): void {
+    this.isCreatingNewPO = true;
+    this.poSaveMessage = '';
+    this.editingCustomerPO = {
+      customerName: '',
+      customerPhone: '',
+      items: [
+        {
+          productId: undefined as number | undefined,
+          productName: '',
+          sku: '',
+          barcode: '',
+          unit: 'PCS',
+          unitPrice: 0,
+          quantity: 1,
+          lineTotal: 0
+        }
+      ]
+    };
+  }
+
+  addPORow(): void {
+    this.editingCustomerPO.items.push({
+      productId: undefined,
+      productName: '',
+      sku: '',
+      barcode: '',
+      unit: 'PCS',
+      unitPrice: 0,
+      quantity: 1,
+      lineTotal: 0
+    });
+  }
+
+  removePORow(index: number): void {
+    if (this.editingCustomerPO.items.length > 1) {
+      this.editingCustomerPO.items.splice(index, 1);
+    } else {
+      this.editingCustomerPO.items = [{
+        productId: undefined,
+        productName: '',
+        sku: '',
+        barcode: '',
+        unit: 'PCS',
+        unitPrice: 0,
+        quantity: 1,
+        lineTotal: 0
+      }];
+    }
+  }
+
+  addCatalogProductToPO(prodIdStr: any): void {
+    if (!prodIdStr) return;
+    const prodId = Number(prodIdStr);
+    const prod = this.products().find(p => p.id === prodId);
+    if (!prod) return;
+
+    const items = this.editingCustomerPO.items;
+    const lastRow = items.length > 0 ? items[items.length - 1] : null;
+    const isEmpty = lastRow && !lastRow.productName && !lastRow.barcode && (!lastRow.unitPrice || lastRow.unitPrice === 0);
+
+    const newRow = {
+      productId: prod.id,
+      productName: prod.name,
+      sku: prod.sku || '',
+      barcode: prod.barcode || prod.sku || '',
+      unit: prod.unit || 'PCS',
+      unitPrice: prod.price || 0,
+      quantity: 1,
+      lineTotal: prod.price || 0
+    };
+
+    if (isEmpty && lastRow) {
+      items[items.length - 1] = newRow;
+    } else {
+      items.push(newRow);
+    }
+  }
+
+  onPOProductNameChange(row: any): void {
+    if (!row.productName) return;
+    const prod = this.products().find(p => p.name.toLowerCase() === row.productName.toLowerCase());
+    if (prod) {
+      row.productId = prod.id;
+      row.sku = prod.sku;
+      if (!row.barcode) row.barcode = prod.barcode || prod.sku || '';
+      if (!row.unitPrice || row.unitPrice === 0) row.unitPrice = prod.price || 0;
+      if (!row.unit) row.unit = prod.unit || 'PCS';
+    }
+    this.onPORowChange(row);
+  }
+
+  onPORowChange(row: any): void {
+    const qty = (row.quantity !== null && row.quantity !== undefined) ? Number(row.quantity) : 0;
+    const price = (row.unitPrice !== null && row.unitPrice !== undefined) ? Number(row.unitPrice) : 0;
+    row.lineTotal = qty * price;
+  }
+
+  saveCurrentCustomerPO(): void {
+    const name = this.editingCustomerPO.customerName ? this.editingCustomerPO.customerName.trim() : '';
+    if (!name) {
+      alert('Please enter a Customer / Shop Name to save the PO.');
+      return;
+    }
+
+    const validItems = this.editingCustomerPO.items
+      .filter(i => (i.productName && i.productName.trim()) || (i.barcode && i.barcode.trim()))
+      .map(i => ({
+        productId: i.productId || -(Math.floor(Math.random() * 100000)),
+        productName: i.productName.trim() || 'Product',
+        sku: i.sku || i.barcode || 'PO-ITEM',
+        barcode: i.barcode ? i.barcode.trim() : '',
+        unit: i.unit || 'PCS',
+        quantity: i.quantity !== null && i.quantity !== undefined ? Number(i.quantity) : 1,
+        unitPrice: Number(i.unitPrice) || 0,
+        lineTotal: (Number(i.quantity) || 1) * (Number(i.unitPrice) || 0)
+      }));
+
+    if (validItems.length === 0) {
+      alert('Please add at least one product with name or barcode to save the PO.');
+      return;
+    }
+
+    const grandTotal = validItems.reduce((acc, r) => acc + r.lineTotal, 0);
+
+    this.saveCustomerProfileLocally(
+      name,
+      this.editingCustomerPO.customerPhone ? this.editingCustomerPO.customerPhone.trim() : '',
+      'PO-' + Date.now().toString().slice(-4),
+      grandTotal,
+      validItems
+    );
+
+    this.loadCustomerProfiles();
+    this.isCreatingNewPO = false;
+    this.poSaveMessage = `Saved PO for ${name}!`;
+    setTimeout(() => {
+      this.poSaveMessage = '';
+    }, 4000);
+  }
+
+  loadCurrentPOIntoBill(): void {
+    this.saveCurrentCustomerPO();
+    const prof = this.customerProfiles.find(p => p.customerName.toLowerCase() === this.editingCustomerPO.customerName.trim().toLowerCase());
+    if (prof) {
+      this.loadSpecificPOIntoBill(prof);
+    }
+  }
+
+  loadSpecificPOIntoBill(profile: CustomerProfile): void {
+    this.selectedCustomerOption = profile.customerName;
+    this.customerName = profile.customerName;
+    this.customerPhone = profile.customerPhone || '';
+    this.isWalkIn = false;
+    this.selectedCustomerProfile = profile;
+
+    // Price memory map
+    this.customerPriceMap = {};
+    if (profile.items) {
+      for (const itm of profile.items) {
+        if (itm.productId) {
+          this.customerPriceMap[itm.productId] = itm.unitPrice;
+        }
+      }
+    }
+
+    this.loadProfileIntoCart(profile);
+    this.activeTab = 'POS';
+    this.autoConvertToast = `✅ Loaded Purchase Order for "${profile.customerName}"! (${this.cart.length} items ready in bill)`;
+    setTimeout(() => {
+      this.autoConvertToast = null;
+    }, 5000);
+  }
+
+  deleteCustomerProfile(profile: CustomerProfile): void {
+    if (!confirm(`Are you sure you want to delete the saved PO profile for "${profile.customerName}"?`)) {
+      return;
+    }
+    try {
+      const list = this.getLocalProfiles().filter(p => p.customerName.toLowerCase() !== profile.customerName.toLowerCase());
+      localStorage.setItem(this.getCustomerProfilesStorageKey(), JSON.stringify(list));
+      this.loadCustomerProfiles();
+      if (this.editingCustomerPO.customerName.toLowerCase() === profile.customerName.toLowerCase()) {
+        if (this.customerProfiles.length > 0) {
+          this.selectCustomerForEdit(this.customerProfiles[0]);
+        } else {
+          this.startNewCustomerPO();
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to delete customer profile', e);
+    }
+  }
+
+  onCustomerNameInput(): void {
+    if (!this.customerName || !this.customerName.trim()) return;
+    const cleanName = this.customerName.trim().toLowerCase();
+    const match = this.customerProfiles.find(p => p.customerName.toLowerCase() === cleanName);
+    if (match) {
+      // User typed or selected an existing customer! Automatically populate the bill cart!
+      this.selectedCustomerOption = match.customerName;
+      this.customerPhone = match.customerPhone || this.customerPhone;
+      this.isWalkIn = false;
+      this.selectedCustomerProfile = match;
+
+      // Map prices
+      this.customerPriceMap = {};
+      if (match.items) {
+        for (const itm of match.items) {
+          if (itm.productId) {
+            this.customerPriceMap[itm.productId] = itm.unitPrice;
+          }
+        }
+      }
+
+      this.loadProfileIntoCart(match);
+      this.autoConvertToast = `✅ Customer "${match.customerName}" matched! ${this.cart.length} items auto-populated in bill.`;
+      setTimeout(() => {
+        this.autoConvertToast = null;
+      }, 4000);
+    }
   }
 
   onWarehouseChange(): void {
@@ -1406,7 +1959,8 @@ export class BillingComponent implements OnInit {
     grandTotal?: number,
     customItems?: any[]
   ): void {
-    if (!name || name.trim() === 'Walk-in Customer' || this.isWalkIn) return;
+    if (!name || name.trim() === 'Walk-in Customer') return;
+    if (!customItems && this.isWalkIn) return;
     try {
       const list = this.getLocalProfiles();
       const cleanName = name.trim();
